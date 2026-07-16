@@ -9,7 +9,8 @@ Phase 1 — Foundation (in progress)
 | Milestone | Status |
 |-----------|--------|
 | Milestone 1 — Repository & Development Environment Setup | Complete |
-| Milestone 2 — Project Structure & Configuration | Not started |
+| Milestone 2 — Project Structure & Configuration | Complete |
+| Milestone 3 — Docker & Docker Compose | Not started |
 
 Architecture is frozen in [`docs/Architecture.md`](docs/Architecture.md). Phase 1 scope and ordering are defined in [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md).
 
@@ -73,7 +74,7 @@ python -m pip install --upgrade pip
 pip install -r requirements/dev.txt
 ```
 
-`requirements/dev.txt` includes `requirements/base.txt`. Both files are intentionally minimal at Milestone 1; runtime and dev packages are added in later milestones.
+`requirements/dev.txt` includes `requirements/base.txt`.
 
 ### 5. Verify the environment
 
@@ -83,6 +84,24 @@ pip list
 ```
 
 Setup is complete when the virtual environment activates without errors and `pip install -r requirements/dev.txt` finishes successfully.
+
+## Configuration
+
+Environment templates live in [`config/environments/`](config/environments/). For local development, copy the dev template to a `.env` file at the repo root (optional — defaults for `GAIAOS_ENV` and `LOG_LEVEL` apply without it):
+
+```bash
+cp config/environments/dev.env.example .env
+```
+
+Application code should always access configuration through `get_settings()` instead of reading environment variables directly. All configuration access is centralized in [`config/settings.py`](config/settings.py).
+
+Load settings from anywhere in the codebase:
+
+```python
+from config import get_settings
+
+settings = get_settings()
+```
 
 ## Dependency Management
 
@@ -101,4 +120,4 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branching convention: `main` pl
 
 ## Tech Stack
 
-To be implemented according to [`docs/Architecture.md`](docs/Architecture.md) across Phase 1 milestones. No application services exist yet at Milestone 1.
+To be implemented according to [`docs/Architecture.md`](docs/Architecture.md) across Phase 1 milestones. No application services exist yet.
