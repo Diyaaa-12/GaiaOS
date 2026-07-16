@@ -87,10 +87,24 @@ Setup is complete when the virtual environment activates without errors and `pip
 
 ## Configuration
 
-Environment templates live in [`config/environments/`](config/environments/). For local development, copy the dev template to a `.env` file at the repo root (optional — defaults for `GAIAOS_ENV` and `LOG_LEVEL` apply without it):
+Environment templates live in [`config/environments/`](config/environments/). For local development, copy the dev template to a `.env` file at the repo root (optional — defaults for `GAIAOS_ENV` and `LOG_LEVEL` apply without it).
+
+### Linux / macOS
 
 ```bash
 cp config/environments/dev.env.example .env
+```
+
+### Windows (PowerShell)
+
+```powershell
+Copy-Item config/environments/dev.env.example .env
+```
+
+### Windows (Command Prompt)
+
+```cmd
+copy config\environments\dev.env.example .env
 ```
 
 Application code should always access configuration through `get_settings()` instead of reading environment variables directly. All configuration access is centralized in [`config/settings.py`](config/settings.py).
