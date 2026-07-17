@@ -10,7 +10,7 @@ Phase 1 — Foundation (in progress)
 |-----------|--------|
 | Milestone 1 — Repository & Development Environment Setup | Complete |
 | Milestone 2 — Project Structure & Configuration | Complete |
-| Milestone 3 — Docker & Docker Compose | Not started |
+| Milestone 3 — Docker & Docker Compose | Complete |
 
 Architecture is frozen in [`docs/Architecture.md`](docs/Architecture.md). Phase 1 scope and ordering are defined in [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md).
 
@@ -18,6 +18,7 @@ Architecture is frozen in [`docs/Architecture.md`](docs/Architecture.md). Phase 
 
 - **Git**
 - **Python 3.12** — version pinned in [`.python-version`](.python-version) and [`pyproject.toml`](pyproject.toml)
+- **Docker Engine 24+** and **Docker Compose v2** (`docker compose`) — required for the containerized local stack (Milestone 3)
 
 Optional but recommended:
 
@@ -84,6 +85,74 @@ pip list
 ```
 
 Setup is complete when the virtual environment activates without errors and `pip install -r requirements/dev.txt` finishes successfully.
+
+## Docker Local Development
+
+Milestone 3 establishes the containerized runtime before FastAPI is added in Milestone 4. The compose stack runs a placeholder app container and a PostgreSQL instance with PostGIS and pgvector.
+
+### First-time or rebuild startup
+
+```bash
+docker compose up --build
+```
+
+Builds the app image and starts both services. On first boot with an empty database volume, [`infra/docker/postgres/init-extensions.sql`](infra/docker/postgres/init-extensions.sql) enables PostGIS and pgvector.
+
+### Stop services (preserve database data)
+
+```bash
+docker compose down
+```
+
+Stops and removes containers. The named volume `postgres_data` persists, so database data survives restarts.
+
+### Stop services and destroy database data
+
+```bash
+docker compose down -v
+```
+
+Removes containers **and volumes**. Use this after changing `init-extensions.sql` or when extensions are missing because Postgres was first initialized without the init script. **This permanently deletes local database data.**
+
+### View logs
+
+```bash
+docker compose logs app
+docker compose logs postgres
+```
+
+The app log should show settings loaded from the environment, including `database_url` pointing at `postgres:5432`. The postgres log shows startup and init script execution on first boot.
+
+### Verify extensions
+
+```bash
+docker compose exec postgres psql -U gaiaos -d gaiaos -c "\dx"
+```
+
+Expect `postgis` and `vector` in the extension list.
+
+### Host access to Postgres (optional)
+
+To connect from Python on the host (venv) while Postgres runs in Docker, copy the override template:
+
+**Linux / macOS:**
+
+```bash
+cp docker-compose.override.yml.example docker-compose.override.yml
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Copy-Item docker-compose.override.yml.example docker-compose.override.yml
+```
+
+This publishes Postgres on `localhost:5432`. Use the `DATABASE_URL` in [`config/environments/dev.env.example`](config/environments/dev.env.example) for host-run Python. When the app runs inside Docker Compose, `docker-compose.yml` sets `DATABASE_URL` to use the service hostname `postgres` instead.
+
+| Workflow | `DATABASE_URL` host |
+|----------|---------------------|
+| App in Docker (default compose) | `postgres` |
+| Python on host, DB in Docker | `localhost` |
 
 ## Configuration
 

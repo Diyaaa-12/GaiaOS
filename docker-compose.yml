@@ -1,0 +1,33 @@
+name: gaiaos
+
+services:
+  postgres:
+    build:
+      context: ./infra/docker/postgres
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_USER: gaiaos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gaiaos_dev_password}
+      POSTGRES_DB: gaiaos
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init-extensions.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gaiaos -d gaiaos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    build: .
+    environment:
+      GAIAOS_ENV: ${GAIAOS_ENV:-dev}
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      DATABASE_URL: postgresql://gaiaos:${POSTGRES_PASSWORD:-gaiaos_dev_password}@postgres:5432/gaiaos
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

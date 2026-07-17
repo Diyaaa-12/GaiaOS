@@ -1,0 +1,7 @@
+# Copy to docker-compose.override.yml for local developer overrides.
+# docker-compose.override.yml is gitignored — do not commit machine-specific settings.
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
