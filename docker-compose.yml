@@ -21,6 +21,8 @@ services:
 
   app:
     build: .
+    ports:
+      - "8000:8000"
     environment:
       GAIAOS_ENV: ${GAIAOS_ENV:-dev}
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
@@ -28,6 +30,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; r = urllib.request.urlopen('http://localhost:8000/api/v1/ping'); sys.exit(0 if r.status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
   postgres_data:
