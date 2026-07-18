@@ -8,9 +8,11 @@ included into ``v1_router`` from ``app.api.v1.__init__``).
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app.api.v1.health import health_router
 from app.dependencies import SettingsDep
 
 v1_router = APIRouter(tags=["v1"])
+v1_router.include_router(health_router)
 
 
 class PingResponse(BaseModel):
