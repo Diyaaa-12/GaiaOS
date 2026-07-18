@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY pyproject.toml .
 COPY alembic.ini .
 COPY config/ config/
+COPY logging_config/ logging_config/
 COPY gateway/ gateway/
 COPY orchestrator/ orchestrator/
 COPY app/ app/

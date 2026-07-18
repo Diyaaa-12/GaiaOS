@@ -20,8 +20,11 @@ from app.api import api_router
 from app.api.root import root_router
 from app.dependencies import get_settings
 from gateway.middleware import GatewayMiddleware
+from logging_config import configure_logging, get_logger
 import db.session as _db_session
 from db.session import dispose_engine, init_engine, verify_extensions
+
+_log = get_logger(__name__)
 
 
 async def _run_startup_db_checks() -> None:
@@ -53,8 +56,7 @@ async def _run_startup_db_checks() -> None:
                 f"Required PostgreSQL extensions are not installed: {missing}.  "
                 "Ensure the database was initialised with init-extensions.sql."
             )
-        # TODO(M8): replace with structured logger once logging layer is in place
-        print(f"[GaiaOS] DB extensions verified: {ext_status}", flush=True)
+        _log.info("db.extensions.verified", extensions=ext_status)
 
         # --- 2. Throwaway geometry check (PostGIS) ---
         # --- 3. Throwaway vector check (pgvector) ---
@@ -78,9 +80,8 @@ async def _run_startup_db_checks() -> None:
             ))
             await session.execute(text("SELECT embedding FROM _m5_vec_check"))
 
-            # TODO(M8): replace with structured logger once logging layer is in place
-            print("[GaiaOS] PostGIS geometry check: OK", flush=True)
-            print("[GaiaOS] pgvector vector check:  OK", flush=True)
+            _log.info("db.postgis.ok")
+            _log.info("db.pgvector.ok")
         finally:
             # Roll back to the savepoint so temporary tables are discarded
             # even if the checks fail partway through.
@@ -96,11 +97,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Shutdown: dispose the connection pool cleanly.
     """
     settings = get_settings()
-    # TODO(M8): replace with structured logger once logging layer is in place
-    print(
-        f"[GaiaOS] starting up | env={settings.gaiaos_env} "
-        f"| log_level={settings.log_level}",
-        flush=True,
+    _log.info(
+        "app.startup",
+        env=settings.gaiaos_env,
+        log_level=settings.log_level,
     )
 
     # --- startup ---
@@ -111,8 +111,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # --- shutdown ---
     await dispose_engine()
-    # TODO(M8): replace with structured logger once logging layer is in place
-    print("[GaiaOS] shutting down", flush=True)
+    _log.info("app.shutdown")
 
 
 def create_app() -> FastAPI:
@@ -121,6 +120,13 @@ def create_app() -> FastAPI:
     Using a factory function (rather than a module-level ``app = FastAPI()``)
     makes the app easier to instantiate in tests with different settings.
     """
+    settings = get_settings()
+
+    # Logging must be configured before any logger is used, including loggers
+    # obtained at module import time (e.g. in middleware).  This is the single
+    # call site for logging configuration in the entire application.
+    configure_logging(settings)
+
     application = FastAPI(
         title="GaiaOS",
         version=__version__,

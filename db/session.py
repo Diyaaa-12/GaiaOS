@@ -96,10 +96,12 @@ def init_engine() -> None:
         # dev/staging deployment; tune via env vars in later milestones.
         pool_size=5,
         max_overflow=10,
-        # Echo SQL in dev so queries are visible without a dedicated logger.
-        # Milestone 8 will replace this with structlog; keeping it here for now.
-        # TODO(M8): replace echo with structured query logging.
-        echo=settings.gaiaos_env == "dev",
+        # SQL query logging is now controlled by the stdlib logging bridge
+        # configured in logging_config.setup.configure_logging().
+        # Set LOG_LEVEL=DEBUG to see all queries; higher levels suppress them.
+        # echo=False prevents SQLAlchemy from bypassing the logging bridge
+        # with its own raw stdout writes.
+        echo=False,
     )
 
     AsyncSessionLocal = async_sessionmaker(

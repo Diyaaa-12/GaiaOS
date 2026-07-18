@@ -8,3 +8,5 @@ asyncpg>=0.29,<1
 pgvector>=0.3,<1
 # Database migrations (Milestone 6).
 alembic>=1.13,<2
+# Structured logging (Milestone 8).
+structlog>=24.1,<26

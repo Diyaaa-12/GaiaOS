@@ -17,9 +17,21 @@ What the middleware intentionally does NOT do:
 - No business logic.
 - No database access.
 - No orchestration.
-- No logging framework calls (deferred to Milestone 8).
-- No request body inspection.
+- No request body inspection (security: bodies are never logged by default).
 - No response body modification beyond adding the header.
+- No Authorization headers, passwords, or tokens are ever logged.
+
+Request logging
+---------------
+One structured access-log entry is emitted per request with:
+  method, path, status_code, duration_ms, request_id
+
+The ``request_id`` is read from contextvars (set earlier in ``dispatch``),
+not regenerated, so it matches the value in the response header.
+
+To add request-body logging in a future milestone, add a processor or a
+conditional hook here (e.g. ``if settings.log_request_body``) with
+appropriate redaction — never log raw bodies unconditionally.
 
 Auth and rate-limit providers
 ------------------------------
@@ -36,6 +48,7 @@ TODO(M_RATELIMIT): Pass a real ``RateLimiter`` implementation here once
 
 from __future__ import annotations
 
+import time
 import uuid
 
 from fastapi import Request, Response
@@ -45,6 +58,9 @@ from starlette.types import ASGIApp
 from gateway.auth_stub import AuthProvider, AuthStub
 from gateway.context import reset_request_id, set_request_id
 from gateway.rate_limit_stub import RateLimiter, RateLimitStub
+from logging_config import get_logger
+
+_log = get_logger(__name__)
 
 # The HTTP response header that carries the request ID.
 REQUEST_ID_HEADER: str = "X-Request-ID"
@@ -114,7 +130,9 @@ class GatewayMiddleware(BaseHTTPMiddleware):
             await self._rate_limiter.check(request)
 
             # --- 5. Continue to the route handler ---
+            start_ms: float = time.monotonic() * 1_000
             response: Response = await call_next(request)
+            duration_ms: float = round(time.monotonic() * 1_000 - start_ms, 2)
 
         finally:
             # --- 7. Clean up context variable ---
@@ -124,9 +142,21 @@ class GatewayMiddleware(BaseHTTPMiddleware):
             reset_request_id(token)
 
         # --- 6. Inject X-Request-ID into response ---
-        # Done after the try/finally block so that the header is always
-        # present on successful responses regardless of the inner call order.
         response.headers[REQUEST_ID_HEADER] = request_id
+
+        # --- 8. Emit structured access log ---
+        # Security: only safe, non-sensitive fields are logged.
+        # Authorization headers, request bodies, and tokens are NEVER logged.
+        # request_id comes from contextvars (set above) — not regenerated.
+        _log.info(
+            "request",
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+        )
+
         return response
 
 
