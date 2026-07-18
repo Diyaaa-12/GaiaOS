@@ -1,3 +1,6 @@
 -r base.txt
 
-# Development dependencies (linters, formatters, etc.) are added in later milestones.
+# Testing (Milestone 10A)
+pytest>=8.2,<9
+pytest-asyncio>=0.23,<1
+httpx>=0.27,<1

@@ -9,3 +9,14 @@ license = { text = "Proprietary" }
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+# Discover tests only under tests/ to avoid accidentally picking up conftest
+# files from third-party packages installed in the venv.
+testpaths = ["tests"]
+# Print test names as they run and summarise failures/skips at the end.
+addopts = "-v -ra"
+# asyncio_mode = "auto" runs every async test function and fixture under
+# asyncio without requiring @pytest.mark.asyncio on each one.
+# This is the modern, non-deprecated approach for pytest-asyncio >= 0.21.
+asyncio_mode = "auto"

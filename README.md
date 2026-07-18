@@ -154,6 +154,71 @@ This publishes Postgres on `localhost:5432`. Use the `DATABASE_URL` in [`config/
 | App in Docker (default compose) | `postgres` |
 | Python on host, DB in Docker | `localhost` |
 
+## Local Testing
+
+The test suite runs against a real PostgreSQL database — no mocks for database
+integration tests.  Configuration tests run without a database.
+
+### Prerequisites
+
+1. **Docker Compose stack must be running** with Postgres exposed on `localhost:5432`.
+   The port is not exposed by default.  Create the override file once:
+
+   **Linux / macOS:**
+   ```bash
+   cp docker-compose.override.yml.example docker-compose.override.yml
+   docker compose up -d
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   Copy-Item docker-compose.override.yml.example docker-compose.override.yml
+   docker compose up -d
+   ```
+
+   This publishes Postgres on `localhost:5432`.
+
+2. **`DATABASE_URL` must be set** in the terminal where you run pytest.
+
+### Run the complete test suite
+
+**Linux / macOS:**
+```bash
+DATABASE_URL=postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos pytest
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:DATABASE_URL = "postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos"
+pytest
+```
+
+Expected output: all tests pass (`31 passed`).
+
+### Run specific test categories
+
+```bash
+# Configuration tests only — no database required
+pytest tests/test_config.py
+
+# Database connectivity and extension tests
+pytest tests/test_db_connection.py
+
+# Health endpoint integration tests
+pytest tests/test_health.py
+```
+
+### What the tests verify
+
+| Test file | What is tested |
+|---|---|
+| `test_config.py` | Settings defaults, validation, DATABASE\_URL requirement per environment |
+| `test_db_connection.py` | Real DB connectivity, PostGIS present, pgvector present |
+| `test_health.py` | `/api/v1/health/live` → 200, `/api/v1/health/ready` → 200 with all fields |
+
+Configuration tests run in isolation (no database) and are always fast.
+Database and health tests require a running Postgres with PostGIS and pgvector.
+
 ## Configuration
 
 Environment templates live in [`config/environments/`](config/environments/). For local development, copy the dev template to a `.env` file at the repo root (optional — defaults for `GAIAOS_ENV` and `LOG_LEVEL` apply without it).
