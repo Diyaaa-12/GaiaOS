@@ -25,6 +25,19 @@ class Settings(BaseSettings):
         validation_alias="DATABASE_URL",
         description="PostgreSQL connection URL (optional in dev; required for staging/prod).",
     )
+    # ---------------------------------------------------------------------------
+    # Gateway settings (Milestone 7)
+    # ---------------------------------------------------------------------------
+    enable_auth: bool = Field(
+        default=False,
+        validation_alias="ENABLE_AUTH",
+        description=(
+            "Set to true to activate real authentication enforcement.  "
+            "False (the default) keeps the AuthStub active, which allows every "
+            "request — suitable for local development only.  "
+            "TODO(M_AUTH): Remove this flag once auth is mandatory in all envs."
+        ),
+    )
 
     @model_validator(mode="after")
     def require_database_url_outside_dev(self) -> Self:
