@@ -11,10 +11,13 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements/base.txt
 
 COPY pyproject.toml .
+COPY alembic.ini .
 COPY config/ config/
 COPY gateway/ gateway/
 COPY orchestrator/ orchestrator/
 COPY app/ app/
+COPY db/ db/
+COPY data/ data/
 
 EXPOSE 8000
 

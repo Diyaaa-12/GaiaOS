@@ -13,23 +13,87 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from app import __version__
 from app.api import api_router
 from app.api.root import root_router
 from app.dependencies import get_settings
+import db.session as _db_session
+from db.session import dispose_engine, init_engine, verify_extensions
+
+
+async def _run_startup_db_checks() -> None:
+    """Verify DB extensions and extension usability after engine init.
+
+    Performs three checks required by Milestone 5 acceptance criteria:
+    1. PostGIS and pgvector extensions are present (reads pg_extension).
+    2. A throwaway geometry column can be created and queried.
+    3. A throwaway vector column can be created and queried.
+
+    All DDL is wrapped in a transaction that is explicitly rolled back, so
+    no schema objects persist after the check.  This makes the check safe
+    to run on every startup including in production.
+
+    Raises ``RuntimeError`` if either required extension is missing.
+    Raises ``sqlalchemy.exc.OperationalError`` on connection failure.
+    """
+    # Access through the module so we see the value set by init_engine(),
+    # not the None that was bound at import time.
+    if _db_session.AsyncSessionLocal is None:
+        raise RuntimeError("init_engine() must be called before _run_startup_db_checks()")
+
+    async with _db_session.AsyncSessionLocal() as session:
+        # --- 1. Extension presence check ---
+        ext_status = await verify_extensions(session)
+        missing = [name for name, present in ext_status.items() if not present]
+        if missing:
+            raise RuntimeError(
+                f"Required PostgreSQL extensions are not installed: {missing}.  "
+                "Ensure the database was initialised with init-extensions.sql."
+            )
+        # TODO(M8): replace with structured logger once logging layer is in place
+        print(f"[GaiaOS] DB extensions verified: {ext_status}", flush=True)
+
+        # --- 2. Throwaway geometry check (PostGIS) ---
+        # --- 3. Throwaway vector check (pgvector) ---
+        # Both DDL blocks are run inside a savepoint that is always rolled
+        # back so the throwaway tables never exist after this function returns.
+        try:
+            await session.execute(text("SAVEPOINT m5_check"))
+            await session.execute(text(
+                "CREATE TEMP TABLE _m5_geom_check (geom geometry(Point, 4326))"
+            ))
+            await session.execute(text(
+                "INSERT INTO _m5_geom_check VALUES (ST_GeomFromText('POINT(0 0)', 4326))"
+            ))
+            await session.execute(text("SELECT ST_AsText(geom) FROM _m5_geom_check"))
+
+            await session.execute(text(
+                "CREATE TEMP TABLE _m5_vec_check (embedding vector(3))"
+            ))
+            await session.execute(text(
+                "INSERT INTO _m5_vec_check VALUES ('[1.0, 2.0, 3.0]')"
+            ))
+            await session.execute(text("SELECT embedding FROM _m5_vec_check"))
+
+            # TODO(M8): replace with structured logger once logging layer is in place
+            print("[GaiaOS] PostGIS geometry check: OK", flush=True)
+            print("[GaiaOS] pgvector vector check:  OK", flush=True)
+        finally:
+            # Roll back to the savepoint so temporary tables are discarded
+            # even if the checks fail partway through.
+            await session.execute(text("ROLLBACK TO SAVEPOINT m5_check"))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager.
 
-    Startup logic (e.g. DB connection pool initialisation) goes in the
-    section before ``yield``.  Shutdown / cleanup logic goes after.
-    Both sections are intentionally empty in Milestone 4 — they will be
-    populated in Milestone 5 (DB connection layer).
+    Startup:  initialise the connection pool; run extension and extension-
+              usability checks (Milestone 5 acceptance criteria).
+    Shutdown: dispose the connection pool cleanly.
     """
-    # --- startup ---
     settings = get_settings()
     # TODO(M8): replace with structured logger once logging layer is in place
     print(
@@ -37,8 +101,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         f"| log_level={settings.log_level}",
         flush=True,
     )
+
+    # --- startup ---
+    init_engine()
+    await _run_startup_db_checks()
+
     yield
+
     # --- shutdown ---
+    await dispose_engine()
     # TODO(M8): replace with structured logger once logging layer is in place
     print("[GaiaOS] shutting down", flush=True)
 
