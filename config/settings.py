@@ -30,6 +30,16 @@ class Settings(BaseSettings):
         validation_alias="REDIS_URL",
         description="Redis connection URL (optional in dev; required for staging/prod).",
     )
+    openaq_api_key: str | None = Field(
+        default=None,
+        validation_alias="OPENAQ_API_KEY",
+        description="Optional API key for OpenAQ measurements provider.",
+    )
+    orchestrator_version: str = Field(
+        default="1.0.0-dev",
+        validation_alias="ORCHESTRATOR_VERSION",
+        description="Active codebase version identifier.",
+    )
     # ---------------------------------------------------------------------------
     # Gateway settings (Milestone 7)
     # ---------------------------------------------------------------------------

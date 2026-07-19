@@ -12,4 +12,7 @@ alembic>=1.13,<2
 structlog>=24.1,<26
 # Redis client (Milestone 1)
 redis>=5.0,<6
+# Stateful agent orchestration (Milestone 2)
+langgraph>=0.2.0,<0.3.0
+
 

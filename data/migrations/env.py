@@ -54,6 +54,7 @@ if config.config_file_name is not None:
 
 # All ORM models must be imported *before* this line is reached so that
 # their Table objects are registered in Base.metadata.
+import db.models  # noqa: F401, E402
 
 target_metadata = Base.metadata
 

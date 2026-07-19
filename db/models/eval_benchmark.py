@@ -8,13 +8,16 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import DateTime, ForeignKey, Index, Numeric, String
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
+
+if TYPE_CHECKING:
+    from db.models.investigation import Investigation
 
 
 class EvalBenchmarkQuestion(Base):
@@ -63,6 +66,7 @@ class EvalBenchmarkRun(Base):
     )
     investigation_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("investigations.id", ondelete="SET NULL"),
         nullable=True,
     )
     orchestrator_version: Mapped[str] = mapped_column(String, nullable=False)
@@ -78,6 +82,10 @@ class EvalBenchmarkRun(Base):
     question: Mapped[EvalBenchmarkQuestion] = relationship(
         "EvalBenchmarkQuestion",
         back_populates="runs",
+    )
+    investigation: Mapped[Investigation | None] = relationship(
+        "Investigation",
+        back_populates="benchmark_runs",
     )
 
     __table_args__ = (

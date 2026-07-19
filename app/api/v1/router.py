@@ -9,10 +9,12 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.api.v1.health import health_router
+from app.api.v1.investigations import investigations_router
 from app.dependencies import SettingsDep
 
 v1_router = APIRouter(tags=["v1"])
 v1_router.include_router(health_router)
+v1_router.include_router(investigations_router)
 
 
 class PingResponse(BaseModel):

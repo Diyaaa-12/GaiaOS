@@ -6,8 +6,10 @@ Exposes ORM mapped classes:
 """
 
 from db.models.eval_benchmark import EvalBenchmarkQuestion, EvalBenchmarkRun
+from db.models.investigation import Investigation
 
 __all__ = [
     "EvalBenchmarkQuestion",
     "EvalBenchmarkRun",
+    "Investigation",
 ]
