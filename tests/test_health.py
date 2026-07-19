@@ -113,3 +113,44 @@ class TestReadiness:
         body = response.json()
         required_fields = {"status", "app_version", "schema_version", "database"}
         assert required_fields.issubset(body.keys())
+
+    async def test_ready_fails_on_db_error(self, client: AsyncClient, monkeypatch) -> None:
+        """Readiness probe returns HTTP 503 when the database throws an error."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        async def mock_verify_extensions(*args, **kwargs):
+            raise SQLAlchemyError("Connection refused")
+
+        monkeypatch.setattr("app.api.v1.health.verify_extensions", mock_verify_extensions)
+
+        response = await client.get("/api/v1/health/ready")
+        assert response.status_code == 503
+        body = response.json()
+        assert body["detail"]["status"] == "not_ready"
+        assert body["detail"]["failing_dependency"] == "database"
+
+    async def test_ready_fails_when_postgis_missing(self, client: AsyncClient, monkeypatch) -> None:
+        """Readiness probe returns HTTP 503 when PostGIS is missing."""
+        async def mock_verify_extensions(*args, **kwargs):
+            return {"postgis": False, "vector": True}
+
+        monkeypatch.setattr("app.api.v1.health.verify_extensions", mock_verify_extensions)
+
+        response = await client.get("/api/v1/health/ready")
+        assert response.status_code == 503
+        body = response.json()
+        assert body["detail"]["status"] == "not_ready"
+        assert body["detail"]["failing_dependency"] == "postgis"
+
+    async def test_ready_fails_on_pgvector_missing(self, client: AsyncClient, monkeypatch) -> None:
+        """Readiness probe returns HTTP 503 when pgvector is missing."""
+        async def mock_verify_extensions(*args, **kwargs):
+            return {"postgis": True, "vector": False}
+
+        monkeypatch.setattr("app.api.v1.health.verify_extensions", mock_verify_extensions)
+
+        response = await client.get("/api/v1/health/ready")
+        assert response.status_code == 503
+        body = response.json()
+        assert body["detail"]["status"] == "not_ready"
+        assert body["detail"]["failing_dependency"] == "pgvector"

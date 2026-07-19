@@ -20,6 +20,13 @@ COPY app/ app/
 COPY db/ db/
 COPY data/ data/
 
+# Create a non-root user and group
+RUN groupadd -g 10000 gaiaos \
+    && useradd -u 10000 -g gaiaos -s /bin/bash -m gaiaos \
+    && chown -R gaiaos:gaiaos /app
+
+USER gaiaos
+
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

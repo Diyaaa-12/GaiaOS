@@ -37,6 +37,11 @@ jobs:
       - name: Run Ruff
         run: ruff check .
 
+      - name: Run Alembic Migrations
+        env:
+          DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
+        run: alembic upgrade head
+
       - name: Run Pytest
         env:
           DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
