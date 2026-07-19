@@ -29,8 +29,10 @@ async def supervisor_node(state: TaskGraphState) -> dict[str, Any]:
 
 def route_by_complexity(state: TaskGraphState) -> str:
     """Route conditional edge based on complexity tier."""
-    # In Milestone 2, all paths route to the air_quality agent
-    return "air_quality"
+    tier = state.get("complexity_tier")
+    if tier == ComplexityTier.TRIVIAL:
+        return "air_quality"
+    return "fan_out"
 
 
 async def air_quality_node(state: TaskGraphState) -> dict[str, Any]:
@@ -40,6 +42,24 @@ async def air_quality_node(state: TaskGraphState) -> dict[str, Any]:
         investigation_id=state["investigation_id"],
         query=state["query"],
         region_hint=None,  # Parsed or extracted region
+    )
+    output = await run_air_quality(agent_input)
+    return {"agent_outputs": [output]}
+
+
+async def fan_out_node(state: TaskGraphState) -> dict[str, Any]:
+    """Temporary Milestone 3 placeholder for the multi-agent fan-out path.
+
+    Crucial: This node is a temporary routing infrastructure. In Milestone 4, this
+    will be replaced by a genuine parallel FanOutCoordinator running asynchronous gathers
+    over all matched domain agents. Currently, it stubs routing by falling back to the
+    Air Quality agent as the sole active target.
+    """
+    _log.info("graph.node.fan_out.started", investigation_id=str(state["investigation_id"]))
+    agent_input = AgentInput(
+        investigation_id=state["investigation_id"],
+        query=state["query"],
+        region_hint=None,
     )
     output = await run_air_quality(agent_input)
     return {"agent_outputs": [output]}
@@ -77,6 +97,13 @@ async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
         else ComplexityTier.TRIVIAL.value
     )
 
+    nodes_executed = ["supervisor"]
+    if state.get("complexity_tier") == ComplexityTier.TRIVIAL:
+        nodes_executed.append("air_quality")
+    else:
+        nodes_executed.append("fan_out")
+    nodes_executed.append("synthesis")
+
     # Save to database
     if db_session.AsyncSessionLocal is None:
         raise RuntimeError("Database session factory is not initialised.")
@@ -89,7 +116,7 @@ async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
             answer=final_answer,
             confidence=1.0 if claims else 0.0,
             execution_trace={
-                "nodes_executed": ["supervisor", "air_quality", "synthesis"],
+                "nodes_executed": nodes_executed,
                 "evidence_count": len(claims),
             },
         )
@@ -104,21 +131,24 @@ def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
     # Add Nodes
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("air_quality", air_quality_node)
+    workflow.add_node("fan_out", fan_out_node)
     workflow.add_node("synthesis", synthesis_node)
 
     # Add Edges
     workflow.add_edge(START, "supervisor")
 
-    # Conditional edge from supervisor to air_quality
+    # Conditional edge from supervisor to air_quality or fan_out
     workflow.add_conditional_edges(
         "supervisor",
         route_by_complexity,
         {
             "air_quality": "air_quality",
+            "fan_out": "fan_out",
         },
     )
 
     workflow.add_edge("air_quality", "synthesis")
+    workflow.add_edge("fan_out", "synthesis")
     workflow.add_edge("synthesis", END)
 
     return workflow.compile(checkpointer=checkpointer)
