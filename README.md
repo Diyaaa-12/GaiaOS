@@ -6,13 +6,20 @@ An Agentic Planetary Risk Intelligence Platform.
 
 ## Status
 
-Phase 1 — Foundation (in progress)
+Phase 1 — Foundation (Complete)
 
 | Milestone | Status |
 |-----------|--------|
 | Milestone 1 — Repository & Development Environment Setup | Complete |
 | Milestone 2 — Project Structure & Configuration | Complete |
 | Milestone 3 — Docker & Docker Compose | Complete |
+| Milestone 4 — FastAPI Foundation & Request ID | Complete |
+| Milestone 5 — PostgreSQL Database Architecture | Complete |
+| Milestone 6 — Alembic Migration Pipeline | Complete |
+| Milestone 7 — Gateway Middleware & Logging | Complete |
+| Milestone 8 — Production Environment Settings | Complete |
+| Milestone 9 — Application Health Probes | Complete |
+| Milestone 10 — Test Infrastructure & GitHub Actions CI | Complete |
 
 Architecture is frozen in [`docs/Architecture.md`](docs/Architecture.md). Phase 1 scope and ordering are defined in [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md).
 
@@ -169,18 +176,31 @@ integration tests.  Configuration tests run without a database.
    **Linux / macOS:**
    ```bash
    cp docker-compose.override.yml.example docker-compose.override.yml
-   docker compose up -d
+   docker compose up -d --wait postgres
    ```
 
    **Windows (PowerShell):**
    ```powershell
    Copy-Item docker-compose.override.yml.example docker-compose.override.yml
-   docker compose up -d
+   docker compose up -d --wait postgres
    ```
 
    This publishes Postgres on `localhost:5432`.
 
-2. **`DATABASE_URL` must be set** in the terminal where you run pytest.
+2. **Run migrations** to initialize the database schema:
+
+   **Linux / macOS:**
+   ```bash
+   DATABASE_URL=postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos alembic upgrade head
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   $env:DATABASE_URL = "postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos"
+   alembic upgrade head
+   ```
+
+3. **`DATABASE_URL` must be set** in the terminal where you run pytest.
 
 ### Run the complete test suite
 

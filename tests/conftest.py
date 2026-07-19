@@ -56,8 +56,6 @@ from sqlalchemy.pool import NullPool
 
 from app.main import create_app
 from config.settings import Settings
-from db.session import _asyncpg_url
-
 
 # ---------------------------------------------------------------------------
 # Settings fixture
@@ -95,7 +93,8 @@ async def db_session() -> AsyncSession:  # type: ignore[misc]
             "Set DATABASE_URL to a running PostgreSQL instance before running pytest."
         )
 
-    async_url = _asyncpg_url(database_url)
+    # Use a local settings object to get the async URL property based on the environment.
+    async_url = Settings().asyncpg_url
     # NullPool: no connection is retained after the session closes.
     # This prevents "bound to a different event loop" errors because no
     # asyncpg connection object outlives the test's event loop.

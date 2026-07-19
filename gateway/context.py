@@ -25,16 +25,15 @@ Import direction (no cycles):
 from __future__ import annotations
 
 from contextvars import ContextVar, Token
-from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Request ID
 # ---------------------------------------------------------------------------
 
-_request_id: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
+_request_id: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 
-def set_request_id(value: str) -> Token[Optional[str]]:
+def set_request_id(value: str) -> Token[str | None]:
     """Store *value* as the request ID for the current request context.
 
     Returns the ``Token`` produced by ``ContextVar.set()``.  Callers that
@@ -44,12 +43,12 @@ def set_request_id(value: str) -> Token[Optional[str]]:
     return _request_id.set(value)
 
 
-def get_request_id() -> Optional[str]:
+def get_request_id() -> str | None:
     """Return the request ID for the current request context, or ``None``."""
     return _request_id.get()
 
 
-def reset_request_id(token: Token[Optional[str]]) -> None:
+def reset_request_id(token: Token[str | None]) -> None:
     """Reset the request ID context variable to the value it had before
     the corresponding :func:`set_request_id` call.
 

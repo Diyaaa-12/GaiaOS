@@ -34,37 +34,21 @@ Extension verification
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Optional
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy import text
 
 from config.settings import get_settings
 
 # Module-level singletons — initialised by init_engine(), disposed by
 # dispose_engine().  Both are called from app.main's lifespan handler.
-engine: Optional[AsyncEngine] = None
-AsyncSessionLocal: Optional[async_sessionmaker[AsyncSession]] = None
-
-
-def _asyncpg_url(database_url: str) -> str:
-    """Rewrite a plain ``postgresql://`` URL to ``postgresql+asyncpg://``.
-
-    Handles both ``postgresql://`` and ``postgres://`` (Heroku-style) prefixes.
-    Raises ``ValueError`` if the URL does not start with a recognised prefix.
-    """
-    for prefix in ("postgresql://", "postgres://"):
-        if database_url.startswith(prefix):
-            return "postgresql+asyncpg://" + database_url[len(prefix):]
-    raise ValueError(
-        f"DATABASE_URL must start with postgresql:// or postgres://; "
-        f"got: {database_url!r}"
-    )
+engine: AsyncEngine | None = None
+AsyncSessionLocal: async_sessionmaker[AsyncSession] | None = None
 
 
 def init_engine() -> None:
@@ -85,10 +69,8 @@ def init_engine() -> None:
             "The database connection layer cannot be initialised without it."
         )
 
-    async_url = _asyncpg_url(settings.database_url)
-
     engine = create_async_engine(
-        async_url,
+        settings.asyncpg_url,
         # Replace stale connections transparently.
         pool_pre_ping=True,
         # Pool sizing: 5 connections idle + 10 overflow = 15 max concurrent.

@@ -67,46 +67,14 @@ target_metadata = Base.metadata
 # URL helpers
 # ---------------------------------------------------------------------------
 
-def _get_async_url() -> str:
-    """Return the async-driver database URL for use by the async engine.
-
-    Reads DATABASE_URL from settings (which reads from the environment / .env)
-    and rewrites the scheme to ``postgresql+asyncpg://`` if necessary — the
-    same logic as ``db.session._asyncpg_url()``.
-
-    Raises ``RuntimeError`` if DATABASE_URL is not set.
-    """
-    settings = get_settings()
-    if not settings.database_url:
-        raise RuntimeError(
-            "DATABASE_URL is not set.  "
-            "Export it or add it to your .env file before running Alembic."
-        )
-
-    url: str = settings.database_url
-    for prefix in ("postgresql://", "postgres://"):
-        if url.startswith(prefix):
-            return "postgresql+asyncpg://" + url[len(prefix):]
-
-    if url.startswith("postgresql+asyncpg://"):
-        return url
-
-    raise RuntimeError(
-        f"DATABASE_URL must start with postgresql:// or postgres://; got: {url!r}"
-    )
-
-
-# ---------------------------------------------------------------------------
-# Offline migration mode
-# ---------------------------------------------------------------------------
-
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode (emit SQL to stdout, no DB connection).
 
     This is useful for generating a SQL script to review or apply manually.
     Invoke with: ``alembic upgrade head --sql``
     """
-    url = _get_async_url()
+    settings = get_settings()
+    url = settings.asyncpg_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -154,8 +122,9 @@ async def run_async_migrations() -> None:
     migration run completes — important in CI pipelines and short-lived
     ``alembic`` CLI invocations.
     """
+    settings = get_settings()
     connectable = create_async_engine(
-        _get_async_url(),
+        settings.asyncpg_url,
         poolclass=pool.NullPool,
     )
 

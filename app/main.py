@@ -9,20 +9,20 @@ Business logic, route handlers, and dependency providers each live in
 their own modules (api/ and dependencies.py respectively).
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from sqlalchemy import text
 
+import db.session as _db_session
 from app import __version__
 from app.api import api_router
 from app.api.root import root_router
 from app.dependencies import get_settings
+from db.session import dispose_engine, init_engine, verify_extensions
 from gateway.middleware import GatewayMiddleware
 from logging_config import configure_logging, get_logger
-import db.session as _db_session
-from db.session import dispose_engine, init_engine, verify_extensions
 
 _log = get_logger(__name__)
 

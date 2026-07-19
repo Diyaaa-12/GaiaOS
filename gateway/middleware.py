@@ -36,9 +36,10 @@ appropriate redaction — never log raw bodies unconditionally.
 Auth and rate-limit providers
 ------------------------------
 ``GatewayMiddleware.__init__`` accepts ``auth`` and ``rate_limiter`` as
-constructor arguments.  The defaults are the Phase 1 stubs.  To activate
-real implementations, pass them when registering the middleware in
-``app.main.create_app()`` — no other code changes are required.
+constructor arguments.  If omitted (or passed as ``None``), they default
+to the Phase 1 stubs internally.  To activate real implementations, pass
+them when registering the middleware in ``app.main.create_app()`` — no
+other code changes are required.
 
 TODO(M_AUTH):      Pass a real ``AuthProvider`` implementation here once
                    authentication is implemented.
@@ -90,12 +91,12 @@ class GatewayMiddleware(BaseHTTPMiddleware):
         self,
         app: ASGIApp,
         *,
-        auth: AuthProvider = AuthStub(),
-        rate_limiter: RateLimiter = RateLimitStub(),
+        auth: AuthProvider | None = None,
+        rate_limiter: RateLimiter | None = None,
     ) -> None:
         super().__init__(app)
-        self._auth = auth
-        self._rate_limiter = rate_limiter
+        self._auth = auth if auth is not None else AuthStub()
+        self._rate_limiter = rate_limiter if rate_limiter is not None else RateLimitStub()
 
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
         """Process one HTTP request end-to-end.

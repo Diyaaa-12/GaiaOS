@@ -31,7 +31,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys, urllib.request; r = urllib.request.urlopen('http://localhost:8000/api/v1/ping'); sys.exit(0 if r.status == 200 else 1)"]
+      test: ["CMD", "python", "-c", "import sys, urllib.request; r = urllib.request.urlopen('http://localhost:8000/api/v1/health/live'); sys.exit(0 if r.status == 200 else 1)"]
       interval: 10s
       timeout: 5s
       retries: 5

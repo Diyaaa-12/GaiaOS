@@ -66,6 +66,8 @@ class TestSettingsEnvValidation:
         monkeypatch.setenv("GAIAOS_ENV", env_value)
         if env_value in ("staging", "prod"):
             monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost:5432/db")
+        if env_value == "prod":
+            monkeypatch.setenv("ENABLE_AUTH", "True")
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.gaiaos_env == env_value
 
@@ -104,6 +106,7 @@ class TestDatabaseUrlRequirement:
     ) -> None:
         """Settings raises ValidationError when GAIAOS_ENV=prod and DATABASE_URL is absent."""
         monkeypatch.setenv("GAIAOS_ENV", "prod")
+        monkeypatch.setenv("ENABLE_AUTH", "True")
         monkeypatch.delenv("DATABASE_URL", raising=False)
         with pytest.raises(ValidationError, match="DATABASE_URL must be set"):
             Settings(_env_file=None)  # type: ignore[call-arg]
@@ -122,6 +125,20 @@ class TestDatabaseUrlRequirement:
     ) -> None:
         """Settings accepts a valid DATABASE_URL in prod."""
         monkeypatch.setenv("GAIAOS_ENV", "prod")
+        monkeypatch.setenv("ENABLE_AUTH", "True")
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@prod-host:5432/db")
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.database_url == "postgresql://u:p@prod-host:5432/db"
+
+class TestEnableAuthRequirement:
+    """Verify ENABLE_AUTH validation logic for production environments."""
+
+    def test_enable_auth_required_in_prod(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Settings raises ValidationError when GAIAOS_ENV=prod and ENABLE_AUTH=False."""
+        monkeypatch.setenv("GAIAOS_ENV", "prod")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@prod-host:5432/db")
+        monkeypatch.setenv("ENABLE_AUTH", "False")
+        with pytest.raises(ValidationError, match="ENABLE_AUTH must be True"):
+            Settings(_env_file=None)  # type: ignore[call-arg]

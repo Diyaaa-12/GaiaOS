@@ -184,7 +184,7 @@ async def readiness(db: _DbSession) -> ReadinessResponse:
                 reason="Database connection failed.",
                 failing_dependency="database",
             ).model_dump(),
-        )
+        ) from exc
 
     # --- PostGIS check ---
     if not ext_status.get("postgis", False):

@@ -40,10 +40,30 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def require_database_url_outside_dev(self) -> Self:
+    def validate_production_security(self) -> Self:
         if self.gaiaos_env in ("staging", "prod") and not self.database_url:
             raise ValueError("DATABASE_URL must be set when GAIAOS_ENV is staging or prod")
+        if self.gaiaos_env == "prod" and not self.enable_auth:
+            raise ValueError("ENABLE_AUTH must be True when GAIAOS_ENV is prod")
         return self
+
+    @property
+    def asyncpg_url(self) -> str:
+        """Return the database URL rewritten with the asyncpg driver."""
+        if not self.database_url:
+            raise RuntimeError("DATABASE_URL is not set.")
+
+        url = self.database_url
+        for prefix in ("postgresql://", "postgres://"):
+            if url.startswith(prefix):
+                return "postgresql+asyncpg://" + url[len(prefix):]
+
+        if url.startswith("postgresql+asyncpg://"):
+            return url
+
+        raise RuntimeError(
+            f"DATABASE_URL must start with postgresql:// or postgres://; got: {url!r}"
+        )
 
 
 @lru_cache

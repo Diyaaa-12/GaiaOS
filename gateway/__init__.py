@@ -29,7 +29,7 @@ Import direction (enforced, no cycles):
 """
 
 from gateway.context import get_request_id, reset_request_id, set_request_id
-from gateway.middleware import GatewayMiddleware, REQUEST_ID_HEADER
+from gateway.middleware import REQUEST_ID_HEADER, GatewayMiddleware
 
 __all__ = [
     "GatewayMiddleware",

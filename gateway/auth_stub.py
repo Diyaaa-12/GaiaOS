@@ -28,7 +28,6 @@ from typing import Protocol, runtime_checkable
 
 from fastapi import Request
 
-
 # ---------------------------------------------------------------------------
 # Protocol — the interface that all auth implementations must satisfy
 # ---------------------------------------------------------------------------
