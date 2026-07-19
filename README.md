@@ -156,36 +156,35 @@ cp docker-compose.override.yml.example docker-compose.override.yml
 Copy-Item docker-compose.override.yml.example docker-compose.override.yml
 ```
 
-This publishes Postgres on `localhost:5432`. Use the `DATABASE_URL` in [`config/environments/dev.env.example`](config/environments/dev.env.example) for host-run Python. When the app runs inside Docker Compose, `docker-compose.yml` sets `DATABASE_URL` to use the service hostname `postgres` instead.
+This publishes Postgres on `localhost:5432` and Redis on `localhost:6379`. Use the `DATABASE_URL` and `REDIS_URL` in [`config/environments/dev.env.example`](config/environments/dev.env.example) for host-run Python. When the app runs inside Docker Compose, `docker-compose.yml` sets them to use the service hostnames `postgres` and `redis` instead.
 
-| Workflow | `DATABASE_URL` host |
-|----------|---------------------|
-| App in Docker (default compose) | `postgres` |
-| Python on host, DB in Docker | `localhost` |
+| Workflow | `DATABASE_URL` host | `REDIS_URL` host |
+|----------|---------------------|------------------|
+| App in Docker (default compose) | `postgres` | `redis` |
+| Python on host, stack in Docker | `localhost` | `localhost` |
 
 ## Local Testing
 
-The test suite runs against a real PostgreSQL database — no mocks for database
-integration tests.  Configuration tests run without a database.
+The test suite runs against real PostgreSQL and Redis instances — no mocks for integration tests. Configuration tests run without external dependencies.
 
 ### Prerequisites
 
-1. **Docker Compose stack must be running** with Postgres exposed on `localhost:5432`.
-   The port is not exposed by default.  Create the override file once:
+1. **Docker Compose stack must be running** with Postgres exposed on `localhost:5432` and Redis on `localhost:6379`.
+   The ports are not exposed by default. Create the override file once:
 
    **Linux / macOS:**
    ```bash
    cp docker-compose.override.yml.example docker-compose.override.yml
-   docker compose up -d --wait postgres
+   docker compose up -d --wait postgres redis
    ```
 
    **Windows (PowerShell):**
    ```powershell
    Copy-Item docker-compose.override.yml.example docker-compose.override.yml
-   docker compose up -d --wait postgres
+   docker compose up -d --wait postgres redis
    ```
 
-   This publishes Postgres on `localhost:5432`.
+   This publishes Postgres on `localhost:5432` and Redis on `localhost:6379`.
 
 2. **Run migrations** to initialize the database schema:
 
@@ -200,22 +199,23 @@ integration tests.  Configuration tests run without a database.
    alembic upgrade head
    ```
 
-3. **`DATABASE_URL` must be set** in the terminal where you run pytest.
+3. **`DATABASE_URL` and `REDIS_URL` must be set** in the terminal where you run pytest.
 
 ### Run the complete test suite
 
 **Linux / macOS:**
 ```bash
-DATABASE_URL=postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos pytest
+DATABASE_URL=postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos REDIS_URL=redis://localhost:6379/0 pytest
 ```
 
 **Windows (PowerShell):**
 ```powershell
 $env:DATABASE_URL = "postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos"
+$env:REDIS_URL = "redis://localhost:6379/0"
 pytest
 ```
 
-Expected output: all tests pass (`31 passed`).
+Expected output: all tests pass (`53 passed`).
 
 ### Verify linting
 
@@ -237,8 +237,14 @@ ruff check .
 # Configuration tests only — no database required
 pytest tests/test_config.py
 
+# Redis connection and key builder tests
+pytest tests/test_cache.py
+
 # Database connectivity and extension tests
 pytest tests/test_db_connection.py
+
+# Evaluation harness and persistence tests
+pytest tests/test_eval_harness.py
 
 # Health endpoint integration tests
 pytest tests/test_health.py
@@ -249,11 +255,13 @@ pytest tests/test_health.py
 | Test file | What is tested |
 |---|---|
 | `test_config.py` | Settings defaults, validation, DATABASE\_URL requirement per environment |
+| `test_cache.py` | RedisKeyBuilder naming, settings validation, connection lifecycle, failure path |
 | `test_db_connection.py` | Real DB connectivity, PostGIS present, pgvector present |
-| `test_health.py` | `/api/v1/health/live` → 200, `/api/v1/health/ready` → 200 with all fields |
+| `test_eval_harness.py` | Evaluation suite run on empty tables, stub suite execution, database persistence |
+| `test_health.py` | `/api/v1/health/live` → 200, `/api/v1/health/ready` → 200 checks (DB + Extensions + Redis) |
 
-Configuration tests run in isolation (no database) and are always fast.
-Database and health tests require a running Postgres with PostGIS and pgvector.
+Configuration tests run in isolation (no database/Redis) and are always fast.
+Database, Redis, and health tests require running PostgreSQL (with PostGIS and pgvector) and Redis instances.
 
 ## Continuous Integration
 

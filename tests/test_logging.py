@@ -26,6 +26,7 @@ def test_prod_environment_selects_json_renderer(monkeypatch: pytest.MonkeyPatch)
     """Verify that GAIAOS_ENV=prod selects JSONRenderer."""
     monkeypatch.setenv("GAIAOS_ENV", "prod")
     monkeypatch.setenv("DATABASE_URL", "postgresql://dummy")
+    monkeypatch.setenv("REDIS_URL", "redis://dummy")
     monkeypatch.setenv("ENABLE_AUTH", "True")
     settings = Settings(_env_file=None)
     configure_logging(settings)

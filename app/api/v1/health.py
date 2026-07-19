@@ -37,11 +37,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import __version__
+from cache.client import get_redis
 from db.session import get_db_session, verify_extensions
 from logging_config import get_logger
 
@@ -50,10 +52,12 @@ _log = get_logger(__name__)
 health_router = APIRouter(prefix="/health", tags=["health"])
 
 # ---------------------------------------------------------------------------
-# Dependency alias — mirrors the pattern in app.dependencies but stays local
+# Dependency aliases — mirror the patterns in app.dependencies but stay local
 # so health.py has no import from app.dependencies that could create cycles.
 # ---------------------------------------------------------------------------
 _DbSession = Annotated[AsyncSession, Depends(get_db_session)]
+_Redis = Annotated[Redis, Depends(get_redis)]
+
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +79,8 @@ class ReadinessResponse(BaseModel):
     app_version: str
     schema_version: str
     database: str
+    redis: str
+
 
 
 class ReadinessFailureResponse(BaseModel):
@@ -144,7 +150,7 @@ async def liveness() -> LivenessResponse:
     summary="Readiness probe",
     description=(
         "Verifies the application is ready to receive traffic.  "
-        "Checks database connectivity, PostGIS, and pgvector.  "
+        "Checks database connectivity, PostGIS, pgvector, and Redis liveness.  "
         "Returns HTTP 200 on success; HTTP 503 when any dependency fails."
     ),
     status_code=200,
@@ -155,14 +161,15 @@ async def liveness() -> LivenessResponse:
         }
     },
 )
-async def readiness(db: _DbSession) -> ReadinessResponse:
+async def readiness(db: _DbSession, redis: _Redis) -> ReadinessResponse:
     """Verify all required dependencies before accepting traffic.
 
     Checks performed (in order):
     1. Database connection — covered implicitly by any successful SQL call.
     2. PostGIS extension present in ``pg_extension``.
     3. pgvector (``vector``) extension present in ``pg_extension``.
-    4. Current Alembic schema version from ``alembic_version``.
+    4. Redis liveness — ping check.
+    5. Current Alembic schema version from ``alembic_version``.
 
     On any failure the handler raises HTTP 503 with a safe ``reason`` string
     and the name of the first failing dependency.  Stack traces are never
@@ -218,6 +225,24 @@ async def readiness(db: _DbSession) -> ReadinessResponse:
             ).model_dump(),
         )
 
+    # --- Redis liveness check ---
+    try:
+        await redis.ping()
+    except Exception as exc:
+        _log.error(
+            "health.ready.redis_connection_failed",
+            error=str(exc),
+            failing_dependency="redis",
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=ReadinessFailureResponse(
+                status="not_ready",
+                reason="Redis connection failed.",
+                failing_dependency="redis",
+            ).model_dump(),
+        ) from exc
+
     # --- Schema version (best-effort; does not fail readiness) ---
     schema_ver = await _get_schema_version(db)
 
@@ -226,6 +251,7 @@ async def readiness(db: _DbSession) -> ReadinessResponse:
         app_version=__version__,
         schema_version=schema_ver,
         database="ok",
+        redis="ok",
     )
 
 

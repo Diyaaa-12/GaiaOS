@@ -10,3 +10,6 @@ pgvector>=0.3,<1
 alembic>=1.13,<2
 # Structured logging (Milestone 8).
 structlog>=24.1,<26
+# Redis client (Milestone 1)
+redis>=5.0,<6
+

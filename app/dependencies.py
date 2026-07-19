@@ -11,6 +11,7 @@ from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import Depends
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.settings import Settings
@@ -51,3 +52,22 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 # Injected async DB session — scoped to the current request.
 DbSessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+# ---------------------------------------------------------------------------
+# Redis dependencies (Milestone 1)
+# ---------------------------------------------------------------------------
+
+async def get_redis_dependency() -> AsyncGenerator[Redis, None]:
+    """Yield the async Redis client instance.
+
+    Intended for use as a FastAPI dependency.
+    """
+    from cache.client import get_redis as _get_redis
+    client = await _get_redis()
+    yield client
+
+
+# Injected Redis client dependency.
+RedisDep = Annotated[Redis, Depends(get_redis_dependency)]
+

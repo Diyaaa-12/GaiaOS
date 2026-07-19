@@ -52,14 +52,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ---------------------------------------------------------------------------
-# Target metadata — the single source of truth for autogenerate.
-#
 # All ORM models must be imported *before* this line is reached so that
-# their Table objects are registered in Base.metadata.  In later milestones,
-# add model imports here as they are created.  For Milestone 6 there are no
-# ORM models yet; Base.metadata is intentionally empty.
-# ---------------------------------------------------------------------------
+# their Table objects are registered in Base.metadata.
+
 target_metadata = Base.metadata
 
 

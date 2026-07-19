@@ -25,6 +25,11 @@ class Settings(BaseSettings):
         validation_alias="DATABASE_URL",
         description="PostgreSQL connection URL (optional in dev; required for staging/prod).",
     )
+    redis_url: str | None = Field(
+        default=None,
+        validation_alias="REDIS_URL",
+        description="Redis connection URL (optional in dev; required for staging/prod).",
+    )
     # ---------------------------------------------------------------------------
     # Gateway settings (Milestone 7)
     # ---------------------------------------------------------------------------
@@ -43,9 +48,12 @@ class Settings(BaseSettings):
     def validate_production_security(self) -> Self:
         if self.gaiaos_env in ("staging", "prod") and not self.database_url:
             raise ValueError("DATABASE_URL must be set when GAIAOS_ENV is staging or prod")
+        if self.gaiaos_env in ("staging", "prod") and not self.redis_url:
+            raise ValueError("REDIS_URL must be set when GAIAOS_ENV is staging or prod")
         if self.gaiaos_env == "prod" and not self.enable_auth:
             raise ValueError("ENABLE_AUTH must be True when GAIAOS_ENV is prod")
         return self
+
 
     @property
     def asyncpg_url(self) -> str:

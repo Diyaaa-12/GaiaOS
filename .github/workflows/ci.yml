@@ -27,12 +27,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements/dev.txt
 
-      - name: Start PostgreSQL stack
+      - name: Start PostgreSQL and Redis stack
         run: |
           # Use the local docker-compose setup to ensure exact parity with dev environment.
-          # The override file exposes port 5432 to the GitHub Actions runner (localhost).
+          # The override file exposes port 5432 and 6379 to the GitHub Actions runner (localhost).
           cp docker-compose.override.yml.example docker-compose.override.yml
-          docker compose up -d --wait postgres
+          docker compose up -d --wait postgres redis
 
       - name: Run Ruff
         run: ruff check .
@@ -40,9 +40,12 @@ jobs:
       - name: Run Alembic Migrations
         env:
           DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
+          REDIS_URL: redis://localhost:6379/0
         run: alembic upgrade head
 
       - name: Run Pytest
         env:
           DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
+          REDIS_URL: redis://localhost:6379/0
         run: pytest
+

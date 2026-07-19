@@ -19,6 +19,15 @@ services:
       retries: 5
       start_period: 10s
 
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   app:
     build: .
     ports:
@@ -27,8 +36,11 @@ services:
       GAIAOS_ENV: ${GAIAOS_ENV:-dev}
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       DATABASE_URL: postgresql://gaiaos:${POSTGRES_PASSWORD:-gaiaos_dev_password}@postgres:5432/gaiaos
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import sys, urllib.request; r = urllib.request.urlopen('http://localhost:8000/api/v1/health/live'); sys.exit(0 if r.status == 200 else 1)"]
@@ -36,6 +48,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+
 
 volumes:
   postgres_data:

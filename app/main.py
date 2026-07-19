@@ -20,6 +20,7 @@ from app import __version__
 from app.api import api_router
 from app.api.root import root_router
 from app.dependencies import get_settings
+from cache import dispose_redis, init_redis
 from db.session import dispose_engine, init_engine, verify_extensions
 from gateway.middleware import GatewayMiddleware
 from logging_config import configure_logging, get_logger
@@ -106,10 +107,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # --- startup ---
     init_engine()
     await _run_startup_db_checks()
+    await init_redis(settings)
 
     yield
 
     # --- shutdown ---
+    await dispose_redis()
     await dispose_engine()
     _log.info("app.shutdown")
 

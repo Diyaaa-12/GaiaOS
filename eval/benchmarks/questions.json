@@ -1,0 +1,13 @@
+[
+  {
+    "id": "a0e0a0e0-a0e0-a0e0-a0e0-a0e0a0e0a0e0",
+    "question_text": "What are the PM2.5 and PM10 levels in Paris?",
+    "expected_domains": ["air_quality"],
+    "expected_complexity": "trivial",
+    "reference_answer": "Paris air quality is good with PM2.5 at 12 ug/m3.",
+    "reference_evidence": {
+      "source": "OpenAQ",
+      "pm25": 12
+    }
+  }
+]

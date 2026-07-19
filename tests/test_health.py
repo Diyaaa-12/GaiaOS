@@ -107,11 +107,17 @@ class TestReadiness:
         response = await client.get("/api/v1/health/ready")
         assert "application/json" in response.headers["content-type"]
 
+    async def test_ready_redis_is_ok(self, client: AsyncClient) -> None:
+        """Response body contains redis == 'ok'."""
+        response = await client.get("/api/v1/health/ready")
+        body = response.json()
+        assert body["redis"] == "ok"
+
     async def test_ready_response_has_all_required_fields(self, client: AsyncClient) -> None:
         """Success response contains all fields required by the Milestone 9 schema."""
         response = await client.get("/api/v1/health/ready")
         body = response.json()
-        required_fields = {"status", "app_version", "schema_version", "database"}
+        required_fields = {"status", "app_version", "schema_version", "database", "redis"}
         assert required_fields.issubset(body.keys())
 
     async def test_ready_fails_on_db_error(self, client: AsyncClient, monkeypatch) -> None:
@@ -154,3 +160,19 @@ class TestReadiness:
         body = response.json()
         assert body["detail"]["status"] == "not_ready"
         assert body["detail"]["failing_dependency"] == "pgvector"
+
+    async def test_ready_fails_on_redis_error(self, client: AsyncClient, monkeypatch) -> None:
+        """Readiness probe returns HTTP 503 when Redis ping throws an error."""
+        from redis.asyncio import Redis
+
+        async def mock_ping(*args, **kwargs):
+            raise Exception("Connection timed out")
+
+        monkeypatch.setattr(Redis, "ping", mock_ping)
+
+        response = await client.get("/api/v1/health/ready")
+        assert response.status_code == 503
+        body = response.json()
+        assert body["detail"]["status"] == "not_ready"
+        assert body["detail"]["failing_dependency"] == "redis"
+
