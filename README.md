@@ -1,5 +1,7 @@
 # GaiaOS
 
+[![CI](https://github.com/Diyaaa-12/GaiaOS/actions/workflows/ci.yml/badge.svg)](https://github.com/Diyaaa-12/GaiaOS/actions/workflows/ci.yml)
+
 An Agentic Planetary Risk Intelligence Platform.
 
 ## Status
@@ -218,6 +220,17 @@ pytest tests/test_health.py
 
 Configuration tests run in isolation (no database) and are always fast.
 Database and health tests require a running Postgres with PostGIS and pgvector.
+
+## Continuous Integration
+
+GitHub Actions runs the CI pipeline (`.github/workflows/ci.yml`) on every push and pull request to the `main` branch. 
+
+The pipeline ensures:
+1. The codebase is linted and formatted properly using Ruff.
+2. The exact local Docker Compose architecture is spun up (Postgres + PostGIS + pgvector).
+3. The complete `pytest` test suite runs successfully against the real containerized database.
+
+The pipeline will fail immediately if any step fails.
 
 ## Configuration
 

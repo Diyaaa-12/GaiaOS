@@ -22,7 +22,6 @@ GET /api/v1/health/ready
 
 from __future__ import annotations
 
-import pytest
 from httpx import AsyncClient
 
 from app import __version__
