@@ -217,6 +217,20 @@ pytest
 
 Expected output: all tests pass (`31 passed`).
 
+### Verify linting
+
+**Linux / macOS**
+
+```bash
+ruff check .
+```
+
+**Windows (PowerShell)**
+
+```powershell
+ruff check .
+```
+
 ### Run specific test categories
 
 ```bash
