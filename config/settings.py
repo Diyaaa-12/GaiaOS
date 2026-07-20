@@ -40,6 +40,41 @@ class Settings(BaseSettings):
         validation_alias="ORCHESTRATOR_VERSION",
         description="Active codebase version identifier.",
     )
+    firms_api_key: str | None = Field(
+        default=None,
+        validation_alias="FIRMS_API_KEY",
+        description="Optional API key for NASA FIRMS wildfire observations.",
+    )
+    agent_timeout: float = Field(
+        default=30.0,
+        validation_alias="AGENT_TIMEOUT",
+        description="Timeout for individual agent executions in seconds.",
+    )
+    usgs_api_url: str = Field(
+        default="https://earthquake.usgs.gov/fdsnws/event/1/query",
+        validation_alias="USGS_API_URL",
+        description="USGS Seismic API query URL.",
+    )
+    noaa_api_url: str = Field(
+        default="https://api.tidesandcurrents.noaa.gov/api/prod/datagetter",
+        validation_alias="NOAA_API_URL",
+        description="NOAA Tides & Currents water temperature API URL.",
+    )
+    open_meteo_weather_url: str = Field(
+        default="https://api.open-meteo.com/v1/forecast",
+        validation_alias="OPEN_METEO_WEATHER_URL",
+        description="Open-Meteo weather forecast API URL.",
+    )
+    open_meteo_geocoding_url: str = Field(
+        default="https://geocoding-api.open-meteo.com/v1/search",
+        validation_alias="OPEN_METEO_GEOCODING_URL",
+        description="Open-Meteo location geocoding search URL.",
+    )
+    firms_api_url: str = Field(
+        default="https://firms.modaps.eosdis.nasa.gov/api/area/csv",
+        validation_alias="FIRMS_API_URL",
+        description="NASA FIRMS wildfire CSV API URL.",
+    )
     # ---------------------------------------------------------------------------
     # Gateway settings (Milestone 7)
     # ---------------------------------------------------------------------------

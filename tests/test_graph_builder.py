@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import uuid
 
+import pytest
 from redis.asyncio import Redis
 
 from orchestrator.graph.builder import build_graph
@@ -28,7 +29,9 @@ class TestGraphBuilder:
         await client.aclose()
 
     async def test_redis_checkpointer_lifecycle(self) -> None:
-        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        redis_url = os.environ.get("REDIS_URL")
+        if not redis_url:
+            pytest.skip("REDIS_URL environment variable is not set — skipping integration test.")
         client = Redis.from_url(redis_url)
 
         checkpointer = RedisCheckpointSaver(client)

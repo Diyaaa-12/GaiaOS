@@ -19,5 +19,6 @@ class TaskGraphState(TypedDict):
     investigation_id: uuid.UUID
     query: str
     complexity_tier: ComplexityTier | None
+    matched_domains: list[str]
     agent_outputs: Annotated[list[AgentOutput], operator.add]
     final_answer: str | None
