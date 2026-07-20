@@ -12,7 +12,8 @@ import db.session as db_session
 from db.repository import InvestigationRepository
 from logging_config import get_logger
 from orchestrator.agents.air_quality.agent import run as run_air_quality
-from orchestrator.agents.supervisor.planner import classify_query
+from orchestrator.agents.supervisor.classifier import classify_query_complexity
+from orchestrator.graph.fan_out_coordinator import FanOutCoordinator
 from orchestrator.graph.state import TaskGraphState
 from orchestrator.schemas.agent_io import AgentInput
 from orchestrator.schemas.complexity import ComplexityTier
@@ -23,14 +24,30 @@ _log = get_logger(__name__)
 async def supervisor_node(state: TaskGraphState) -> dict[str, Any]:
     """Classify query complexity and route accordingly."""
     _log.info("graph.node.supervisor.started", investigation_id=str(state["investigation_id"]))
-    tier = await classify_query(state["query"])
-    return {"complexity_tier": tier}
+    try:
+        result = await classify_query_complexity(state["query"])
+        return {
+            "complexity_tier": result["tier"],
+            "matched_domains": result["matched_domains"],
+        }
+    except Exception as e:
+        _log.error(
+            "graph.node.supervisor.failed_fallback",
+            query=state["query"],
+            error=str(e),
+            fallback_tier=ComplexityTier.MODERATE.value,
+        )
+        return {
+            "complexity_tier": ComplexityTier.MODERATE,
+            "matched_domains": [],
+        }
 
 
 def route_by_complexity(state: TaskGraphState) -> str:
     """Route conditional edge based on complexity tier."""
     tier = state.get("complexity_tier")
-    if tier == ComplexityTier.TRIVIAL:
+    matched = state.get("matched_domains", [])
+    if tier == ComplexityTier.TRIVIAL and matched == ["air_quality"]:
         return "air_quality"
     return "fan_out"
 
@@ -48,21 +65,17 @@ async def air_quality_node(state: TaskGraphState) -> dict[str, Any]:
 
 
 async def fan_out_node(state: TaskGraphState) -> dict[str, Any]:
-    """Temporary Milestone 3 placeholder for the multi-agent fan-out path.
-
-    Crucial: This node is a temporary routing infrastructure. In Milestone 4, this
-    will be replaced by a genuine parallel FanOutCoordinator running asynchronous gathers
-    over all matched domain agents. Currently, it stubs routing by falling back to the
-    Air Quality agent as the sole active target.
-    """
+    """Execute parallel FanOutCoordinator over matched domain agents."""
     _log.info("graph.node.fan_out.started", investigation_id=str(state["investigation_id"]))
-    agent_input = AgentInput(
+    matched_domains = state.get("matched_domains", [])
+
+    outputs = await FanOutCoordinator.run(
+        domains=matched_domains,
         investigation_id=state["investigation_id"],
         query=state["query"],
         region_hint=None,
     )
-    output = await run_air_quality(agent_input)
-    return {"agent_outputs": [output]}
+    return {"agent_outputs": outputs}
 
 
 async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
@@ -98,7 +111,8 @@ async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
     )
 
     nodes_executed = ["supervisor"]
-    if state.get("complexity_tier") == ComplexityTier.TRIVIAL:
+    matched = state.get("matched_domains", [])
+    if state.get("complexity_tier") == ComplexityTier.TRIVIAL and matched == ["air_quality"]:
         nodes_executed.append("air_quality")
     else:
         nodes_executed.append("fan_out")
@@ -107,6 +121,7 @@ async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
     # Save to database
     if db_session.AsyncSessionLocal is None:
         raise RuntimeError("Database session factory is not initialised.")
+    evidence_count = sum(len(out.evidence) for out in outputs)
     async with db_session.AsyncSessionLocal() as session:
         await InvestigationRepository.update_investigation_status(
             session=session,
@@ -117,7 +132,7 @@ async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
             confidence=1.0 if claims else 0.0,
             execution_trace={
                 "nodes_executed": nodes_executed,
-                "evidence_count": len(claims),
+                "evidence_count": evidence_count,
             },
         )
 

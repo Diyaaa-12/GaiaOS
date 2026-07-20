@@ -64,9 +64,6 @@ async def classify_query_complexity(query: str) -> dict[str, Any]:
         if any(re.search(pat, query_lower) for pat in patterns):
             matched_domains.append(domain)
 
-    # Fallback to air_quality if no domain was matched
-    if not matched_domains:
-        matched_domains.append("air_quality")
 
     # Complexity classification priority
     if is_complex:
