@@ -76,6 +76,34 @@ class Settings(BaseSettings):
         description="NASA FIRMS wildfire CSV API URL.",
     )
     # ---------------------------------------------------------------------------
+    # Literature & Embedding settings (Milestone 5)
+    # ---------------------------------------------------------------------------
+    embedding_api_key: str | None = Field(
+        default=None,
+        validation_alias="EMBEDDING_API_KEY",
+        description="Optional API key for external embedding provider (OpenAI).",
+    )
+    embedding_model: str = Field(
+        default="text-embedding-3-small",
+        validation_alias="EMBEDDING_MODEL",
+        description="Active model identifier for text embeddings.",
+    )
+    embedding_dimension: int = Field(
+        default=1536,
+        validation_alias="EMBEDDING_DIMENSION",
+        description="Active dimension count for text embeddings.",
+    )
+    chunk_size: int = Field(
+        default=500,
+        validation_alias="CHUNK_SIZE",
+        description="Standard character size for literature chunks.",
+    )
+    chunk_overlap: int = Field(
+        default=50,
+        validation_alias="CHUNK_OVERLAP",
+        description="Character overlap for literature chunks.",
+    )
+    # ---------------------------------------------------------------------------
     # Gateway settings (Milestone 7)
     # ---------------------------------------------------------------------------
     enable_auth: bool = Field(

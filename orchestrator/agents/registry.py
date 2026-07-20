@@ -56,6 +56,10 @@ def register_agents() -> None:
 
     agent_registry.register("wildfire", run_wildfire)
 
+    from orchestrator.agents.literature_rag.agent import run as run_literature
+
+    agent_registry.register("literature", run_literature)
+
 
 # Populating registry
 register_agents()

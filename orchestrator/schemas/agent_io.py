@@ -22,6 +22,22 @@ class Evidence(BaseModel):
         default_factory=lambda: datetime.now(UTC),
         description="Timestamp when this evidence was queried/scraped.",
     )
+    document_id: str | None = Field(
+        None,
+        description="Identifier of the specific literature document.",
+    )
+    chunk_id: str | int | None = Field(
+        None,
+        description="Identifier of the specific text chunk within the document.",
+    )
+    title: str | None = Field(
+        None,
+        description="Title of the source document.",
+    )
+    source_url: str | None = Field(
+        None,
+        description="Original source URL of the document.",
+    )
 
 
 class AgentInput(BaseModel):

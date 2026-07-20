@@ -44,6 +44,15 @@ DOMAIN_PATTERNS = {
         r"\bair\s+temperature\b",
     ],
     "wildfire": [r"\bwildfires?\b", r"\bfires?\b"],
+    "literature": [
+        r"\bliterature\b",
+        r"\bpapers?\b",
+        r"\breports?\b",
+        r"\bstudies\b",
+        r"\bstudy\b",
+        r"\bresearch\b",
+        r"\barticles?\b",
+    ],
 }
 
 
