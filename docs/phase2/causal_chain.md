@@ -88,10 +88,11 @@ This makes it easy to replace this logic later with a weighted average, decay fu
 
 ## 4. Query Protection (Statement Timeout)
 
-To protect the system from long-running or runaway recursive queries, we set a transaction-local timeout prior to executing the SQL query:
+To protect the system from long-running or runaway recursive queries, we set an injectable transaction-local timeout (default 2000ms) prior to executing the SQL query:
 
 ```python
-await session.execute(text("SET LOCAL statement_timeout = 2000;"))
+timeout_val = int(statement_timeout_ms)
+await session.execute(text(f"SET LOCAL statement_timeout = {timeout_val};"))
 ```
 
-If query execution exceeds 2000ms, PostgreSQL cancels the query, raising a `57014` exception which the repository maps to a Python `TimeoutError`. The agent catches this, logs it, and returns an `errors` list instead of failing the graph execution.
+If query execution exceeds the timeout limit, PostgreSQL cancels the query, raising a `57014` exception which the repository maps to a Python `TimeoutError`. The agent catches this, logs it, and returns an `errors` list instead of failing the graph execution.

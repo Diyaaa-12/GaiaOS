@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -37,6 +38,10 @@ class Evidence(BaseModel):
     source_url: str | None = Field(
         None,
         description="Original source URL of the document.",
+    )
+    extra_metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Extra domain-specific metadata.",
     )
 
 

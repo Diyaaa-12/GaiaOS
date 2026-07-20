@@ -166,12 +166,12 @@ class TestRecursiveCTE:
             # To do this cleanly, we simulate it by setting SET LOCAL statement_timeout = 1
             # inside a subtransaction before calling find_causal_chain
             async with db_session.begin_nested():
-                await db_session.execute(text("SET LOCAL statement_timeout = 1;"))
                 # Running the query will trigger query cancel
                 await CausalChainRepository.find_causal_chain(
                     session=db_session,
                     event_type="earthquake",
                     region="Tokyo",
+                    statement_timeout_ms=1,
                 )
 
         assert "causal chain query exceeded time budget" in str(exc_info.value)

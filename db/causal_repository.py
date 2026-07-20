@@ -33,6 +33,7 @@ class CausalChainRepository:
         event_type: str,
         region: str,
         max_depth: int = 4,
+        statement_timeout_ms: int = 2000,
     ) -> list[Evidence]:
         """Perform recursive WITH RECURSIVE CTE query to traverse hazard relationships.
 
@@ -41,8 +42,9 @@ class CausalChainRepository:
         start_time = time.perf_counter()
 
         try:
-            # 1. Protect query with a transaction-local statement timeout (2000 milliseconds)
-            await session.execute(text("SET LOCAL statement_timeout = 2000;"))
+            # 1. Protect query with a transaction-local statement timeout
+            timeout_val = int(statement_timeout_ms)
+            await session.execute(text(f"SET LOCAL statement_timeout = {timeout_val};"))
 
             # 2. Bounded recursive CTE query with cycle protection
             stmt = text("""

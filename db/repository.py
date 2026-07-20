@@ -250,6 +250,7 @@ async def find_causal_chain(
     event_type: str,
     region: str,
     max_depth: int = 4,
+    statement_timeout_ms: int = 2000,
 ) -> list[Evidence]:
     """Exposed stable public interface for causal chain traversal reasoning.
 
@@ -267,4 +268,5 @@ async def find_causal_chain(
             event_type=event_type,
             region=region,
             max_depth=max_depth,
+            statement_timeout_ms=statement_timeout_ms,
         )
