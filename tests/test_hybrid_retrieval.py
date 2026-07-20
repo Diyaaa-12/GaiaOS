@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from db.repository import LiteratureRepository
+import pytest
+
 from db.models.literature_chunk import LiteratureChunk
-from orchestrator.schemas.agent_io import Evidence
+from db.repository import LiteratureRepository
 
 
 class TestRankFusion:
@@ -51,7 +51,7 @@ class TestRankFusion:
 
         # Mock database session execution
         session = MagicMock()
-        
+
         # We need mock result scalars
         mock_vec_scalars = MagicMock()
         mock_vec_scalars.all.return_value = [chunk_a, chunk_b]
@@ -95,7 +95,7 @@ class TestRankFusion:
     async def test_hybrid_search_empty_corpus(self) -> None:
         """Verify that an empty corpus returns an empty list without raising exceptions."""
         session = MagicMock()
-        
+
         mock_scalars = MagicMock()
         mock_scalars.all.return_value = []
         mock_result = MagicMock()

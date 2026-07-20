@@ -88,6 +88,4 @@ class EvalBenchmarkRun(Base):
         back_populates="benchmark_runs",
     )
 
-    __table_args__ = (
-        Index("ix_eval_runs_version", "orchestrator_version", run_at.desc()),
-    )
+    __table_args__ = (Index("ix_eval_runs_version", "orchestrator_version", run_at.desc()),)

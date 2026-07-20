@@ -61,6 +61,7 @@ from config.settings import Settings
 # Settings fixture
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="session")
 def settings() -> Settings:
     """Return application settings loaded from the current environment.
@@ -74,6 +75,7 @@ def settings() -> Settings:
 # ---------------------------------------------------------------------------
 # Database fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 async def db_session() -> AsyncSession:  # type: ignore[misc]
@@ -115,6 +117,7 @@ async def db_session() -> AsyncSession:  # type: ignore[misc]
 # ---------------------------------------------------------------------------
 # Application and HTTP client fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 async def app():  # type: ignore[misc]

@@ -72,9 +72,7 @@ class TestSettingsEnvValidation:
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.gaiaos_env == env_value
 
-    def test_gaiaos_env_rejects_invalid_value(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_gaiaos_env_rejects_invalid_value(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """GAIAOS_ENV raises ValidationError for an undocumented value."""
         monkeypatch.setenv("GAIAOS_ENV", "production")  # not in the Literal
         with pytest.raises(ValidationError):
@@ -84,18 +82,14 @@ class TestSettingsEnvValidation:
 class TestDatabaseUrlRequirement:
     """Verify DATABASE_URL validation logic for non-dev environments."""
 
-    def test_database_url_optional_in_dev(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_database_url_optional_in_dev(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """DATABASE_URL is not required when GAIAOS_ENV is 'dev'."""
         monkeypatch.setenv("GAIAOS_ENV", "dev")
         monkeypatch.delenv("DATABASE_URL", raising=False)
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.database_url is None
 
-    def test_database_url_required_in_staging(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_database_url_required_in_staging(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Settings raises ValidationError when GAIAOS_ENV=staging and DATABASE_URL is absent."""
         monkeypatch.setenv("GAIAOS_ENV", "staging")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
@@ -103,9 +97,7 @@ class TestDatabaseUrlRequirement:
         with pytest.raises(ValidationError, match="DATABASE_URL must be set"):
             Settings(_env_file=None)  # type: ignore[call-arg]
 
-    def test_database_url_required_in_prod(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_database_url_required_in_prod(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Settings raises ValidationError when GAIAOS_ENV=prod and DATABASE_URL is absent."""
         monkeypatch.setenv("GAIAOS_ENV", "prod")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
@@ -114,9 +106,7 @@ class TestDatabaseUrlRequirement:
         with pytest.raises(ValidationError, match="DATABASE_URL must be set"):
             Settings(_env_file=None)  # type: ignore[call-arg]
 
-    def test_database_url_accepted_in_staging(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_database_url_accepted_in_staging(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Settings accepts a valid DATABASE_URL in staging."""
         monkeypatch.setenv("GAIAOS_ENV", "staging")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
@@ -124,9 +114,7 @@ class TestDatabaseUrlRequirement:
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.database_url == "postgresql://u:p@localhost:5432/db"
 
-    def test_database_url_accepted_in_prod(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_database_url_accepted_in_prod(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Settings accepts a valid DATABASE_URL in prod."""
         monkeypatch.setenv("GAIAOS_ENV", "prod")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
@@ -139,9 +127,7 @@ class TestDatabaseUrlRequirement:
 class TestEnableAuthRequirement:
     """Verify ENABLE_AUTH validation logic for production environments."""
 
-    def test_enable_auth_required_in_prod(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_enable_auth_required_in_prod(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Settings raises ValidationError when GAIAOS_ENV=prod and ENABLE_AUTH=False."""
         monkeypatch.setenv("GAIAOS_ENV", "prod")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
@@ -149,4 +135,3 @@ class TestEnableAuthRequirement:
         monkeypatch.setenv("ENABLE_AUTH", "False")
         with pytest.raises(ValidationError, match="ENABLE_AUTH must be True"):
             Settings(_env_file=None)  # type: ignore[call-arg]
-

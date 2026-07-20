@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import os
 import sys
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -37,7 +37,7 @@ class TestLiteratureMCPServer:
                 # 1. Discover tools
                 tools_resp = await session.list_tools()
                 tools = tools_resp.tools
-                
+
                 assert len(tools) == 1
                 assert tools[0].name == "hybrid_search"
                 assert "Perform hybrid" in tools[0].description
@@ -61,11 +61,13 @@ class TestLiteratureMCPServer:
         ]
 
         with patch("mcp_servers.literature_search.server.AsyncSessionLocal", MagicMock()):
-            with patch("db.repository.LiteratureRepository.hybrid_search", new_callable=AsyncMock) as mock_hybrid:
+            with patch(
+                "db.repository.LiteratureRepository.hybrid_search", new_callable=AsyncMock
+            ) as mock_hybrid:
                 mock_hybrid.return_value = mock_evidence
 
                 result = await hybrid_search(query="earthquakes")
-                
+
                 assert "Claim: Seismic activity is increasing." in result
                 assert "Confidence: 0.8876" in result
                 assert "Doc ID: test_doc | Chunk ID: 1" in result
@@ -78,9 +80,11 @@ class TestLiteratureMCPServer:
         from mcp_servers.literature_search.server import hybrid_search
 
         with patch("mcp_servers.literature_search.server.AsyncSessionLocal", MagicMock()):
-            with patch("db.repository.LiteratureRepository.hybrid_search", new_callable=AsyncMock) as mock_hybrid:
+            with patch(
+                "db.repository.LiteratureRepository.hybrid_search", new_callable=AsyncMock
+            ) as mock_hybrid:
                 mock_hybrid.return_value = []
 
                 result = await hybrid_search(query="unmatched query")
-                
+
                 assert "No matching literature documents found." in result

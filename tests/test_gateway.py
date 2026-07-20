@@ -22,10 +22,7 @@ class TestGatewayMiddleware:
     async def test_existing_request_id_is_preserved(self, client: AsyncClient) -> None:
         """Verify the middleware preserves an incoming X-Request-ID."""
         custom_id = "custom-trace-id-12345"
-        response = await client.get(
-            "/api/v1/health/live",
-            headers={REQUEST_ID_HEADER: custom_id}
-        )
+        response = await client.get("/api/v1/health/live", headers={REQUEST_ID_HEADER: custom_id})
         assert response.status_code == 200
 
         request_id = response.headers.get(REQUEST_ID_HEADER)

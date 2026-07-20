@@ -54,10 +54,10 @@ class MockEmbeddingProvider(EmbeddingProvider):
         hasher = hashlib.sha256(text.encode("utf-8"))
         digest = hasher.digest()
         seed = int.from_bytes(digest, byteorder="big")
-        
+
         rng = random.Random(seed)
         vec = [rng.uniform(-1.0, 1.0) for _ in range(self.dimension)]
-        
+
         # Normalize to unit length for clean cosine similarity
         norm = sum(x * x for x in vec) ** 0.5
         if norm > 0:
@@ -118,6 +118,7 @@ def get_embedding_provider(settings: Settings) -> EmbeddingProvider:
     """Dependency injection factory resolver for the active EmbeddingProvider."""
     # If a simulation environment variable for failure is set, trigger mock failure
     import os
+
     if os.environ.get("SIMULATE_EMBEDDING_FAILURE") == "true":
         return MockEmbeddingProvider(
             dimension=settings.embedding_dimension,

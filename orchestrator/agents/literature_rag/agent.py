@@ -19,7 +19,7 @@ async def run(agent_input: AgentInput) -> AgentOutput:
     """
     settings = get_settings()
     errors: list[str] = []
-    
+
     # 1. Resolve active embedding provider
     provider = get_embedding_provider(settings)
 

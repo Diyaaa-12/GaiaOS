@@ -7,8 +7,9 @@ Create Date: 2026-07-20 00:00:00.000000 UTC
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 from pgvector.sqlalchemy import Vector
+from sqlalchemy.dialects import postgresql
+
 from config.settings import get_settings
 
 revision = "0007"
@@ -63,7 +64,7 @@ def upgrade() -> None:
         ["ts_content"],
         postgresql_using="gin",
     )
-    
+
     # pgvector HNSW index
     op.execute(
         "CREATE INDEX ix_literature_chunks_embedding ON literature_chunks "

@@ -36,6 +36,7 @@ from fastapi import Request
 # Protocol — the interface that all rate-limit implementations must satisfy
 # ---------------------------------------------------------------------------
 
+
 @runtime_checkable
 class RateLimiter(Protocol):
     """Interface for rate-limiting providers.
@@ -71,6 +72,7 @@ class RateLimiter(Protocol):
 # ---------------------------------------------------------------------------
 # Stub implementation — Phase 1 no-op
 # ---------------------------------------------------------------------------
+
 
 class RateLimitStub:
     """Passthrough rate-limit stub for Phase 1.

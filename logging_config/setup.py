@@ -58,6 +58,7 @@ if TYPE_CHECKING:
 # Shared processor chain (environment-independent)
 # ---------------------------------------------------------------------------
 
+
 def _shared_processors() -> list[Processor]:
     """Return the processor chain that runs for every log event.
 
@@ -85,6 +86,7 @@ def _shared_processors() -> list[Processor]:
 # ---------------------------------------------------------------------------
 # Public configuration entry point
 # ---------------------------------------------------------------------------
+
 
 def configure_logging(settings: Settings) -> None:
     """Configure structlog and the stdlib logging module.

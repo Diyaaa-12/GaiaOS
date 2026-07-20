@@ -32,6 +32,7 @@ from fastapi import Request
 # Protocol — the interface that all auth implementations must satisfy
 # ---------------------------------------------------------------------------
 
+
 @runtime_checkable
 class AuthProvider(Protocol):
     """Interface for authentication providers.
@@ -65,6 +66,7 @@ class AuthProvider(Protocol):
 # ---------------------------------------------------------------------------
 # Stub implementation — Phase 1 no-op
 # ---------------------------------------------------------------------------
+
 
 class AuthStub:
     """Passthrough authentication stub for Phase 1.

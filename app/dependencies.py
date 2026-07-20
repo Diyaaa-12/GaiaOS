@@ -58,16 +58,17 @@ DbSessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 # Redis dependencies (Milestone 1)
 # ---------------------------------------------------------------------------
 
+
 async def get_redis_dependency() -> AsyncGenerator[Redis, None]:
     """Yield the async Redis client instance.
 
     Intended for use as a FastAPI dependency.
     """
     from cache.client import get_redis as _get_redis
+
     client = await _get_redis()
     yield client
 
 
 # Injected Redis client dependency.
 RedisDep = Annotated[Redis, Depends(get_redis_dependency)]
-

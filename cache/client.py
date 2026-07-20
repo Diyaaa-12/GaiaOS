@@ -34,8 +34,7 @@ async def init_redis(settings: Settings) -> None:
 
     if settings.redis_url is None:
         raise RuntimeError(
-            "REDIS_URL is not set.  "
-            "The Redis connection layer cannot be initialised without it."
+            "REDIS_URL is not set.  The Redis connection layer cannot be initialised without it."
         )
 
     _log.info("redis.client.init", url=settings.redis_url)
@@ -55,9 +54,7 @@ async def init_redis(settings: Settings) -> None:
     except Exception as exc:
         await client.aclose()
         _log.error("redis.client.connect_failed", url=settings.redis_url, error=str(exc))
-        raise RuntimeError(
-            f"Failed to connect to Redis at {settings.redis_url}: {exc}"
-        ) from exc
+        raise RuntimeError(f"Failed to connect to Redis at {settings.redis_url}: {exc}") from exc
 
     redis_client = client
     _log.info("redis.client.ready")

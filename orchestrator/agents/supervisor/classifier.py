@@ -73,7 +73,6 @@ async def classify_query_complexity(query: str) -> dict[str, Any]:
         if any(re.search(pat, query_lower) for pat in patterns):
             matched_domains.append(domain)
 
-
     # Complexity classification priority
     if is_complex:
         tier = ComplexityTier.COMPLEX

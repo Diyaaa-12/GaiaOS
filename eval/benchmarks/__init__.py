@@ -1,2 +1,1 @@
-"""Benchmarks module containing curated evaluation question sets.
-"""
+"""Benchmarks module containing curated evaluation question sets."""

@@ -90,9 +90,7 @@ async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
     for out in outputs:
         errors.extend(out.errors)
         for ev in out.evidence:
-            claims.append(
-                f"- {ev.claim} (Source: {ev.source}, Confidence: {ev.confidence:.2f})"
-            )
+            claims.append(f"- {ev.claim} (Source: {ev.source}, Confidence: {ev.confidence:.2f})")
 
     if errors:
         err_str = "; ".join(errors)

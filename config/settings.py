@@ -127,7 +127,6 @@ class Settings(BaseSettings):
             raise ValueError("ENABLE_AUTH must be True when GAIAOS_ENV is prod")
         return self
 
-
     @property
     def asyncpg_url(self) -> str:
         """Return the database URL rewritten with the asyncpg driver."""
@@ -137,7 +136,7 @@ class Settings(BaseSettings):
         url = self.database_url
         for prefix in ("postgresql://", "postgres://"):
             if url.startswith(prefix):
-                return "postgresql+asyncpg://" + url[len(prefix):]
+                return "postgresql+asyncpg://" + url[len(prefix) :]
 
         if url.startswith("postgresql+asyncpg://"):
             return url

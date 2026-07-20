@@ -63,6 +63,7 @@ target_metadata = Base.metadata
 # URL helpers
 # ---------------------------------------------------------------------------
 
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode (emit SQL to stdout, no DB connection).
 
@@ -88,6 +89,7 @@ def run_migrations_offline() -> None:
 # ---------------------------------------------------------------------------
 # Online migration mode
 # ---------------------------------------------------------------------------
+
 
 def do_run_migrations(connection) -> None:  # type: ignore[type-arg]
     """Execute migrations with a live synchronous connection.

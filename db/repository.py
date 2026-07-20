@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models.investigation import Investigation
+from orchestrator.schemas.agent_io import Evidence
 
 
 class InvestigationRepository:
@@ -100,10 +101,12 @@ class LiteratureRepository:
         Merges results using Reciprocal Rank Fusion (RRF) and normalizes the scores.
         """
         import time
+
         from sqlalchemy import func, select
+
         from db.models.literature_chunk import LiteratureChunk
-        from orchestrator.schemas.agent_io import Evidence
         from logging_config import get_logger
+        from orchestrator.schemas.agent_io import Evidence
 
         _log = get_logger(__name__)
 
@@ -126,7 +129,9 @@ class LiteratureRepository:
             select(LiteratureChunk)
             .where(LiteratureChunk.ts_content.op("@@")(func.plainto_tsquery("english", query)))
             .order_by(
-                func.ts_rank(LiteratureChunk.ts_content, func.plainto_tsquery("english", query)).desc()
+                func.ts_rank(
+                    LiteratureChunk.ts_content, func.plainto_tsquery("english", query)
+                ).desc()
             )
             .limit(k)
         )
@@ -206,8 +211,9 @@ class LiteratureRepository:
 
         Skips documents if they are already present in the database.
         """
-        from db.models.literature_chunk import LiteratureChunk
         from sqlalchemy import select
+
+        from db.models.literature_chunk import LiteratureChunk
 
         # Group by document_id to do document-level checking
         doc_chunks = {}

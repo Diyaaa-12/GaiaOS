@@ -44,7 +44,7 @@ async def hybrid_search(query: str, k: int = 10) -> str:
     Returns matching documents with scores and rich metadata details.
     """
     _ensure_db_initialized()
-    
+
     provider = get_embedding_provider(settings)
     embedding_start = time.perf_counter()
     try:

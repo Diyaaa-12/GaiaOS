@@ -91,9 +91,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
 
         # Fetch writes associated with this checkpoint
         writes_pattern = f"gaiaos:checkpoint:{thread_id}:writes:{checkpoint_id}:*"
-        write_keys = [
-            key async for key in self.client.scan_iter(match=writes_pattern)
-        ]
+        write_keys = [key async for key in self.client.scan_iter(match=writes_pattern)]
         pending_writes = []
 
         for wkey in write_keys:
@@ -203,9 +201,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
 
                 # Fetch writes for this checkpoint
                 writes_pattern = f"gaiaos:checkpoint:{thread_id}:writes:{checkpoint_id}:*"
-                write_keys = [
-                    key async for key in self.client.scan_iter(match=writes_pattern)
-                ]
+                write_keys = [key async for key in self.client.scan_iter(match=writes_pattern)]
                 pending_writes = []
 
                 for wkey in write_keys:

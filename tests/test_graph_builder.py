@@ -73,7 +73,5 @@ class TestGraphBuilder:
 
         # Clean up
         await client.delete(f"gaiaos:checkpoint:{thread_id}:latest")
-        await client.delete(
-            f"gaiaos:checkpoint:{thread_id}:checkpoint:{checkpoint['id']}"
-        )
+        await client.delete(f"gaiaos:checkpoint:{thread_id}:checkpoint:{checkpoint['id']}")
         await client.aclose()

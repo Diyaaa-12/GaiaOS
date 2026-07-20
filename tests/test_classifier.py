@@ -13,9 +13,7 @@ class TestClassifier:
     """Verifies that query classification rules and priority routing work correctly."""
 
     async def test_classify_trivial_queries(self) -> None:
-        result = await classify_query_complexity(
-            "What is the current air quality in Paris?"
-        )
+        result = await classify_query_complexity("What is the current air quality in Paris?")
         assert result["tier"] == ComplexityTier.TRIVIAL
         assert "air_quality" in result["matched_domains"]
 
@@ -36,16 +34,12 @@ class TestClassifier:
         assert "wildfire" in result["matched_domains"]
 
     async def test_classify_complex_queries(self) -> None:
-        result = await classify_query_complexity(
-            "Predict if an earthquake will trigger a tsunami"
-        )
+        result = await classify_query_complexity("Predict if an earthquake will trigger a tsunami")
         assert result["tier"] == ComplexityTier.COMPLEX
         assert "seismic" in result["matched_domains"]
         assert "ocean" in result["matched_domains"]
 
-        result = await classify_query_complexity(
-            "simulated plume dispersion forecast for Madrid"
-        )
+        result = await classify_query_complexity("simulated plume dispersion forecast for Madrid")
         assert result["tier"] == ComplexityTier.COMPLEX
 
     async def test_ambiguous_priority_overrides(self) -> None:
@@ -63,6 +57,7 @@ class TestClassifier:
             raise RuntimeError("Mocked classifier error.")
 
         import orchestrator.agents.supervisor.planner as planner_mod
+
         monkeypatch.setattr(planner_mod, "classify_query_complexity", mock_classify_error)
 
         tier = await classify_query("any query text")

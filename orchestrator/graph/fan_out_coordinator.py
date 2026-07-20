@@ -21,6 +21,7 @@ def _make_failed_runner(domain: str) -> Any:
             evidence=[],
             errors=[f"Agent implementation not found for domain: {domain}"],
         )
+
     return failed_runner
 
 

@@ -65,20 +65,16 @@ async def _run_startup_db_checks() -> None:
         # back so the throwaway tables never exist after this function returns.
         try:
             await session.execute(text("SAVEPOINT m5_check"))
-            await session.execute(text(
-                "CREATE TEMP TABLE _m5_geom_check (geom geometry(Point, 4326))"
-            ))
-            await session.execute(text(
-                "INSERT INTO _m5_geom_check VALUES (ST_GeomFromText('POINT(0 0)', 4326))"
-            ))
+            await session.execute(
+                text("CREATE TEMP TABLE _m5_geom_check (geom geometry(Point, 4326))")
+            )
+            await session.execute(
+                text("INSERT INTO _m5_geom_check VALUES (ST_GeomFromText('POINT(0 0)', 4326))")
+            )
             await session.execute(text("SELECT ST_AsText(geom) FROM _m5_geom_check"))
 
-            await session.execute(text(
-                "CREATE TEMP TABLE _m5_vec_check (embedding vector(3))"
-            ))
-            await session.execute(text(
-                "INSERT INTO _m5_vec_check VALUES ('[1.0, 2.0, 3.0]')"
-            ))
+            await session.execute(text("CREATE TEMP TABLE _m5_vec_check (embedding vector(3))"))
+            await session.execute(text("INSERT INTO _m5_vec_check VALUES ('[1.0, 2.0, 3.0]')"))
             await session.execute(text("SELECT embedding FROM _m5_vec_check"))
 
             _log.info("db.postgis.ok")
@@ -134,8 +130,7 @@ def create_app() -> FastAPI:
         title="GaiaOS",
         version=__version__,
         description=(
-            "An Agentic Planetary Risk Intelligence Platform. "
-            "Phase 1 — foundational API skeleton."
+            "An Agentic Planetary Risk Intelligence Platform. Phase 1 — foundational API skeleton."
         ),
         docs_url="/docs",
         redoc_url="/redoc",

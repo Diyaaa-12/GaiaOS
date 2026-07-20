@@ -137,6 +137,7 @@ class TestReadiness:
 
     async def test_ready_fails_when_postgis_missing(self, client: AsyncClient, monkeypatch) -> None:
         """Readiness probe returns HTTP 503 when PostGIS is missing."""
+
         async def mock_verify_extensions(*args, **kwargs):
             return {"postgis": False, "vector": True}
 
@@ -150,6 +151,7 @@ class TestReadiness:
 
     async def test_ready_fails_on_pgvector_missing(self, client: AsyncClient, monkeypatch) -> None:
         """Readiness probe returns HTTP 503 when pgvector is missing."""
+
         async def mock_verify_extensions(*args, **kwargs):
             return {"postgis": True, "vector": False}
 
@@ -175,4 +177,3 @@ class TestReadiness:
         body = response.json()
         assert body["detail"]["status"] == "not_ready"
         assert body["detail"]["failing_dependency"] == "redis"
-

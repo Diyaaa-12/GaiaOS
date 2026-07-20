@@ -140,7 +140,6 @@ async def _run_suite(
             _log.error("eval.runner.commit_failed", error=str(exc))
             raise exc
 
-
     suite_result = BenchmarkSuiteResult(
         orchestrator_version=orchestrator_version,
         results=question_results,

@@ -27,9 +27,7 @@ class TestWildfireAgent:
             "confidence,version,bright_t31,frp,daynight\n"
             "37.5,-120.5,310.2,1.0,1.0,2026-07-20,0845,T,MODIS,100,6.0,290.1,12.5,D\n"
         )
-        respx.get(
-            url__startswith="https://firms.modaps.eosdis.nasa.gov/api/area/csv"
-        ).respond(
+        respx.get(url__startswith="https://firms.modaps.eosdis.nasa.gov/api/area/csv").respond(
             text=csv_data,
             status_code=200,
         )
@@ -74,9 +72,7 @@ class TestWildfireAgent:
 
         monkeypatch.setattr(get_settings(), "firms_api_key", "mock_key")
 
-        respx.get(
-            url__startswith="https://firms.modaps.eosdis.nasa.gov/api/area/csv"
-        ).respond(
+        respx.get(url__startswith="https://firms.modaps.eosdis.nasa.gov/api/area/csv").respond(
             status_code=500,
         )
 

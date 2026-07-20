@@ -5,10 +5,10 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, Text
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from pgvector.sqlalchemy import Vector
 
 from config.settings import get_settings
 from db.base import Base
@@ -33,20 +33,20 @@ class LiteratureChunk(Base):
         nullable=True,
     )
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     # extra_metadata attribute avoids conflict with reserved Base.metadata
     extra_metadata: Mapped[dict | None] = mapped_column(
         "metadata",
         JSONB,
         nullable=True,
     )
-    
+
     # Computed column for full-text search
     ts_content: Mapped[str | None] = mapped_column(
         TSVECTOR,
         nullable=True,
     )
-    
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

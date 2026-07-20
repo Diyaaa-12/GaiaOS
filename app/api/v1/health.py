@@ -59,10 +59,10 @@ _DbSession = Annotated[AsyncSession, Depends(get_db_session)]
 _Redis = Annotated[Redis, Depends(get_redis)]
 
 
-
 # ---------------------------------------------------------------------------
 # Response schemas
 # ---------------------------------------------------------------------------
+
 
 class LivenessResponse(BaseModel):
     """Response body for GET /api/v1/health/live."""
@@ -82,7 +82,6 @@ class ReadinessResponse(BaseModel):
     redis: str
 
 
-
 class ReadinessFailureResponse(BaseModel):
     """Response body for GET /api/v1/health/ready (failure path, HTTP 503)."""
 
@@ -95,6 +94,7 @@ class ReadinessFailureResponse(BaseModel):
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 async def _get_schema_version(session: AsyncSession) -> str:
     """Return the current Alembic head revision, or 'unknown' if unavailable.
 
@@ -103,9 +103,7 @@ async def _get_schema_version(session: AsyncSession) -> str:
     liveness is never broken by an uninitialised database.
     """
     try:
-        result = await session.execute(
-            text("SELECT version_num FROM alembic_version LIMIT 1")
-        )
+        result = await session.execute(text("SELECT version_num FROM alembic_version LIMIT 1"))
         row = result.scalar_one_or_none()
         return row if row is not None else "unknown"
     except SQLAlchemyError:
@@ -115,6 +113,7 @@ async def _get_schema_version(session: AsyncSession) -> str:
 # ---------------------------------------------------------------------------
 # Liveness endpoint
 # ---------------------------------------------------------------------------
+
 
 @health_router.get(
     "/live",
@@ -143,6 +142,7 @@ async def liveness() -> LivenessResponse:
 # ---------------------------------------------------------------------------
 # Readiness endpoint
 # ---------------------------------------------------------------------------
+
 
 @health_router.get(
     "/ready",
