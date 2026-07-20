@@ -53,6 +53,16 @@ DOMAIN_PATTERNS = {
         r"\bresearch\b",
         r"\barticles?\b",
     ],
+    "causal_chain": [
+        r"\bcausal\b",
+        r"\btrigger\b",
+        r"\baffect\b",
+        r"\bpreceded\b",
+        r"\bcorrelation\b",
+        r"\blinked\b",
+        r"\banalog(ue|ues)\b",
+        r"\bchain\b",
+    ],
 }
 
 

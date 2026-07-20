@@ -6,6 +6,7 @@ Exposes ORM mapped classes:
 """
 
 from db.models.eval_benchmark import EvalBenchmarkQuestion, EvalBenchmarkRun
+from db.models.hazard_event import HazardEvent, HazardRelationship
 from db.models.investigation import Investigation
 from db.models.literature_chunk import LiteratureChunk
 
@@ -14,4 +15,6 @@ __all__ = [
     "EvalBenchmarkRun",
     "Investigation",
     "LiteratureChunk",
+    "HazardEvent",
+    "HazardRelationship",
 ]
