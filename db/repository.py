@@ -244,3 +244,27 @@ class LiteratureRepository:
         except Exception as e:
             await session.rollback()
             raise e
+
+
+async def find_causal_chain(
+    event_type: str,
+    region: str,
+    max_depth: int = 4,
+) -> list[Evidence]:
+    """Exposed stable public interface for causal chain traversal reasoning.
+
+    Internally queries via CausalChainRepository using AsyncSessionLocal.
+    """
+    from db.causal_repository import CausalChainRepository
+    from db.session import AsyncSessionLocal
+
+    if AsyncSessionLocal is None:
+        raise RuntimeError("Database session factory is not initialised.")
+
+    async with AsyncSessionLocal() as session:
+        return await CausalChainRepository.find_causal_chain(
+            session=session,
+            event_type=event_type,
+            region=region,
+            max_depth=max_depth,
+        )

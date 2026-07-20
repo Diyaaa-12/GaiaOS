@@ -60,6 +60,10 @@ def register_agents() -> None:
 
     agent_registry.register("literature", run_literature)
 
+    from orchestrator.agents.causal_chain.agent import run as run_causal_chain
+
+    agent_registry.register("causal_chain", run_causal_chain)
+
 
 # Populating registry
 register_agents()
