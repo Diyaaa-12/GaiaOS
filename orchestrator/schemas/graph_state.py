@@ -8,6 +8,7 @@ from typing import Annotated, TypedDict
 
 from orchestrator.schemas.agent_io import AgentOutput
 from orchestrator.schemas.complexity import ComplexityTier
+from orchestrator.schemas.synthesis import CriticFlag, SynthesisOutput
 
 
 class TaskGraphState(TypedDict):
@@ -21,4 +22,6 @@ class TaskGraphState(TypedDict):
     complexity_tier: ComplexityTier | None
     matched_domains: list[str]
     agent_outputs: Annotated[list[AgentOutput], operator.add]
+    synthesis_output: SynthesisOutput | None
+    critic_flags: list[CriticFlag]
     final_answer: str | None

@@ -12,11 +12,14 @@ import db.session as db_session
 from db.repository import InvestigationRepository
 from logging_config import get_logger
 from orchestrator.agents.air_quality.agent import run as run_air_quality
+from orchestrator.agents.critic.agent import verify
 from orchestrator.agents.supervisor.classifier import classify_query_complexity
+from orchestrator.agents.synthesis.agent import synthesize
 from orchestrator.graph.fan_out_coordinator import FanOutCoordinator
 from orchestrator.graph.state import TaskGraphState
 from orchestrator.schemas.agent_io import AgentInput
 from orchestrator.schemas.complexity import ComplexityTier
+from orchestrator.schemas.synthesis import SynthesisOutput
 
 _log = get_logger(__name__)
 
@@ -78,30 +81,52 @@ async def fan_out_node(state: TaskGraphState) -> dict[str, Any]:
     return {"agent_outputs": outputs}
 
 
+def render_synthesis_output(synthesis_output: SynthesisOutput) -> str:
+    """Render SynthesisOutput into a clean, human-readable markdown format."""
+    lines = ["### Synthesized Answer\n"]
+    for claim in synthesis_output.claims:
+        lines.append(f"- **Claim:** {claim.text} (Confidence: {claim.confidence:.2f})")
+        for idx, ev in enumerate(claim.supporting_evidence, 1):
+            lines.append(f"  - Citation [{idx}]: {ev.claim} (Source: {ev.source})")
+
+    if synthesis_output.evidence_gaps:
+        lines.append("\n### Identified Gaps")
+        for gap in synthesis_output.evidence_gaps:
+            lines.append(f"- No evidence gathered for domain: {gap}")
+
+    return "\n".join(lines)
+
+
 async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
-    """Synthesize final answer and save state to episodic log database."""
+    """Execute the Synthesis Agent to merge findings and map citations."""
     _log.info("graph.node.synthesis.started", investigation_id=str(state["investigation_id"]))
+    agent_outputs = state.get("agent_outputs", [])
 
-    outputs = state.get("agent_outputs", [])
+    synthesis_output = await synthesize(agent_outputs)
+    return {"synthesis_output": synthesis_output}
 
-    # Simple Synthesis Stub for Milestone 2
-    claims = []
-    errors = []
-    for out in outputs:
-        errors.extend(out.errors)
-        for ev in out.evidence:
-            claims.append(f"- {ev.claim} (Source: {ev.source}, Confidence: {ev.confidence:.2f})")
 
-    if errors:
-        err_str = "; ".join(errors)
-        claims.append(f"Errors encountered: {err_str}")
+async def critic_node(state: TaskGraphState) -> dict[str, Any]:
+    """Execute the Critic Agent to verify the synthesized claims."""
+    _log.info("graph.node.critic.started", investigation_id=str(state["investigation_id"]))
+    synthesis_output = state.get("synthesis_output")
+    if not synthesis_output:
+        return {"critic_flags": [], "final_answer": "No synthesized output to verify."}
 
-    if not claims:
-        final_answer = "No evidence gathered for the query."
+    critic_flags = await verify(synthesis_output)
+
+    # Render final answer text
+    final_answer = render_synthesis_output(synthesis_output)
+
+    # Compute overall average confidence
+    if synthesis_output.claims:
+        avg_confidence = sum(c.confidence for c in synthesis_output.claims) / len(
+            synthesis_output.claims
+        )
     else:
-        claims_str = "\n".join(claims)
-        final_answer = f"Investigation Report:\n{claims_str}"
+        avg_confidence = 0.0
 
+    # Build execution trace
     tier_val = (
         state.get("complexity_tier").value
         if state.get("complexity_tier")
@@ -114,12 +139,27 @@ async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
         nodes_executed.append("air_quality")
     else:
         nodes_executed.append("fan_out")
-    nodes_executed.append("synthesis")
+    nodes_executed.extend(["synthesis", "critic"])
+
+    evidence_count = sum(len(out.evidence) for out in state.get("agent_outputs", []))
+
+    trace = {
+        "nodes_executed": nodes_executed,
+        "evidence_count": evidence_count,
+        "critic_flags": [
+            {
+                "claim_text": flag.claim_text,
+                "flagged_reason": flag.flagged_reason,
+                "severity": flag.severity,
+            }
+            for flag in critic_flags
+        ],
+    }
 
     # Save to database
     if db_session.AsyncSessionLocal is None:
         raise RuntimeError("Database session factory is not initialised.")
-    evidence_count = sum(len(out.evidence) for out in outputs)
+
     async with db_session.AsyncSessionLocal() as session:
         await InvestigationRepository.update_investigation_status(
             session=session,
@@ -127,14 +167,14 @@ async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
             status="complete",
             complexity_tier=tier_val,
             answer=final_answer,
-            confidence=1.0 if claims else 0.0,
-            execution_trace={
-                "nodes_executed": nodes_executed,
-                "evidence_count": evidence_count,
-            },
+            confidence=avg_confidence,
+            execution_trace=trace,
         )
 
-    return {"final_answer": final_answer}
+    return {
+        "critic_flags": critic_flags,
+        "final_answer": final_answer,
+    }
 
 
 def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
@@ -146,6 +186,7 @@ def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
     workflow.add_node("air_quality", air_quality_node)
     workflow.add_node("fan_out", fan_out_node)
     workflow.add_node("synthesis", synthesis_node)
+    workflow.add_node("critic", critic_node)
 
     # Add Edges
     workflow.add_edge(START, "supervisor")
@@ -162,6 +203,7 @@ def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
 
     workflow.add_edge("air_quality", "synthesis")
     workflow.add_edge("fan_out", "synthesis")
-    workflow.add_edge("synthesis", END)
+    workflow.add_edge("synthesis", "critic")
+    workflow.add_edge("critic", END)
 
     return workflow.compile(checkpointer=checkpointer)
