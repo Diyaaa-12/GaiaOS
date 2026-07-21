@@ -25,7 +25,9 @@ class TestGraphBuilder:
         assert graph is not None
         assert "supervisor" in graph.nodes
         assert "air_quality" in graph.nodes
+        assert "simulation" in graph.nodes
         assert "synthesis" in graph.nodes
+        assert "critic" in graph.nodes
         await client.aclose()
 
     async def test_redis_checkpointer_lifecycle(self) -> None:

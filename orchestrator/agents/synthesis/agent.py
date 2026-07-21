@@ -44,7 +44,16 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
             evidence_gaps=evidence_gaps,
         )
 
-    # 2. Formulate LLM prompts and query format
+    # Formulate LLM prompts and query format
+    evidence_strings = []
+    for i, ev in enumerate(all_evidence, 1):
+        ev_str = f"[{i}] Source: {ev.source} | Claim: {ev.claim} | Confidence: {ev.confidence}"
+        if ev.uncertainty_bounds:
+            ev_str += f" | Uncertainty Bounds: {ev.uncertainty_bounds}"
+        if ev.assumptions:
+            ev_str += f" | Assumptions: {', '.join(ev.assumptions)}"
+        evidence_strings.append(ev_str)
+
     messages = [
         {
             "role": "system",
@@ -60,10 +69,7 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
             "role": "user",
             "content": (
                 "Gathered Evidence:\n"
-                + "\n".join(
-                    f"[{i}] Source: {ev.source} | Claim: {ev.claim} | Confidence: {ev.confidence}"
-                    for i, ev in enumerate(all_evidence, 1)
-                )
+                + "\n".join(evidence_strings)
                 + "\n\nSynthesize the above evidence into distinct claims and identify "
                 f"gaps from: {', '.join(evidence_gaps) if evidence_gaps else 'none'}."
             ),
@@ -130,6 +136,8 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
                     text=ev.claim,
                     supporting_evidence=[ev],
                     confidence=ev.confidence,
+                    uncertainty_bounds=ev.uncertainty_bounds,
+                    assumptions=ev.assumptions,
                 )
             )
         return SynthesisOutput(
@@ -157,6 +165,11 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
                 claim.confidence = sum(c.confidence for c in claim.supporting_evidence) / len(
                     claim.supporting_evidence
                 )
+                for ev in claim.supporting_evidence:
+                    if ev.uncertainty_bounds:
+                        claim.uncertainty_bounds = ev.uncertainty_bounds
+                    if ev.assumptions:
+                        claim.assumptions = ev.assumptions
             valid_claims.append(claim)
         else:
             _log.error(

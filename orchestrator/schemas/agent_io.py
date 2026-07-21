@@ -43,6 +43,28 @@ class Evidence(BaseModel):
         default_factory=dict,
         description="Extra domain-specific metadata.",
     )
+    uncertainty_bounds: tuple[float, float] | None = Field(
+        None,
+        description="Explicit uncertainty bounds (low, high) for simulation results.",
+    )
+    assumptions: list[str] | None = Field(
+        None,
+        description="Explicit list of assumptions for the simulation/prediction model.",
+    )
+
+
+class SimulationResult(BaseModel):
+    """The structured result of a simulation model prediction."""
+
+    prediction: str = Field(description="The forecasted result text.")
+    uncertainty_bounds: tuple[float, float] = Field(
+        description="Explicit uncertainty bounds (low, high) for the simulation."
+    )
+    assumptions: list[str] = Field(
+        default_factory=list,
+        description="Explicit assumptions made by the model.",
+    )
+    model_used: str = Field(description="The name of the simulation model utilized.")
 
 
 class AgentInput(BaseModel):
