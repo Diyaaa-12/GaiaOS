@@ -122,15 +122,18 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
         content = await query_llm(messages, response_format)
         parsed = json.loads(content)
     except Exception as e:
-        _log.error("synthesis.llm_query_failed", error=str(e))
-        # Fallback to a warning error claim if the synthesis process itself fails
-        claim = SynthesizedClaim(
-            text="Failed to synthesize gathered evidence due to LLM error.",
-            supporting_evidence=[],
-            confidence=0.0,
-        )
+        _log.error("synthesis.llm_query_failed_falling_back_to_local", error=str(e))
+        fallback_claims = []
+        for ev in all_evidence:
+            fallback_claims.append(
+                SynthesizedClaim(
+                    text=ev.claim,
+                    supporting_evidence=[ev],
+                    confidence=ev.confidence,
+                )
+            )
         return SynthesisOutput(
-            claims=[claim],
+            claims=fallback_claims,
             evidence_gaps=evidence_gaps,
         )
 

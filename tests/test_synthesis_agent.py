@@ -138,3 +138,21 @@ class TestSynthesisAgent:
             assert result.claims[0].confidence == 0.8
             assert result.claims[1].confidence == 0.9
             assert not result.evidence_gaps
+
+    @pytest.mark.asyncio
+    async def test_synthesis_llm_failure_local_fallback(self) -> None:
+        """Verify that synthesis falls back to local evidence mapping if LLM query fails."""
+        ev = Evidence(source="aq_api", claim="PM2.5 index is 12 in Paris-North", confidence=0.85)
+        outputs = [AgentOutput(agent_name="air_quality", evidence=[ev])]
+
+        with patch(
+            "orchestrator.agents.synthesis.agent.query_llm", new_callable=AsyncMock
+        ) as mock_query:
+            mock_query.side_effect = RuntimeError("OpenAI API rate limit exceeded")
+
+            result = await synthesize(outputs)
+
+            assert len(result.claims) == 1
+            assert result.claims[0].text == "PM2.5 index is 12 in Paris-North"
+            assert result.claims[0].supporting_evidence == [ev]
+            assert result.claims[0].confidence == 0.85
