@@ -6,11 +6,14 @@ the PostgreSQL database connection layer in ``db.session``.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from redis.asyncio import Redis, from_url
 
 from logging_config import get_logger
+from orchestrator.schemas.events import InvestigationEvent
 
 if TYPE_CHECKING:
     from config.settings import Settings
@@ -85,3 +88,66 @@ async def get_redis() -> Redis:
             "Ensure init_redis() is called during application startup."
         )
     return redis_client
+
+
+def parse_event(json_str: str) -> InvestigationEvent:
+    """Parse JSON string into a typed InvestigationEvent."""
+    import json
+
+    from orchestrator.schemas.events import (
+        AgentCompletedEvent,
+        AgentStartedEvent,
+        CriticFlagEvent,
+        DoneEvent,
+        PlanningEvent,
+        SynthesizingEvent,
+    )
+
+    data = json.loads(json_str)
+    event_type = data.get("event")
+    if event_type == "planning":
+        return PlanningEvent(**data)
+    elif event_type == "agent_started":
+        return AgentStartedEvent(**data)
+    elif event_type == "agent_completed":
+        return AgentCompletedEvent(**data)
+    elif event_type == "synthesizing":
+        return SynthesizingEvent(**data)
+    elif event_type == "critic_flag":
+        return CriticFlagEvent(**data)
+    elif event_type == "done":
+        return DoneEvent(**data)
+    else:
+        raise ValueError(f"Unknown event type: {event_type}")
+
+
+async def publish_event(investigation_id: UUID, event: InvestigationEvent) -> None:
+    """Publish an InvestigationEvent to the Redis pub/sub channel."""
+    from cache.keys import RedisKeyBuilder
+
+    client = await get_redis()
+    channel = RedisKeyBuilder.event_channel_key(str(investigation_id))
+    serialized = event.model_dump_json()
+    await client.publish(channel, serialized)
+
+
+async def subscribe(investigation_id: UUID) -> AsyncIterator[InvestigationEvent]:
+    """Subscribe to the Redis channel for the given investigation ID.
+
+    Yields:
+        InvestigationEvent: The deserialized event streamed from the channel.
+    """
+    from cache.keys import RedisKeyBuilder
+
+    client = await get_redis()
+    channel = RedisKeyBuilder.event_channel_key(str(investigation_id))
+    pubsub = client.pubsub()
+    await pubsub.subscribe(channel)
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                data_str = message["data"]
+                yield parse_event(data_str)
+    finally:
+        await pubsub.unsubscribe(channel)
+        await pubsub.close()

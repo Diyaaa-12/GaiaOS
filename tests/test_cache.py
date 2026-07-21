@@ -27,6 +27,10 @@ class TestRedisKeyBuilder:
         key = RedisKeyBuilder.rate_limit_key("127.0.0.1", "search")
         assert key == "gaiaos:ratelimit:127.0.0.1:search"
 
+    def test_event_channel_key_prefix(self) -> None:
+        key = RedisKeyBuilder.event_channel_key("investigation_123")
+        assert key == "gaiaos:events:investigation_123"
+
 
 class TestRedisSettingsValidation:
     """Test validation settings rules for REDIS_URL."""
