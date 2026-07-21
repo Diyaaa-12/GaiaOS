@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from datetime import UTC
 from typing import Any
 
 from config.settings import get_settings
@@ -108,6 +109,22 @@ class FanOutCoordinator:
         agent_input: AgentInput,
         timeout: float,
     ) -> AgentOutput:
+        from datetime import datetime
+
+        from cache.client import publish_event
+        from orchestrator.schemas.events import (
+            AgentCompletedData,
+            AgentCompletedEvent,
+            AgentStartedData,
+            AgentStartedEvent,
+        )
+
+        async def _safe_publish(event):
+            try:
+                await publish_event(agent_input.investigation_id, event)
+            except Exception as exc:
+                _log.error("fan_out.event_publish_failed", error=str(exc))
+
         investigation_id_str = str(agent_input.investigation_id)
         start_time = time.perf_counter()
 
@@ -117,6 +134,15 @@ class FanOutCoordinator:
             agent_name=domain,
             outcome="started",
         )
+
+        # Emit agent_started event
+        start_evt = AgentStartedEvent(
+            data=AgentStartedData(
+                agent=domain,
+                at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            )
+        )
+        asyncio.create_task(_safe_publish(start_evt))
 
         try:
             # Wrap the entire agent execution with timeout
@@ -130,6 +156,16 @@ class FanOutCoordinator:
                 duration_ms=duration_ms,
                 outcome="completed",
             )
+
+            # Emit agent_completed event
+            complete_evt = AgentCompletedEvent(
+                data=AgentCompletedData(
+                    agent=domain,
+                    evidence_count=len(output.evidence) if output and output.evidence else 0,
+                )
+            )
+            asyncio.create_task(_safe_publish(complete_evt))
+
             return output
 
         except TimeoutError:
@@ -141,6 +177,16 @@ class FanOutCoordinator:
                 duration_ms=duration_ms,
                 outcome="timeout",
             )
+
+            # Emit agent_completed event with 0 evidence
+            complete_evt = AgentCompletedEvent(
+                data=AgentCompletedData(
+                    agent=domain,
+                    evidence_count=0,
+                )
+            )
+            asyncio.create_task(_safe_publish(complete_evt))
+
             return AgentOutput(
                 agent_name=domain,
                 evidence=[],
@@ -156,6 +202,16 @@ class FanOutCoordinator:
                 outcome="failed",
                 error=str(e),
             )
+
+            # Emit agent_completed event with 0 evidence
+            complete_evt = AgentCompletedEvent(
+                data=AgentCompletedData(
+                    agent=domain,
+                    evidence_count=0,
+                )
+            )
+            asyncio.create_task(_safe_publish(complete_evt))
+
             return AgentOutput(
                 agent_name=domain,
                 evidence=[],
