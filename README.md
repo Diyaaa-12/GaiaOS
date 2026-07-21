@@ -271,6 +271,8 @@ The pipeline ensures:
 1. The codebase is linted and formatted properly using Ruff.
 2. The exact local Docker Compose architecture is spun up (Postgres + PostGIS + pgvector).
 3. The complete `pytest` test suite runs successfully against the real containerized database.
+4. The production Docker image is built and verified via application startup and `/api/v1/health/live` health checks.
+
 
 The pipeline will fail immediately if any step fails.
 
@@ -296,7 +298,7 @@ Copy-Item config/environments/dev.env.example .env
 copy config\environments\dev.env.example .env
 ```
 
-Application code should always access configuration through `get_settings()` instead of reading environment variables directly. All configuration access is centralized in [`config/settings.py`](config/settings.py).
+Application code should always access configuration through `get_settings()` instead of reading environment variables directly. All configuration access is centralized in [`config/settings.py`](config/settings.py). Key settings include `LLM_MODEL` (defaults to `"gpt-4o-mini"`), `DATABASE_URL`, and `REDIS_URL`.
 
 Load settings from anywhere in the codebase:
 

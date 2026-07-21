@@ -19,6 +19,13 @@ COPY orchestrator/ orchestrator/
 COPY app/ app/
 COPY db/ db/
 COPY data/ data/
+COPY cache/ cache/
+COPY tools/ tools/
+COPY mcp_servers/ mcp_servers/
+COPY ingestion/ ingestion/
+COPY simulation_engine/ simulation_engine/
+COPY eval/ eval/
+
 
 # Create a non-root user and group
 RUN groupadd -g 10000 gaiaos \

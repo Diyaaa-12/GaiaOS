@@ -26,7 +26,7 @@ async def query_llm(messages: list[dict], response_format: dict | None = None) -
     }
 
     payload = {
-        "model": "gpt-4o-mini",
+        "model": settings.llm_model,
         "messages": messages,
         "temperature": 0.0,
     }

@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test and Lint
@@ -48,4 +51,10 @@ jobs:
           DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
           REDIS_URL: redis://localhost:6379/0
         run: pytest
+
+      - name: Build and verify production application container
+        run: |
+          docker compose up -d --build --wait app
+          curl --fail http://localhost:8000/api/v1/health/live
+
 
