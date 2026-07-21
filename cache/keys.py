@@ -33,3 +33,11 @@ class RedisKeyBuilder:
         Example: ``gaiaos:ratelimit:192.168.1.1:create_investigation``
         """
         return f"gaiaos:ratelimit:{identifier}:{action}"
+
+    @staticmethod
+    def event_channel_key(investigation_id: str) -> str:
+        """Return a namespaced key for pub/sub stream events.
+
+        Example: ``gaiaos:events:550e8400-e29b-41d4-a716-446655440000``
+        """
+        return f"gaiaos:events:{investigation_id}"
