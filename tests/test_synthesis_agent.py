@@ -156,3 +156,40 @@ class TestSynthesisAgent:
             assert result.claims[0].text == "PM2.5 index is 12 in Paris-North"
             assert result.claims[0].supporting_evidence == [ev]
             assert result.claims[0].confidence == 0.85
+
+    @pytest.mark.asyncio
+    async def test_synthesis_with_simulation_evidence(self) -> None:
+        """Verify Synthesis propagates simulation bounds and assumptions."""
+        ev = Evidence(
+            source="FloodExtentModel",
+            claim="Flood extent area is estimated at 160.0 sq km",
+            confidence=0.9,
+            uncertainty_bounds=(140.0, 180.0),
+            assumptions=["Soil is saturated"],
+        )
+        outputs = [AgentOutput(agent_name="simulation", evidence=[ev])]
+
+        # Mock LLM to return a claim citing this evidence
+        mock_llm_json = (
+            '{"claims": [{'
+            '"text": "The flooded area is 160 sq km.",'
+            '"supporting_evidence": [{'
+            '"source": "FloodExtentModel", '
+            '"claim": "Flood extent area is estimated at 160.0 sq km", '
+            '"confidence": 0.9'
+            "}],"
+            '"confidence": 0.9'
+            "}],"
+            '"evidence_gaps": []}'
+        )
+
+        with patch(
+            "orchestrator.agents.synthesis.agent.query_llm", new_callable=AsyncMock
+        ) as mock_query:
+            mock_query.return_value = mock_llm_json
+
+            result = await synthesize(outputs)
+
+            assert len(result.claims) == 1
+            assert result.claims[0].uncertainty_bounds == (140.0, 180.0)
+            assert result.claims[0].assumptions == ["Soil is saturated"]

@@ -24,4 +24,5 @@ class TaskGraphState(TypedDict):
     agent_outputs: Annotated[list[AgentOutput], operator.add]
     synthesis_output: SynthesisOutput | None
     critic_flags: list[CriticFlag]
+    needs_simulation: bool
     final_answer: str | None

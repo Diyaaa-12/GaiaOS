@@ -83,6 +83,18 @@ async def classify_query_complexity(query: str) -> dict[str, Any]:
         if any(re.search(pat, query_lower) for pat in patterns):
             matched_domains.append(domain)
 
+    # Check if query needs simulation/prediction
+    sim_keywords = [
+        r"\bpredict\b",
+        r"\bforecast\b",
+        r"\bsimulat(e|ion)\b",
+        r"\bspread\b",
+        r"\bdispersion\b",
+        r"\benso\b",
+        r"\bplume\b",
+    ]
+    needs_simulation = any(re.search(pat, query_lower) for pat in sim_keywords)
+
     # Complexity classification priority
     if is_complex:
         tier = ComplexityTier.COMPLEX
@@ -100,6 +112,7 @@ async def classify_query_complexity(query: str) -> dict[str, Any]:
         "matched_domains": matched_domains,
         "classification_method": "heuristic",
         "rationale": rationale,
+        "needs_simulation": needs_simulation,
     }
 
     _log.info(
@@ -108,10 +121,12 @@ async def classify_query_complexity(query: str) -> dict[str, Any]:
         tier=tier.value,
         matched_domains=matched_domains,
         rationale=rationale,
+        needs_simulation=needs_simulation,
     )
 
     return {
         "tier": tier,
         "matched_domains": matched_domains,
         "classification_metadata": classification_metadata,
+        "needs_simulation": needs_simulation,
     }

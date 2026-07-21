@@ -32,6 +32,7 @@ async def supervisor_node(state: TaskGraphState) -> dict[str, Any]:
         return {
             "complexity_tier": result["tier"],
             "matched_domains": result["matched_domains"],
+            "needs_simulation": result.get("needs_simulation", False),
         }
     except Exception as e:
         _log.error(
@@ -43,6 +44,7 @@ async def supervisor_node(state: TaskGraphState) -> dict[str, Any]:
         return {
             "complexity_tier": ComplexityTier.MODERATE,
             "matched_domains": [],
+            "needs_simulation": False,
         }
 
 
@@ -86,6 +88,10 @@ def render_synthesis_output(synthesis_output: SynthesisOutput) -> str:
     lines = ["### Synthesized Answer\n"]
     for claim in synthesis_output.claims:
         lines.append(f"- **Claim:** {claim.text} (Confidence: {claim.confidence:.2f})")
+        if claim.uncertainty_bounds:
+            lines.append(f"  - *Uncertainty Bounds:* {claim.uncertainty_bounds}")
+        if claim.assumptions:
+            lines.append(f"  - *Assumptions:* {', '.join(claim.assumptions)}")
         for idx, ev in enumerate(claim.supporting_evidence, 1):
             lines.append(f"  - Citation [{idx}]: {ev.claim} (Source: {ev.source})")
 
@@ -95,6 +101,28 @@ def render_synthesis_output(synthesis_output: SynthesisOutput) -> str:
             lines.append(f"- No evidence gathered for domain: {gap}")
 
     return "\n".join(lines)
+
+
+async def simulation_node(state: TaskGraphState) -> dict[str, Any]:
+    """Execute the Simulation Agent node if prediction is required."""
+    _log.info("graph.node.simulation.started", investigation_id=str(state["investigation_id"]))
+    from orchestrator.agents.simulation.agent import run as run_simulation_agent
+
+    agent_input = AgentInput(
+        investigation_id=state["investigation_id"],
+        query=state["query"],
+        region_hint=None,
+    )
+    # Pass prior outputs
+    output = await run_simulation_agent(agent_input, state.get("agent_outputs", []))
+    return {"agent_outputs": [output]}
+
+
+def route_after_domain_agents(state: TaskGraphState) -> str:
+    """Route after air_quality or fan_out based on needs_simulation flag."""
+    if state.get("needs_simulation", False):
+        return "simulation"
+    return "synthesis"
 
 
 async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
@@ -139,6 +167,8 @@ async def critic_node(state: TaskGraphState) -> dict[str, Any]:
         nodes_executed.append("air_quality")
     else:
         nodes_executed.append("fan_out")
+    if state.get("needs_simulation", False):
+        nodes_executed.append("simulation")
     nodes_executed.extend(["synthesis", "critic"])
 
     evidence_count = sum(len(out.evidence) for out in state.get("agent_outputs", []))
@@ -185,6 +215,7 @@ def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("air_quality", air_quality_node)
     workflow.add_node("fan_out", fan_out_node)
+    workflow.add_node("simulation", simulation_node)
     workflow.add_node("synthesis", synthesis_node)
     workflow.add_node("critic", critic_node)
 
@@ -201,8 +232,27 @@ def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
         },
     )
 
-    workflow.add_edge("air_quality", "synthesis")
-    workflow.add_edge("fan_out", "synthesis")
+    # Conditional edge after air_quality to either simulation or synthesis
+    workflow.add_conditional_edges(
+        "air_quality",
+        route_after_domain_agents,
+        {
+            "simulation": "simulation",
+            "synthesis": "synthesis",
+        },
+    )
+
+    # Conditional edge after fan_out to either simulation or synthesis
+    workflow.add_conditional_edges(
+        "fan_out",
+        route_after_domain_agents,
+        {
+            "simulation": "simulation",
+            "synthesis": "synthesis",
+        },
+    )
+
+    workflow.add_edge("simulation", "synthesis")
     workflow.add_edge("synthesis", "critic")
     workflow.add_edge("critic", END)
 
