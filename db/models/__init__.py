@@ -9,6 +9,7 @@ from db.models.eval_benchmark import EvalBenchmarkQuestion, EvalBenchmarkRun
 from db.models.hazard_event import HazardEvent, HazardRelationship
 from db.models.investigation import Investigation
 from db.models.literature_chunk import LiteratureChunk
+from db.models.user import User
 
 __all__ = [
     "EvalBenchmarkQuestion",
@@ -17,4 +18,5 @@ __all__ = [
     "LiteratureChunk",
     "HazardEvent",
     "HazardRelationship",
+    "User",
 ]

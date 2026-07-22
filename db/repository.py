@@ -10,7 +10,141 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models.investigation import Investigation
+from db.models.user import User
 from orchestrator.schemas.agent_io import Evidence
+
+
+class UserRepository:
+    """Helper repository to manage CRUD operations for users."""
+
+    @staticmethod
+    async def create_user(
+        session: AsyncSession,
+        email: str,
+        hashed_password: str,
+        full_name: str | None = None,
+        role: str = "user",
+        is_verified: bool = False,
+        hashed_verification_token: str | None = None,
+        verification_token_expires_at: datetime | None = None,
+    ) -> User:
+        user = User(
+            email=email.lower().strip(),
+            hashed_password=hashed_password,
+            full_name=full_name,
+            role=role,
+            is_active=True,
+            is_verified=is_verified,
+            hashed_verification_token=hashed_verification_token,
+            verification_token_expires_at=verification_token_expires_at,
+        )
+        session.add(user)
+        try:
+            await session.commit()
+        except Exception as exc:
+            await session.rollback()
+            raise exc
+        await session.refresh(user)
+        return user
+
+    @staticmethod
+    async def get_user_by_email(
+        session: AsyncSession,
+        email: str,
+        include_deleted: bool = False,
+    ) -> User | None:
+        stmt = select(User).where(User.email == email.lower().strip())
+        if not include_deleted:
+            stmt = stmt.where(User.deleted_at.is_(None))
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_user_by_id(
+        session: AsyncSession,
+        user_id: uuid.UUID,
+        include_deleted: bool = False,
+    ) -> User | None:
+        stmt = select(User).where(User.id == user_id)
+        if not include_deleted:
+            stmt = stmt.where(User.deleted_at.is_(None))
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_user_by_hashed_verification_token(
+        session: AsyncSession,
+        hashed_token: str,
+    ) -> User | None:
+        stmt = select(User).where(
+            User.hashed_verification_token == hashed_token,
+            User.deleted_at.is_(None),
+        )
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def verify_user_email(
+        session: AsyncSession,
+        user: User,
+    ) -> User:
+        user.is_verified = True
+        user.hashed_verification_token = None
+        user.verification_token_expires_at = None
+        try:
+            await session.commit()
+        except Exception as exc:
+            await session.rollback()
+            raise exc
+        await session.refresh(user)
+        return user
+
+    @staticmethod
+    async def update_last_login(
+        session: AsyncSession,
+        user_id: uuid.UUID,
+    ) -> None:
+        user = await UserRepository.get_user_by_id(session, user_id)
+        if user:
+            user.last_login_at = datetime.now(UTC)
+            try:
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+    @staticmethod
+    async def update_verification_token(
+        session: AsyncSession,
+        user: User,
+        hashed_token: str,
+        expires_at: datetime,
+    ) -> User:
+        user.hashed_verification_token = hashed_token
+        user.verification_token_expires_at = expires_at
+        try:
+            await session.commit()
+        except Exception as exc:
+            await session.rollback()
+            raise exc
+        await session.refresh(user)
+        return user
+
+    @staticmethod
+    async def soft_delete_user(
+        session: AsyncSession,
+        user_id: uuid.UUID,
+    ) -> bool:
+        user = await UserRepository.get_user_by_id(session, user_id)
+        if not user:
+            return False
+        user.deleted_at = datetime.now(UTC)
+        user.is_active = False
+        try:
+            await session.commit()
+            return True
+        except Exception:
+            await session.rollback()
+            return False
 
 
 class InvestigationRepository:
@@ -20,10 +154,12 @@ class InvestigationRepository:
     async def create_investigation(
         session: AsyncSession,
         query: str,
+        user_id: uuid.UUID | None = None,
     ) -> Investigation:
         """Create a new investigation in the 'planning' status."""
         investigation = Investigation(
             query_text=query,
+            user_id=user_id,
             status="planning",
         )
         session.add(investigation)

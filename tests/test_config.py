@@ -63,7 +63,6 @@ class TestSettingsDefaults:
         assert settings_override.llm_model == "gpt-4o"
 
 
-
 class TestSettingsEnvValidation:
     """Verify GAIAOS_ENV validation."""
 
@@ -78,6 +77,7 @@ class TestSettingsEnvValidation:
         if env_value in ("staging", "prod"):
             monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost:5432/db")
             monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+            monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         if env_value == "prod":
             monkeypatch.setenv("ENABLE_AUTH", "True")
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
@@ -104,6 +104,7 @@ class TestDatabaseUrlRequirement:
         """Settings raises ValidationError when GAIAOS_ENV=staging and DATABASE_URL is absent."""
         monkeypatch.setenv("GAIAOS_ENV", "staging")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+        monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         monkeypatch.delenv("DATABASE_URL", raising=False)
         with pytest.raises(ValidationError, match="DATABASE_URL must be set"):
             Settings(_env_file=None)  # type: ignore[call-arg]
@@ -113,6 +114,7 @@ class TestDatabaseUrlRequirement:
         monkeypatch.setenv("GAIAOS_ENV", "prod")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
         monkeypatch.setenv("ENABLE_AUTH", "True")
+        monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         monkeypatch.delenv("DATABASE_URL", raising=False)
         with pytest.raises(ValidationError, match="DATABASE_URL must be set"):
             Settings(_env_file=None)  # type: ignore[call-arg]
@@ -122,6 +124,7 @@ class TestDatabaseUrlRequirement:
         monkeypatch.setenv("GAIAOS_ENV", "staging")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost:5432/db")
+        monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.database_url == "postgresql://u:p@localhost:5432/db"
 
@@ -131,6 +134,7 @@ class TestDatabaseUrlRequirement:
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
         monkeypatch.setenv("ENABLE_AUTH", "True")
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@prod-host:5432/db")
+        monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.database_url == "postgresql://u:p@prod-host:5432/db"
 
@@ -144,5 +148,28 @@ class TestEnableAuthRequirement:
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@prod-host:5432/db")
         monkeypatch.setenv("ENABLE_AUTH", "False")
+        monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         with pytest.raises(ValidationError, match="ENABLE_AUTH must be True"):
+            Settings(_env_file=None)  # type: ignore[call-arg]
+
+
+class TestJWTSecretKeyRequirement:
+    """Verify JWT_SECRET_KEY validation logic."""
+
+    def test_jwt_secret_key_required_when_auth_enabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Settings raises ValidationError when ENABLE_AUTH=True and JWT_SECRET_KEY is absent."""
+        monkeypatch.setenv("ENABLE_AUTH", "True")
+        monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
+        with pytest.raises(ValidationError, match="JWT_SECRET_KEY must be set"):
+            Settings(_env_file=None)  # type: ignore[call-arg]
+
+    def test_jwt_secret_key_minimum_length_required(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Settings raises ValidationError when JWT_SECRET_KEY is less than 32 characters."""
+        monkeypatch.setenv("ENABLE_AUTH", "True")
+        monkeypatch.setenv("JWT_SECRET_KEY", "short-secret")
+        with pytest.raises(
+            ValidationError, match="JWT_SECRET_KEY must be at least 32 characters long"
+        ):
             Settings(_env_file=None)  # type: ignore[call-arg]

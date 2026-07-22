@@ -1,0 +1,1 @@
+"""Wildfire FIRMS tool package."""

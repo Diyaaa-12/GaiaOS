@@ -7,10 +7,12 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.dependencies import DbSessionDep, RedisDep
+from auth.dependencies import check_owner_or_role
+from auth.roles import Role
 from cache.client import subscribe
 from db.repository import InvestigationRepository
 from logging_config import get_logger
@@ -48,11 +50,13 @@ async def sse_event_generator(investigation_id: uuid.UUID) -> AsyncIterator[str]
     "/{investigation_id}/stream",
     responses={
         404: {"description": "Investigation not found"},
+        403: {"description": "Forbidden"},
         503: {"description": "Redis pub/sub service unavailable"},
     },
 )
 async def stream_investigation_events(
     investigation_id: uuid.UUID,
+    request: Request,
     db_session: DbSessionDep,
     redis_client: RedisDep,
 ) -> Any:
@@ -71,7 +75,12 @@ async def stream_investigation_events(
             },
         )
 
-    # 2. Check if Redis is reachable
+    # 2. Enforce ownership / admin role if request carries authenticated user context
+    user = getattr(request.state, "user", None)
+    if user:
+        check_owner_or_role(investigation.user_id, user, Role.ADMIN)
+
+    # 3. Check if Redis is reachable
     try:
         await redis_client.ping()
     except Exception:
@@ -84,7 +93,7 @@ async def stream_investigation_events(
             },
         )
 
-    # 3. Return the event stream
+    # 4. Return the event stream
     return StreamingResponse(
         sse_event_generator(investigation_id),
         media_type="text/event-stream",

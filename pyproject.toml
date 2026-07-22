@@ -34,3 +34,7 @@ select = [
     "UP", # pyupgrade
     "B",  # flake8-bugbear
 ]
+ignore = [
+    "B008",  # Do not perform function call in argument defaults (FastAPI Depends pattern)
+]
+

@@ -20,6 +20,7 @@ from app import __version__
 from app.api import api_router
 from app.api.root import root_router
 from app.dependencies import get_settings
+from auth.jwt_provider import JWTAuthProvider
 from cache import dispose_redis, init_redis
 from db.session import dispose_engine, init_engine, verify_extensions
 from gateway.middleware import GatewayMiddleware
@@ -141,14 +142,8 @@ def create_app() -> FastAPI:
     # Gateway middleware — must be the last add_middleware() call so that
     # Starlette's reverse-registration order places it outermost, running
     # first on every incoming request.
-    #
-    # To activate real auth or rate limiting in a later milestone, pass
-    # provider instances as keyword arguments:
-    #   app.add_middleware(GatewayMiddleware, auth=MyAuth(), rate_limiter=MyRL())
-    #
-    # TODO(M_AUTH):      Swap in a real AuthProvider implementation.
-    # TODO(M_RATELIMIT): Swap in a real RateLimiter implementation.
-    application.add_middleware(GatewayMiddleware)
+    auth_provider = JWTAuthProvider() if settings.enable_auth else None
+    application.add_middleware(GatewayMiddleware, auth=auth_provider)
 
     # Service-level root (outside versioned namespace)
     application.include_router(root_router)

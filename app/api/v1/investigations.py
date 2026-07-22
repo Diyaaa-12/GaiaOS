@@ -6,13 +6,15 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 import db.session as db_session
 from app.dependencies import DbSessionDep, RedisDep
+from auth.dependencies import check_owner_or_role
+from auth.roles import Role
 from db.repository import InvestigationRepository
 from logging_config import get_logger
 from orchestrator.graph.builder import build_graph
@@ -114,6 +116,7 @@ async def run_investigation_graph(
 )
 async def create_investigation(
     payload: InvestigationCreateRequest,
+    request: Request,
     db_session: DbSessionDep,
     redis_client: RedisDep,
     background_tasks: BackgroundTasks,
@@ -132,13 +135,18 @@ async def create_investigation(
             },
         )
 
-    # 2. Persist placeholder investigation in DB
+    # 2. Extract authenticated user if present
+    user = getattr(request.state, "user", None)
+    user_id = user.id if user else None
+
+    # 3. Persist placeholder investigation in DB with user_id
     investigation = await InvestigationRepository.create_investigation(
         session=db_session,
         query=payload.query,
+        user_id=user_id,
     )
 
-    # 3. Schedule execution as a background task
+    # 4. Schedule execution as a background task
     background_tasks.add_task(
         run_investigation_graph,
         investigation.id,
@@ -146,7 +154,7 @@ async def create_investigation(
         redis_client,
     )
 
-    # 4. Return links
+    # 5. Return links
     return InvestigationCreateResponse(
         investigation_id=investigation.id,
         status="accepted",
@@ -160,10 +168,12 @@ async def create_investigation(
     response_model=InvestigationStatusResponse,
     responses={
         404: {"model": ErrorResponse, "description": "Investigation not found"},
+        403: {"model": ErrorResponse, "description": "Forbidden"},
     },
 )
 async def get_investigation(
     investigation_id: uuid.UUID,
+    request: Request,
     db_session: DbSessionDep,
 ) -> Any:
     """Retrieve the status and results of an investigation."""
@@ -179,6 +189,11 @@ async def get_investigation(
                 "error_code": "investigation_not_found",
             },
         )
+
+    # Enforce ownership / admin role if request carries authenticated user context
+    user = getattr(request.state, "user", None)
+    if user:
+        check_owner_or_role(investigation.user_id, user, Role.ADMIN)
 
     return InvestigationStatusResponse(
         investigation_id=investigation.id,

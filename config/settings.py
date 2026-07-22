@@ -117,9 +117,36 @@ class Settings(BaseSettings):
         description=(
             "Set to true to activate real authentication enforcement.  "
             "False (the default) keeps the AuthStub active, which allows every "
-            "request — suitable for local development only.  "
-            "TODO(M_AUTH): Remove this flag once auth is mandatory in all envs."
+            "request — suitable for local development only."
         ),
+    )
+    # ---------------------------------------------------------------------------
+    # JWT Auth settings (Milestone 1)
+    # ---------------------------------------------------------------------------
+    jwt_secret_key: str | None = Field(
+        default=None,
+        validation_alias="JWT_SECRET_KEY",
+        description="Secret key for JWT signing and validation. Required when ENABLE_AUTH is true.",
+    )
+    jwt_algorithm: str = Field(
+        default="HS256",
+        validation_alias="JWT_ALGORITHM",
+        description="Algorithm for JWT signing.",
+    )
+    jwt_expiry_minutes: int = Field(
+        default=60,
+        validation_alias="JWT_EXPIRY_MINUTES",
+        description="Access token validity in minutes.",
+    )
+    jwt_issuer: str = Field(
+        default="gaiaos",
+        validation_alias="JWT_ISSUER",
+        description="Expected JWT issuer claim (iss).",
+    )
+    jwt_audience: str = Field(
+        default="gaiaos-api",
+        validation_alias="JWT_AUDIENCE",
+        description="Expected JWT audience claim (aud).",
     )
 
     @model_validator(mode="after")
@@ -130,6 +157,15 @@ class Settings(BaseSettings):
             raise ValueError("REDIS_URL must be set when GAIAOS_ENV is staging or prod")
         if self.gaiaos_env == "prod" and not self.enable_auth:
             raise ValueError("ENABLE_AUTH must be True when GAIAOS_ENV is prod")
+        if self.enable_auth or self.gaiaos_env in ("staging", "prod"):
+            if not self.jwt_secret_key:
+                raise ValueError(
+                    "JWT_SECRET_KEY must be set when ENABLE_AUTH is True "
+                    "or GAIAOS_ENV is staging/prod"
+                )
+
+            if len(self.jwt_secret_key) < 32:
+                raise ValueError("JWT_SECRET_KEY must be at least 32 characters long")
         return self
 
     @property

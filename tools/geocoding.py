@@ -103,4 +103,3 @@ async def geocode_location(location: str) -> dict:
     # 3. If API lookup fails and no local cache exists, return proper failure
     _log.warning("geocoding.failed", location=location)
     raise ValueError(f"Geocoding failed for unknown location: '{location}'")
-
