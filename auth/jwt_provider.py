@@ -81,6 +81,25 @@ def decode_access_token(token: str, secret_key: str | None = None) -> dict[str, 
     )
 
 
+PUBLIC_PATH_PREFIXES = (
+    "/api/v1/health",
+    "/api/v1/auth/register",
+    "/api/v1/auth/login",
+    "/api/v1/auth/verify-email",
+    "/api/v1/auth/resend-verification",
+    "/docs",
+    "/openapi.json",
+    "/redoc",
+)
+
+
+def is_public_endpoint(path: str) -> bool:
+    """Return True if path is a public endpoint that does not require authentication."""
+    if path == "/" or path in ("/docs", "/openapi.json", "/redoc"):
+        return True
+    return any(path == p or path.startswith(p + "/") for p in PUBLIC_PATH_PREFIXES)
+
+
 class JWTAuthProvider:
     """Production AuthProvider implementation.
 
@@ -94,10 +113,12 @@ class JWTAuthProvider:
         Attaches authenticated principal model to ``request.state.user``.
         """
         settings = get_settings()
+        path = request.url.path
+        is_public = is_public_endpoint(path)
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
-            if not settings.enable_auth:
+            if not settings.enable_auth or is_public:
                 request.state.user = None
                 return
             raise HTTPException(
@@ -105,6 +126,7 @@ class JWTAuthProvider:
                 detail="Missing authorization credentials.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
 
         parts = auth_header.split()
         if len(parts) != 2 or parts[0].lower() != "bearer":

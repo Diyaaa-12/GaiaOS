@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.jwt_provider import create_access_token
 from auth.roles import Role
@@ -15,23 +16,20 @@ from db.repository import UserRepository
 class TestInvestigationOwnership:
     """Ownership and Role Access tests for investigations."""
 
-    async def _create_verified_user(self, email: str, role: str = Role.USER.value):
-        from db.session import AsyncSessionLocal, init_engine
-
-        init_engine()
-        assert AsyncSessionLocal is not None
-        async with AsyncSessionLocal() as session:
-            user = await UserRepository.create_user(
-                session=session,
-                email=email,
-                hashed_password="HashedPassword123!",
-                role=role,
-                is_verified=True,
-            )
-            return user
+    async def _create_verified_user(
+        self, session: AsyncSession, email: str, role: str = Role.USER.value
+    ):
+        user = await UserRepository.create_user(
+            session=session,
+            email=email,
+            hashed_password="HashedPassword123!",
+            role=role,
+            is_verified=True,
+        )
+        return user
 
     async def test_investigation_creation_attaches_user_id(
-        self, client: AsyncClient, monkeypatch
+        self, client: AsyncClient, db_session: AsyncSession, monkeypatch
     ) -> None:
         """Creating an investigation when authenticated attaches current_user.id."""
         key = "super-secret-key-that-is-at-least-32-chars-long!"
@@ -39,7 +37,9 @@ class TestInvestigationOwnership:
         monkeypatch.setenv("ENABLE_AUTH", "true")
         get_settings.cache_clear()
 
-        user = await self._create_verified_user(f"owner-{uuid.uuid4().hex[:6]}@example.com")
+        user = await self._create_verified_user(
+            db_session, f"owner-{uuid.uuid4().hex[:6]}@example.com"
+        )
         token = create_access_token(user.id, user.role)
 
         res = await client.post(
@@ -58,7 +58,7 @@ class TestInvestigationOwnership:
         assert get_res.status_code == 200
 
     async def test_non_owner_forbidden_from_accessing_investigation(
-        self, client: AsyncClient, monkeypatch
+        self, client: AsyncClient, db_session: AsyncSession, monkeypatch
     ) -> None:
         """Non-owner user gets HTTP 403 Forbidden when fetching another user's investigation."""
         key = "super-secret-key-that-is-at-least-32-chars-long!"
@@ -66,8 +66,12 @@ class TestInvestigationOwnership:
         monkeypatch.setenv("ENABLE_AUTH", "true")
         get_settings.cache_clear()
 
-        owner = await self._create_verified_user(f"owner-{uuid.uuid4().hex[:6]}@example.com")
-        other = await self._create_verified_user(f"other-{uuid.uuid4().hex[:6]}@example.com")
+        owner = await self._create_verified_user(
+            db_session, f"owner-{uuid.uuid4().hex[:6]}@example.com"
+        )
+        other = await self._create_verified_user(
+            db_session, f"other-{uuid.uuid4().hex[:6]}@example.com"
+        )
 
         owner_token = create_access_token(owner.id, owner.role)
         other_token = create_access_token(other.id, other.role)
@@ -96,7 +100,7 @@ class TestInvestigationOwnership:
         assert stream_res.status_code == 403
 
     async def test_admin_can_access_any_investigation(
-        self, client: AsyncClient, monkeypatch
+        self, client: AsyncClient, db_session: AsyncSession, monkeypatch
     ) -> None:
         """Admin user can access any user's investigation."""
         key = "super-secret-key-that-is-at-least-32-chars-long!"
@@ -104,9 +108,11 @@ class TestInvestigationOwnership:
         monkeypatch.setenv("ENABLE_AUTH", "true")
         get_settings.cache_clear()
 
-        owner = await self._create_verified_user(f"owner-{uuid.uuid4().hex[:6]}@example.com")
+        owner = await self._create_verified_user(
+            db_session, f"owner-{uuid.uuid4().hex[:6]}@example.com"
+        )
         admin = await self._create_verified_user(
-            f"admin-{uuid.uuid4().hex[:6]}@example.com", role=Role.ADMIN.value
+            db_session, f"admin-{uuid.uuid4().hex[:6]}@example.com", role=Role.ADMIN.value
         )
 
         owner_token = create_access_token(owner.id, owner.role)
@@ -127,3 +133,4 @@ class TestInvestigationOwnership:
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert get_res.status_code == 200
+

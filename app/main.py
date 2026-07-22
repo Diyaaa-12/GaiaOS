@@ -142,8 +142,8 @@ def create_app() -> FastAPI:
     # Gateway middleware — must be the last add_middleware() call so that
     # Starlette's reverse-registration order places it outermost, running
     # first on every incoming request.
-    auth_provider = JWTAuthProvider() if settings.enable_auth else None
-    application.add_middleware(GatewayMiddleware, auth=auth_provider)
+    application.add_middleware(GatewayMiddleware, auth=JWTAuthProvider())
+
 
     # Service-level root (outside versioned namespace)
     application.include_router(root_router)
