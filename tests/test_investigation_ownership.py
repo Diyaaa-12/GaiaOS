@@ -133,4 +133,3 @@ class TestInvestigationOwnership:
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert get_res.status_code == 200
-

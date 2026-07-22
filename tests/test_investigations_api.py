@@ -12,18 +12,46 @@ from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth.jwt_provider import create_access_token
+from auth.roles import Role
+from config.settings import get_settings
 from db.models.investigation import Investigation
+from db.repository import UserRepository
 
 
 class TestInvestigationsAPI:
     """Verifies creation, polling, and failure paths of the investigations API."""
+
+    async def _create_authenticated_headers(
+        self,
+        session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch | None = None,
+    ) -> dict[str, str]:
+        key = "super-secret-key-that-is-at-least-32-chars-long!"
+        if monkeypatch is not None:
+            monkeypatch.setenv("JWT_SECRET_KEY", key)
+            get_settings.cache_clear()
+
+        email = f"testuser-{uuid.uuid4().hex[:6]}@example.com"
+        user = await UserRepository.create_user(
+            session=session,
+            email=email,
+            hashed_password="HashedPassword123!",
+            role=Role.USER.value,
+            is_verified=True,
+        )
+        token = create_access_token(user.id, user.role, secret_key=key)
+        return {"Authorization": f"Bearer {token}"}
 
     @respx.mock
     async def test_investigation_e2e_flow(
         self,
         client: AsyncClient,
         db_session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        headers = await self._create_authenticated_headers(db_session, monkeypatch)
+
         # Mock OpenAQ API response
         respx.get("https://api.openaq.org/v2/latest").respond(
             json={
@@ -41,7 +69,7 @@ class TestInvestigationsAPI:
 
         # 1. Post new investigation
         payload = {"query": "What is the air quality in Paris?"}
-        response = await client.post("/api/v1/investigations", json=payload)
+        response = await client.post("/api/v1/investigations", json=payload, headers=headers)
         assert response.status_code == 202
 
         body = response.json()
@@ -57,7 +85,7 @@ class TestInvestigationsAPI:
         completed = False
         for _ in range(max_attempts):
             await asyncio.sleep(0.5)
-            poll_resp = await client.get(poll_url)
+            poll_resp = await client.get(poll_url, headers=headers)
             assert poll_resp.status_code == 200
             poll_body = poll_resp.json()
             if poll_body["status"] == "complete":
@@ -81,7 +109,10 @@ class TestInvestigationsAPI:
         self,
         client: AsyncClient,
         db_session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        headers = await self._create_authenticated_headers(db_session, monkeypatch)
+
         # Mock OpenAQ API response
         respx.get("https://api.openaq.org/v2/latest").respond(
             json={
@@ -99,7 +130,7 @@ class TestInvestigationsAPI:
 
         # 1. Post new complex investigation
         payload = {"query": "Predict plume dispersion and current air quality in Paris"}
-        response = await client.post("/api/v1/investigations", json=payload)
+        response = await client.post("/api/v1/investigations", json=payload, headers=headers)
         assert response.status_code == 202
 
         body = response.json()
@@ -112,7 +143,7 @@ class TestInvestigationsAPI:
         completed = False
         for _ in range(max_attempts):
             await asyncio.sleep(0.5)
-            poll_resp = await client.get(poll_url)
+            poll_resp = await client.get(poll_url, headers=headers)
             assert poll_resp.status_code == 200
             poll_body = poll_resp.json()
             if poll_body["status"] == "complete":
@@ -132,23 +163,38 @@ class TestInvestigationsAPI:
         assert db_row.execution_trace is not None
         assert "fan_out" in db_row.execution_trace["nodes_executed"]
 
-    async def test_get_investigation_not_found(self, client: AsyncClient) -> None:
+    async def test_get_investigation_not_found(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        headers = await self._create_authenticated_headers(db_session, monkeypatch)
         bad_id = uuid.uuid4()
-        response = await client.get(f"/api/v1/investigations/{bad_id}")
+        response = await client.get(f"/api/v1/investigations/{bad_id}", headers=headers)
         assert response.status_code == 404
         assert response.json()["error_code"] == "investigation_not_found"
 
-    async def test_post_investigation_validation_error(self, client: AsyncClient) -> None:
+    async def test_post_investigation_validation_error(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        headers = await self._create_authenticated_headers(db_session, monkeypatch)
         # Query too short
         payload = {"query": "ab"}
-        response = await client.post("/api/v1/investigations", json=payload)
+        response = await client.post("/api/v1/investigations", json=payload, headers=headers)
         assert response.status_code == 422
 
     async def test_post_investigation_checkpointer_unavailable(
         self,
         client: AsyncClient,
+        db_session: AsyncSession,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        headers = await self._create_authenticated_headers(db_session, monkeypatch)
+
         # Mock ping to raise Exception
         async def mock_ping(*args, **kwargs) -> bool:
             raise Exception("Redis timeout")
@@ -156,7 +202,7 @@ class TestInvestigationsAPI:
         monkeypatch.setattr(Redis, "ping", mock_ping)
 
         payload = {"query": "What is the air quality in Beijing?"}
-        response = await client.post("/api/v1/investigations", json=payload)
+        response = await client.post("/api/v1/investigations", json=payload, headers=headers)
 
         assert response.status_code == 503
         body = response.json()

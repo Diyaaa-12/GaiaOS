@@ -127,7 +127,6 @@ class JWTAuthProvider:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-
         parts = auth_header.split()
         if len(parts) != 2 or parts[0].lower() != "bearer":
             raise HTTPException(

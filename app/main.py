@@ -144,7 +144,6 @@ def create_app() -> FastAPI:
     # first on every incoming request.
     application.add_middleware(GatewayMiddleware, auth=JWTAuthProvider())
 
-
     # Service-level root (outside versioned namespace)
     application.include_router(root_router)
 

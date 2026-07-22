@@ -31,10 +31,42 @@ class TestEventSerialization:
 class TestStreamEndpoint:
     """Verifies HTTP SSE streaming endpoint routes, 404, and 503 errors."""
 
+    async def _create_authenticated_user_and_headers(
+        self,
+        session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch | None = None,
+    ):
+        from auth.jwt_provider import create_access_token
+        from auth.roles import Role
+        from config.settings import get_settings
+        from db.repository import UserRepository
+
+        key = "super-secret-key-that-is-at-least-32-chars-long!"
+        if monkeypatch is not None:
+            monkeypatch.setenv("JWT_SECRET_KEY", key)
+            get_settings.cache_clear()
+
+        email = f"streamuser-{uuid.uuid4().hex[:6]}@example.com"
+        user = await UserRepository.create_user(
+            session=session,
+            email=email,
+            hashed_password="HashedPassword123!",
+            role=Role.USER.value,
+            is_verified=True,
+        )
+        token = create_access_token(user.id, user.role, secret_key=key)
+        return user, {"Authorization": f"Bearer {token}"}
+
     @pytest.mark.asyncio
-    async def test_stream_not_found(self, client: AsyncClient) -> None:
+    async def test_stream_not_found(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        _, headers = await self._create_authenticated_user_and_headers(db_session, monkeypatch)
         random_id = uuid.uuid4()
-        response = await client.get(f"/api/v1/investigations/{random_id}/stream")
+        response = await client.get(f"/api/v1/investigations/{random_id}/stream", headers=headers)
         assert response.status_code == 404
         assert response.json()["error_code"] == "investigation_not_found"
 
@@ -43,16 +75,21 @@ class TestStreamEndpoint:
         self,
         client: AsyncClient,
         db_session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        user, headers = await self._create_authenticated_user_and_headers(db_session, monkeypatch)
         # 1. Create a valid investigation in DB
         investigation = await InvestigationRepository.create_investigation(
             session=db_session,
             query="Test query",
+            user_id=user.id,
         )
 
         # 2. Mock redis ping to fail (simulate Redis unavailable)
         with patch("redis.asyncio.Redis.ping", side_effect=RuntimeError("Redis down")):
-            response = await client.get(f"/api/v1/investigations/{investigation.id}/stream")
+            response = await client.get(
+                f"/api/v1/investigations/{investigation.id}/stream", headers=headers
+            )
             assert response.status_code == 503
             assert response.json()["error_code"] == "checkpointer_unavailable"
 
@@ -61,11 +98,14 @@ class TestStreamEndpoint:
         self,
         client: AsyncClient,
         db_session: AsyncSession,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        user, headers = await self._create_authenticated_user_and_headers(db_session, monkeypatch)
         # 1. Create a valid investigation in DB
         investigation = await InvestigationRepository.create_investigation(
             session=db_session,
             query="Test query",
+            user_id=user.id,
         )
 
         # 2. Ensure Redis ping passes, and mock subscribe to yield immediately then close
@@ -79,7 +119,9 @@ class TestStreamEndpoint:
             with patch("app.api.v1.investigations_stream.subscribe", new=mock_sub):
                 # Request the SSE stream
                 async with client.stream(
-                    "GET", f"/api/v1/investigations/{investigation.id}/stream"
+                    "GET",
+                    f"/api/v1/investigations/{investigation.id}/stream",
+                    headers=headers,
                 ) as response:
                     assert response.status_code == 200
                     assert "text/event-stream" in response.headers["content-type"]
