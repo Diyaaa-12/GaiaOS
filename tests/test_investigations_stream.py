@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -69,7 +69,7 @@ class TestStreamEndpoint:
         )
 
         # 2. Ensure Redis ping passes, and mock subscribe to yield immediately then close
-        with patch("redis.asyncio.Redis.ping", return_value=True):
+        with patch("redis.asyncio.Redis.ping", new_callable=AsyncMock, return_value=True):
             # Mock the subscribe generator to yield a single event and then exit
             event = PlanningEvent(data=PlanningData(status="planning"))
 
