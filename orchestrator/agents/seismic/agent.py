@@ -18,7 +18,7 @@ def _extract_location(query: str) -> str:
     )
     if match:
         return match.group(1).capitalize()
-    return "Tokyo"
+    return query
 
 
 async def run(agent_input: AgentInput) -> AgentOutput:

@@ -2,9 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - "**"
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -33,6 +38,10 @@ jobs:
           # The override file exposes port 5432 and 6379 to the GitHub Actions runner (localhost).
           cp docker-compose.override.yml.example docker-compose.override.yml
           docker compose up -d --wait postgres redis
+          until docker compose exec -T postgres psql -U gaiaos -d gaiaos -c "SELECT 1" >/dev/null 2>&1; do
+            sleep 1
+          done
+
 
       - name: Run Ruff
         run: ruff check .
@@ -48,4 +57,10 @@ jobs:
           DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
           REDIS_URL: redis://localhost:6379/0
         run: pytest
+
+      - name: Build and verify production application container
+        run: |
+          docker compose up -d --build --wait app
+          curl --fail http://localhost:8000/api/v1/health/live
+
 

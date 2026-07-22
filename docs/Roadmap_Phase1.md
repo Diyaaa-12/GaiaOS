@@ -412,17 +412,17 @@ Notes on parallelism: M7 (Gateway) only depends on M4 and can be built in parall
 
 ## Phase 1 Completion Checklist
 
-- [ ] Fresh clone → documented setup → working local environment, no manual undocumented steps
-- [ ] `docker compose up` brings up app + Postgres (with PostGIS + pgvector) with zero manual intervention
-- [ ] FastAPI app runs, `/docs` renders, versioned API namespace in place
-- [ ] DI pattern in use for settings and DB session — no global singletons
-- [ ] Migrations run cleanly up and down against a fresh database
-- [ ] Gateway middleware wraps every route; auth/rate-limit stub seams clearly marked for later phases
-- [ ] Structured logging active across app/gateway/db layers, request-ID traceable end to end
-- [ ] `/health/live` and `/health/ready` both implemented and dependency-aware
-- [ ] Full test suite runs locally and in CI against a real containerized test DB
-- [ ] CI blocks merges on lint/test/migration failure
-- [ ] No secrets committed anywhere in the repository
-- [ ] No agent, LangGraph, Planner, RAG, Simulation, MCP, Redis, Critic, or Synthesis code exists anywhere in the repo
+- [x] Fresh clone → documented setup → working local environment, no manual undocumented steps
+- [x] `docker compose up` brings up app + Postgres (with PostGIS + pgvector) with zero manual intervention
+- [x] FastAPI app runs, `/docs` renders, versioned API namespace in place
+- [x] DI pattern in use for settings and DB session — no global singletons
+- [x] Migrations run cleanly up and down against a fresh database
+- [x] Gateway middleware wraps every route; auth/rate-limit stub seams clearly marked for later phases
+- [x] Structured logging active across app/gateway/db layers, request-ID traceable end to end
+- [x] `/health/live` and `/health/ready` both implemented and dependency-aware
+- [x] Full test suite runs locally and in CI against a real containerized test DB
+- [x] CI blocks merges on lint/test/migration failure
+- [x] No secrets committed anywhere in the repository
+- [x] No agent, LangGraph, Planner, RAG, Simulation, MCP, Redis, Critic, or Synthesis code exists anywhere in the repo
 
 **STOP — Phase 1 ends here. Await further instructions before beginning Phase 2.**

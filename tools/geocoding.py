@@ -100,6 +100,7 @@ async def geocode_location(location: str) -> dict:
         _log.info("geocoding.local_match_fallback", location=location)
         return LOCAL_GEOCODE_DB[loc_clean]
 
-    # 3. Default final fallback to Tokyo (coastal city with hazards)
-    _log.warning("geocoding.fallback_default", location=location)
-    return LOCAL_GEOCODE_DB["tokyo"]
+    # 3. If API lookup fails and no local cache exists, return proper failure
+    _log.warning("geocoding.failed", location=location)
+    raise ValueError(f"Geocoding failed for unknown location: '{location}'")
+

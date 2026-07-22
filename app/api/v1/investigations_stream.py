@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from app.dependencies import DbSessionDep
+from app.dependencies import DbSessionDep, RedisDep
 from cache.client import subscribe
 from db.repository import InvestigationRepository
 from logging_config import get_logger
@@ -48,11 +48,13 @@ async def sse_event_generator(investigation_id: uuid.UUID) -> AsyncIterator[str]
     "/{investigation_id}/stream",
     responses={
         404: {"description": "Investigation not found"},
+        503: {"description": "Redis pub/sub service unavailable"},
     },
 )
 async def stream_investigation_events(
     investigation_id: uuid.UUID,
     db_session: DbSessionDep,
+    redis_client: RedisDep,
 ) -> Any:
     """Stream live node-by-node execution progress of an investigation via SSE."""
     # 1. Validate if the investigation exists
@@ -69,7 +71,20 @@ async def stream_investigation_events(
             },
         )
 
-    # 2. Return the event stream
+    # 2. Check if Redis is reachable
+    try:
+        await redis_client.ping()
+    except Exception:
+        _log.error("sse.redis_unreachable", investigation_id=str(investigation_id))
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "Events streaming backend is currently unreachable.",
+                "error_code": "checkpointer_unavailable",
+            },
+        )
+
+    # 3. Return the event stream
     return StreamingResponse(
         sse_event_generator(investigation_id),
         media_type="text/event-stream",

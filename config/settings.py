@@ -40,6 +40,11 @@ class Settings(BaseSettings):
         validation_alias="ORCHESTRATOR_VERSION",
         description="Active codebase version identifier.",
     )
+    llm_model: str = Field(
+        default="gpt-4o-mini",
+        validation_alias="LLM_MODEL",
+        description="Active LLM model identifier for completions.",
+    )
     firms_api_key: str | None = Field(
         default=None,
         validation_alias="FIRMS_API_KEY",

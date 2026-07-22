@@ -52,6 +52,17 @@ class TestSettingsDefaults:
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.enable_auth is False
 
+    def test_llm_model_defaults_and_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """LLM_MODEL defaults to 'gpt-4o-mini' and can be overridden via environment variable."""
+        monkeypatch.delenv("LLM_MODEL", raising=False)
+        settings = Settings(_env_file=None)  # type: ignore[call-arg]
+        assert settings.llm_model == "gpt-4o-mini"
+
+        monkeypatch.setenv("LLM_MODEL", "gpt-4o")
+        settings_override = Settings(_env_file=None)  # type: ignore[call-arg]
+        assert settings_override.llm_model == "gpt-4o"
+
+
 
 class TestSettingsEnvValidation:
     """Verify GAIAOS_ENV validation."""
