@@ -82,7 +82,9 @@ class TestEvaluationHarness:
 
         assert res_map[q1.id].orchestrator_version == orchestrator_ver
         assert res_map[q1.id].score is None  # stub returns None
-        assert res_map[q1.id].metrics["status"] == "stub_scored"
+        m1 = res_map[q1.id].metrics
+        assert m1 is not None
+        assert m1["status"] == "stub_scored"
 
         # 5. Verify database persistence
         db_runs = (await db_session.execute(select(EvalBenchmarkRun))).scalars().all()
@@ -93,5 +95,6 @@ class TestEvaluationHarness:
         assert q2.id in run_map
 
         assert run_map[q1.id].orchestrator_version == orchestrator_ver
-        assert run_map[q1.id].score is None
-        assert run_map[q1.id].metrics["status"] == "stub_scored"
+        m2 = run_map[q1.id].metrics
+        assert m2 is not None
+        assert m2["status"] == "stub_scored"

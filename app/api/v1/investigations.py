@@ -79,7 +79,7 @@ async def run_investigation_graph(
         "agent_outputs": [],
         "final_answer": None,
     }
-    config = {"configurable": {"thread_id": str(investigation_id)}}
+    config: Any = {"configurable": {"thread_id": str(investigation_id)}}
 
     try:
         await graph.ainvoke(state, config=config)

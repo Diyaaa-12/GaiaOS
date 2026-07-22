@@ -23,11 +23,11 @@ class SynthesizedClaim(BaseModel):
         description="Calculated confidence score for this claim.",
     )
     uncertainty_bounds: tuple[float, float] | None = Field(
-        None,
+        default=None,
         description="Explicit uncertainty bounds (low, high) for simulation claims.",
     )
     assumptions: list[str] | None = Field(
-        None,
+        default=None,
         description="Explicit list of assumptions for simulation claims.",
     )
 

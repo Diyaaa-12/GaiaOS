@@ -66,7 +66,7 @@ class TestRedisConnectionLifecycle:
         if not redis_url:
             pytest.skip("REDIS_URL environment variable is not set — skipping integration test.")
 
-        settings = Settings(_env_file=None)
+        settings = Settings(_env_file=None)  # type: ignore[call-arg]
         settings.redis_url = redis_url
 
         # Initialise
@@ -84,7 +84,8 @@ class TestRedisConnectionLifecycle:
 
     async def test_failure_path_unreachable(self) -> None:
         """Test init_redis raises error when pointing to unreachable server."""
-        settings = Settings(_env_file=None)
+        settings = Settings(_env_file=None)  # type: ignore[call-arg]
+
         settings.redis_url = "redis://localhost:9999/0"
 
         with pytest.raises(RuntimeError, match="Failed to connect to Redis"):

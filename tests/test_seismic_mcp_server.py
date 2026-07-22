@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 from collections.abc import Generator
+from typing import Any
 
 import pytest
 from mcp import ClientSession, StdioServerParameters
@@ -35,7 +36,7 @@ class MockUSGSRequestHandler(http.server.BaseHTTPRequestHandler):
         }
         self.wfile.write(json.dumps(response).encode("utf-8"))
 
-    def log_message(self, format: str, *args: any) -> None:
+    def log_message(self, format: str, *args: Any) -> None:
         # Suppress request logging to keep pytest output clean
         pass
 
@@ -92,7 +93,10 @@ class TestSeismicMCPServer:
                     },
                 )
 
+                from mcp.types import TextContent
+
                 content = result.content
                 assert len(content) == 1
+                assert isinstance(content[0], TextContent)
                 assert "Magnitude 6.8" in content[0].text
                 assert "Honshu" in content[0].text

@@ -24,19 +24,19 @@ class Evidence(BaseModel):
         description="Timestamp when this evidence was queried/scraped.",
     )
     document_id: str | None = Field(
-        None,
+        default=None,
         description="Identifier of the specific literature document.",
     )
     chunk_id: str | int | None = Field(
-        None,
+        default=None,
         description="Identifier of the specific text chunk within the document.",
     )
     title: str | None = Field(
-        None,
+        default=None,
         description="Title of the source document.",
     )
     source_url: str | None = Field(
-        None,
+        default=None,
         description="Original source URL of the document.",
     )
     extra_metadata: dict[str, Any] = Field(
@@ -44,11 +44,11 @@ class Evidence(BaseModel):
         description="Extra domain-specific metadata.",
     )
     uncertainty_bounds: tuple[float, float] | None = Field(
-        None,
+        default=None,
         description="Explicit uncertainty bounds (low, high) for simulation results.",
     )
     assumptions: list[str] | None = Field(
-        None,
+        default=None,
         description="Explicit list of assumptions for the simulation/prediction model.",
     )
 
@@ -73,7 +73,7 @@ class AgentInput(BaseModel):
     investigation_id: uuid.UUID = Field(description="Unique ID of the parent investigation.")
     query: str = Field(description="User search query or instructions.")
     region_hint: str | None = Field(
-        None,
+        default=None,
         description="Optional location query boundary (e.g. 'Paris').",
     )
 

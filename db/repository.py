@@ -352,7 +352,8 @@ class LiteratureRepository:
         from db.models.literature_chunk import LiteratureChunk
 
         # Group by document_id to do document-level checking
-        doc_chunks = {}
+        doc_chunks: dict[str, list[dict[str, Any]]] = {}
+
         for ch in chunks:
             doc_id = ch["document_id"]
             doc_chunks.setdefault(doc_id, []).append(ch)

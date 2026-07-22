@@ -255,11 +255,8 @@ async def critic_node(state: TaskGraphState) -> dict[str, Any]:
         avg_confidence = 0.0
 
     # Build execution trace
-    tier_val = (
-        state.get("complexity_tier").value
-        if state.get("complexity_tier")
-        else ComplexityTier.TRIVIAL.value
-    )
+    tier = state.get("complexity_tier")
+    tier_val = tier.value if tier is not None else ComplexityTier.TRIVIAL.value
 
     nodes_executed = ["supervisor"]
     matched = state.get("matched_domains", [])

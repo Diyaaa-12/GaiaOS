@@ -102,7 +102,8 @@ class TestRedisPubSubIntegration:
         if not redis_url:
             pytest.skip("REDIS_URL environment variable is not set — skipping integration test.")
 
-        settings = Settings(_env_file=None)
+        settings = Settings(_env_file=None)  # type: ignore[call-arg]
+
         settings.redis_url = redis_url
 
         await init_redis(settings)

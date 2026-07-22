@@ -22,11 +22,12 @@ class WeatherClient:
     async def get_current_weather(self, lat: float, lon: float) -> dict[str, Any]:
         """Fetch current weather metrics (temperature, wind speed, relative humidity)."""
         _log.info("weather.client.get_current_weather", lat=lat, lon=lon)
-        params = {
+        params: dict[str, str | float] = {
             "latitude": lat,
             "longitude": lon,
             "current": "temperature_2m,wind_speed_10m,relative_humidity_2m",
         }
+
         async with httpx.AsyncClient() as client:
             resp = await client.get(self.base_url, params=params, timeout=10.0)
             if resp.status_code != 200:

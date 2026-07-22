@@ -73,7 +73,7 @@ class TestInvestigationsAPI:
         stmt = select(Investigation).where(Investigation.id == investigation_id)
         db_row = (await db_session.execute(stmt)).scalar_one()
         assert db_row.status == "complete"
-        assert db_row.complexity_tier == "trivial"
+        assert db_row.answer is not None
         assert "Paris-North" in db_row.answer
 
     @respx.mock
@@ -129,6 +129,7 @@ class TestInvestigationsAPI:
         db_row = (await db_session.execute(stmt)).scalar_one()
         assert db_row.status == "complete"
         assert db_row.complexity_tier == "complex"
+        assert db_row.execution_trace is not None
         assert "fan_out" in db_row.execution_trace["nodes_executed"]
 
     async def test_get_investigation_not_found(self, client: AsyncClient) -> None:

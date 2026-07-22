@@ -41,7 +41,7 @@ class USGSSeismicClient:
         endtime = datetime.now(UTC)
         starttime = endtime - timedelta(days=days)
 
-        params = {
+        params: dict[str, str | int | float] = {
             "format": "geojson",
             "starttime": starttime.isoformat(),
             "endtime": endtime.isoformat(),

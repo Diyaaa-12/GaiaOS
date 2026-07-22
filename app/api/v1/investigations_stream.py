@@ -28,9 +28,14 @@ async def sse_event_generator(investigation_id: uuid.UUID) -> AsyncIterator[str]
     _log.info("sse.subscribe", investigation_id=str(investigation_id))
     try:
         async for event in subscribe(investigation_id):
-            # Formats the event to match the client-facing SSE format
-            data_json = event.data.model_dump_json()
+            if hasattr(event.data, "model_dump_json"):
+                data_json = event.data.model_dump_json()  # type: ignore[union-attr]
+            else:
+                import json
+
+                data_json = json.dumps(event.data)
             yield f"event: {event.event}\ndata: {data_json}\n\n"
+
     except Exception as exc:
         _log.error(
             "sse.stream_error",

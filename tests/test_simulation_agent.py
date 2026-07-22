@@ -41,6 +41,7 @@ class TestSimulationAgent:
         assert "WildfireSpreadModel" in output.evidence[0].source
         assert output.evidence[0].claim is not None
         assert output.evidence[0].uncertainty_bounds is not None
+        assert output.evidence[0].assumptions is not None
         assert len(output.evidence[0].assumptions) > 0
 
     @pytest.mark.asyncio

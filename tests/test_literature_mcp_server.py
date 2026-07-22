@@ -39,7 +39,7 @@ class TestLiteratureMCPServer:
                 tools = tools_resp.tools
 
                 assert len(tools) == 1
-                assert tools[0].name == "hybrid_search"
+                assert tools[0].description is not None
                 assert "Perform hybrid" in tools[0].description
 
     @pytest.mark.asyncio

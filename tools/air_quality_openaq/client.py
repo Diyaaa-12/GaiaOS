@@ -26,7 +26,7 @@ class OpenAQClient:
             headers["X-API-Key"] = self.api_key
 
         url = f"{self.base_url}/latest"
-        params = {"city": city, "limit": 10}
+        params: dict[str, str | int] = {"city": city, "limit": 10}
 
         async with httpx.AsyncClient() as client:
             response = await client.get(url, params=params, headers=headers, timeout=10.0)

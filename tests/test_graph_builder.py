@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import uuid
+from typing import Any
 
 import pytest
 from redis.asyncio import Redis
@@ -39,14 +40,14 @@ class TestGraphBuilder:
         checkpointer = RedisCheckpointSaver(client)
         thread_id = str(uuid.uuid4())
 
-        config = {"configurable": {"thread_id": thread_id}}
+        config: Any = {"configurable": {"thread_id": thread_id}}
 
         # 1. Fetch missing checkpoint
         tup = await checkpointer.aget_tuple(config)
         assert tup is None
 
         # 2. Put a checkpoint
-        checkpoint = {
+        checkpoint: Any = {
             "v": 1,
             "id": str(uuid.uuid4()),
             "ts": "2026-07-20T00:00:00Z",
@@ -55,9 +56,10 @@ class TestGraphBuilder:
             "versions_seen": {},
             "pending_sends": [],
         }
-        metadata = {"step": 0, "source": "input"}
+        metadata: Any = {"step": 0, "source": "input"}
 
         new_config = await checkpointer.aput(config, checkpoint, metadata, {})
+
         assert new_config["configurable"]["thread_id"] == thread_id
 
         # 3. Retrieve checkpoint

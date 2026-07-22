@@ -35,6 +35,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         self,
         config: RunnableConfig | None,
         *,
+        filter: dict[str, Any] | None = None,
         before: RunnableConfig | None = None,
         limit: int | None = None,
     ) -> Iterator[CheckpointTuple]:
@@ -54,42 +55,42 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         config: RunnableConfig,
         writes: Sequence[tuple[str, Any]],
         task_id: str,
+        task_path: str = "",
     ) -> None:
         raise NotImplementedError("Use async aput_writes instead.")
 
     # --- Asynchronous contract implementation ---
     async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
-        """Retrieve a specific checkpoint tuple by thread_id and optional checkpoint_id."""
+        """Fetch a specific checkpoint tuple by thread_id and optional checkpoint_id."""
         thread_id = config.get("configurable", {}).get("thread_id")
         checkpoint_id = config.get("configurable", {}).get("checkpoint_id")
 
         if not thread_id:
             return None
 
-        # Resolve latest checkpoint if none specified
         if not checkpoint_id:
-            latest_key = f"gaiaos:checkpoint:{thread_id}:latest"
-            latest_val = await self.client.get(latest_key)
-            if not latest_val:
+            # Fetch latest checkpoint_id for this thread
+            key_latest = f"gaiaos:checkpoint:{thread_id}:latest"
+            latest_id_bytes = await self.client.get(key_latest)
+            if not latest_id_bytes:
                 return None
             checkpoint_id = (
-                latest_val.decode("utf-8") if isinstance(latest_val, bytes) else latest_val
+                latest_id_bytes.decode("utf-8")
+                if isinstance(latest_id_bytes, bytes)
+                else latest_id_bytes
             )
 
-        # Retrieve checkpoint data
-        data_key = f"gaiaos:checkpoint:{thread_id}:checkpoint:{checkpoint_id}"
-        serialized = await self.client.get(data_key)
+        key = f"gaiaos:checkpoint:{thread_id}:checkpoint:{checkpoint_id}"
+        serialized = await self.client.get(key)
         if not serialized:
             return None
 
-        # Deserialize using self.serde
         data = self.serde.loads(serialized)
-
         checkpoint = data["checkpoint"]
         metadata = data["metadata"]
         parent_config = data.get("parent_config")
 
-        # Fetch writes associated with this checkpoint
+        # Fetch writes for this checkpoint
         writes_pattern = f"gaiaos:checkpoint:{thread_id}:writes:{checkpoint_id}:*"
         write_keys = [key async for key in self.client.scan_iter(match=writes_pattern)]
         pending_writes = []
@@ -104,12 +105,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
                     pending_writes.append((task_id, channel, value))
 
         return CheckpointTuple(
-            config={
-                "configurable": {
-                    "thread_id": thread_id,
-                    "checkpoint_id": checkpoint_id,
-                }
-            },
+            config=config,
             checkpoint=checkpoint,
             metadata=metadata,
             parent_config=parent_config,
@@ -123,28 +119,25 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         metadata: CheckpointMetadata,
         new_versions: Any,
     ) -> RunnableConfig:
-        """Store a checkpoint snapshot."""
+        """Persist a new checkpoint to Redis."""
         thread_id = config.get("configurable", {}).get("thread_id")
         checkpoint_id = checkpoint["id"]
 
         if not thread_id:
-            raise ValueError("thread_id is required in config for checkpointing.")
+            raise ValueError("thread_id is required in config.configurable.")
 
-        # Serialize checkpoint payload
         data = {
             "checkpoint": checkpoint,
             "metadata": metadata,
-            "parent_config": config.get("configurable", {}).get("parent_config"),
+            "parent_config": config,
         }
         serialized = self.serde.dumps(data)
 
-        # Save to Redis
-        data_key = f"gaiaos:checkpoint:{thread_id}:checkpoint:{checkpoint_id}"
-        await self.client.set(data_key, serialized)
+        key = f"gaiaos:checkpoint:{thread_id}:checkpoint:{checkpoint_id}"
+        key_latest = f"gaiaos:checkpoint:{thread_id}:latest"
 
-        # Set latest pointer
-        latest_key = f"gaiaos:checkpoint:{thread_id}:latest"
-        await self.client.set(latest_key, checkpoint_id)
+        await self.client.set(key, serialized)
+        await self.client.set(key_latest, checkpoint_id)
 
         return {
             "configurable": {
@@ -158,6 +151,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         config: RunnableConfig,
         writes: Sequence[tuple[str, Any]],
         task_id: str,
+        task_path: str = "",
     ) -> None:
         """Store intermediate task writes."""
         thread_id = config.get("configurable", {}).get("thread_id")
@@ -174,6 +168,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         self,
         config: RunnableConfig | None,
         *,
+        filter: dict[str, Any] | None = None,
         before: RunnableConfig | None = None,
         limit: int | None = None,
     ) -> AsyncIterator[CheckpointTuple]:
@@ -213,7 +208,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
                         for channel, value in channel_values:
                             pending_writes.append((task_id, channel, value))
 
-                c_config = {
+                c_config: RunnableConfig = {
                     "configurable": {
                         "thread_id": thread_id,
                         "checkpoint_id": checkpoint_id,
