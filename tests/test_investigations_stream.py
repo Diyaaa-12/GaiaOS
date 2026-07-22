@@ -86,7 +86,7 @@ class TestStreamEndpoint:
 
                     # Read first chunk
                     chunks = []
-                    async for chunk in response.iter_raw():
+                    async for chunk in response.aiter_raw():
                         chunks.append(chunk)
                         if b"event: planning" in chunk:
                             break
