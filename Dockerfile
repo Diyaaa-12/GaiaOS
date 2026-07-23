@@ -17,6 +17,7 @@ COPY logging_config/ logging_config/
 COPY gateway/ gateway/
 COPY orchestrator/ orchestrator/
 COPY app/ app/
+COPY auth/ auth/
 COPY db/ db/
 COPY data/ data/
 COPY cache/ cache/
