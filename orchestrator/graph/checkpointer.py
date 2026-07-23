@@ -6,7 +6,8 @@ in standard Redis (no enterprise modules required).
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator, Sequence
+from collections import ChainMap
+from collections.abc import AsyncIterator, Iterator, Mapping, Sequence
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
@@ -17,14 +18,38 @@ from langgraph.checkpoint.base import (
     CheckpointTuple,
     SerializerProtocol,
 )
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from redis.asyncio import Redis
+
+
+def _normalize_serializable(obj: Any) -> Any:
+    """Recursively convert ChainMap and non-dict mappings to standard python primitives."""
+
+    if isinstance(obj, (ChainMap, Mapping)) or hasattr(obj, "maps"):
+        return {str(k): _normalize_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, dict):
+        return {str(k): _normalize_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, tuple):
+        return tuple(_normalize_serializable(item) for item in obj)
+    if isinstance(obj, (list, set)):
+        return [_normalize_serializable(item) for item in obj]
+    return obj
+
+
+class GaiaOSSerializer(JsonPlusSerializer):
+    """Custom JsonPlusSerializer that normalizes ChainMap and non-dict Mappings."""
+
+    def _default(self, obj: Any) -> Any:
+        if isinstance(obj, (ChainMap, Mapping)) or hasattr(obj, "maps"):
+            return dict(obj)
+        return super()._default(obj)
 
 
 class RedisCheckpointSaver(BaseCheckpointSaver):
     """An asynchronous LangGraph checkpointer that stores states in standard Redis."""
 
     def __init__(self, client: Redis, *, serde: SerializerProtocol | None = None) -> None:
-        super().__init__(serde=serde)
+        super().__init__(serde=serde or GaiaOSSerializer())
         self.client = client
 
     # --- Synchronous placeholders to satisfy abstract interface ---
@@ -127,9 +152,9 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
             raise ValueError("thread_id is required in config.configurable.")
 
         data = {
-            "checkpoint": checkpoint,
-            "metadata": metadata,
-            "parent_config": config,
+            "checkpoint": _normalize_serializable(checkpoint),
+            "metadata": _normalize_serializable(metadata),
+            "parent_config": _normalize_serializable(config),
         }
         serialized = self.serde.dumps(data)
 
@@ -160,7 +185,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         if not thread_id or not checkpoint_id:
             raise ValueError("thread_id and checkpoint_id are required for aput_writes.")
 
-        serialized = self.serde.dumps(writes)
+        serialized = self.serde.dumps(_normalize_serializable(writes))
         key = f"gaiaos:checkpoint:{thread_id}:writes:{checkpoint_id}:{task_id}"
         await self.client.set(key, serialized)
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import uuid
+from collections import ChainMap
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -147,6 +149,19 @@ class UserRepository:
             return False
 
 
+def _normalize_serializable(obj: Any) -> Any:
+    """Recursively convert ChainMap and non-dict mappings to standard python primitives."""
+    if isinstance(obj, (ChainMap, Mapping)) or hasattr(obj, "maps"):
+        return {str(k): _normalize_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, dict):
+        return {str(k): _normalize_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, tuple):
+        return tuple(_normalize_serializable(item) for item in obj)
+    if isinstance(obj, (list, set)):
+        return [_normalize_serializable(item) for item in obj]
+    return obj
+
+
 class InvestigationRepository:
     """Helper repository to manage CRUD operations for investigations."""
 
@@ -194,7 +209,7 @@ class InvestigationRepository:
         if confidence is not None:
             investigation.confidence = confidence
         if execution_trace is not None:
-            investigation.execution_trace = execution_trace
+            investigation.execution_trace = _normalize_serializable(execution_trace)
 
         if status in ("complete", "failed"):
             investigation.completed_at = datetime.now(UTC)
