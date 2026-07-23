@@ -121,6 +121,29 @@ class Settings(BaseSettings):
         ),
     )
     # ---------------------------------------------------------------------------
+    # Rate Limiting settings (Phase 3 Milestone 2)
+    # ---------------------------------------------------------------------------
+    enable_rate_limiting: bool = Field(
+        default=False,
+        validation_alias="ENABLE_RATE_LIMITING",
+        description=(
+            "Set to true to activate real Redis token-bucket rate limiting.  "
+            "False (the default) keeps rate limiting in passthrough mode — "
+            "suitable for local development and testing."
+        ),
+    )
+    rate_limit_requests_per_minute: int = Field(
+        default=60,
+        validation_alias="RATE_LIMIT_REQUESTS_PER_MINUTE",
+        description="Base rate limit in requests per minute.",
+    )
+    rate_limit_burst: int = Field(
+        default=15,
+        validation_alias="RATE_LIMIT_BURST",
+        description="Maximum burst capacity (tokens) above steady rate.",
+    )
+
+    # ---------------------------------------------------------------------------
     # JWT Auth settings (Milestone 1)
     # ---------------------------------------------------------------------------
     jwt_secret_key: str | None = Field(
@@ -157,6 +180,8 @@ class Settings(BaseSettings):
             raise ValueError("REDIS_URL must be set when GAIAOS_ENV is staging or prod")
         if self.gaiaos_env == "prod" and not self.enable_auth:
             raise ValueError("ENABLE_AUTH must be True when GAIAOS_ENV is prod")
+        if self.gaiaos_env == "prod" and not self.enable_rate_limiting:
+            raise ValueError("ENABLE_RATE_LIMITING must be True when GAIAOS_ENV is prod")
         if self.enable_auth or self.gaiaos_env in ("staging", "prod"):
             if not self.jwt_secret_key:
                 raise ValueError(

@@ -80,6 +80,7 @@ class TestSettingsEnvValidation:
             monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         if env_value == "prod":
             monkeypatch.setenv("ENABLE_AUTH", "True")
+            monkeypatch.setenv("ENABLE_RATE_LIMITING", "True")
         settings = Settings(_env_file=None)  # type: ignore[call-arg]
         assert settings.gaiaos_env == env_value
 
@@ -114,6 +115,7 @@ class TestDatabaseUrlRequirement:
         monkeypatch.setenv("GAIAOS_ENV", "prod")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
         monkeypatch.setenv("ENABLE_AUTH", "True")
+        monkeypatch.setenv("ENABLE_RATE_LIMITING", "True")
         monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         monkeypatch.delenv("DATABASE_URL", raising=False)
         with pytest.raises(ValidationError, match="DATABASE_URL must be set"):
@@ -133,6 +135,7 @@ class TestDatabaseUrlRequirement:
         monkeypatch.setenv("GAIAOS_ENV", "prod")
         monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
         monkeypatch.setenv("ENABLE_AUTH", "True")
+        monkeypatch.setenv("ENABLE_RATE_LIMITING", "True")
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@prod-host:5432/db")
         monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
         settings = Settings(_env_file=None)  # type: ignore[call-arg]

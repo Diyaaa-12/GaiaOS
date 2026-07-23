@@ -24,6 +24,7 @@ from auth.jwt_provider import JWTAuthProvider
 from cache import dispose_redis, init_redis
 from db.session import dispose_engine, init_engine, verify_extensions
 from gateway.middleware import GatewayMiddleware
+from gateway.rate_limiter_redis import RedisRateLimiter
 from logging_config import configure_logging, get_logger
 
 _log = get_logger(__name__)
@@ -142,7 +143,11 @@ def create_app() -> FastAPI:
     # Gateway middleware — must be the last add_middleware() call so that
     # Starlette's reverse-registration order places it outermost, running
     # first on every incoming request.
-    application.add_middleware(GatewayMiddleware, auth=JWTAuthProvider())
+    application.add_middleware(
+        GatewayMiddleware,
+        auth=JWTAuthProvider(),
+        rate_limiter=RedisRateLimiter(),
+    )
 
     # Service-level root (outside versioned namespace)
     application.include_router(root_router)

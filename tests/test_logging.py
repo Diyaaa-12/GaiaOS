@@ -29,7 +29,9 @@ def test_prod_environment_selects_json_renderer(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setenv("DATABASE_URL", "postgresql://dummy")
     monkeypatch.setenv("REDIS_URL", "redis://dummy")
     monkeypatch.setenv("ENABLE_AUTH", "True")
+    monkeypatch.setenv("ENABLE_RATE_LIMITING", "True")
     monkeypatch.setenv("JWT_SECRET_KEY", "super-secret-key-that-is-at-least-32-chars-long!")
+
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
 
     configure_logging(settings)
