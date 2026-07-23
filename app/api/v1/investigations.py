@@ -6,21 +6,26 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
+import redis
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
+from rq import Queue, Retry  # type: ignore[import-untyped,import-not-found]
 
 import db.session as db_session
 from app.dependencies import DbSessionDep, RedisDep
 from auth.dependencies import check_owner_or_role
 from auth.roles import Role
+from config.settings import get_settings
 from db.repository import InvestigationRepository
 from logging_config import get_logger
 from orchestrator.graph.builder import build_graph
 from orchestrator.graph.checkpointer import RedisCheckpointSaver
+from workers.jobs.investigation_job import run_investigation_job
 
 _log = get_logger(__name__)
+
 
 investigations_router = APIRouter(prefix="/investigations", tags=["Investigations"])
 
@@ -105,6 +110,21 @@ async def run_investigation_graph(
             )
 
 
+_rq_redis_conn: redis.Redis | None = None
+_rq_queue: Queue | None = None
+
+
+def get_rq_queue() -> Queue:
+    """Return cached module-level RQ Queue using shared Redis connection pool."""
+    global _rq_redis_conn, _rq_queue
+    if _rq_queue is None or _rq_redis_conn is None:
+        settings = get_settings()
+        url = settings.redis_url or "redis://localhost:6379/0"
+        _rq_redis_conn = redis.Redis.from_url(url)
+        _rq_queue = Queue("default", connection=_rq_redis_conn)
+    return _rq_queue
+
+
 @investigations_router.post(
     "",
     response_model=InvestigationCreateResponse,
@@ -146,13 +166,29 @@ async def create_investigation(
         user_id=user_id,
     )
 
-    # 4. Schedule execution as a background task
-    background_tasks.add_task(
-        run_investigation_graph,
-        investigation.id,
-        payload.query,
-        redis_client,
-    )
+    # 4. Schedule execution via RQ worker queue or background tasks
+    settings = get_settings()
+    if settings.use_queued_execution:
+        queue = get_rq_queue()
+        job = queue.enqueue(
+            run_investigation_job,
+            str(investigation.id),
+            payload.query,
+            job_timeout="10m",
+            retry=Retry(max=2),
+        )
+        _log.info(
+            "investigation.create.enqueued",
+            investigation_id=str(investigation.id),
+            job_id=job.id,
+        )
+    else:
+        background_tasks.add_task(
+            run_investigation_graph,
+            investigation.id,
+            payload.query,
+            redis_client,
+        )
 
     # 5. Return links
     return InvestigationCreateResponse(

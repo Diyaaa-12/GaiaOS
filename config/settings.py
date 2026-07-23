@@ -142,6 +142,17 @@ class Settings(BaseSettings):
         validation_alias="RATE_LIMIT_BURST",
         description="Maximum burst capacity (tokens) above steady rate.",
     )
+    # ---------------------------------------------------------------------------
+    # Task Queue settings (Phase 3 Milestone 3)
+    # ---------------------------------------------------------------------------
+    use_queued_execution: bool = Field(
+        default=True,
+        validation_alias="USE_QUEUED_EXECUTION",
+        description=(
+            "Set to true to enqueue investigation jobs via RQ worker queue. "
+            "Set to false for legacy BackgroundTasks fallback execution."
+        ),
+    )
 
     # ---------------------------------------------------------------------------
     # JWT Auth settings (Milestone 1)

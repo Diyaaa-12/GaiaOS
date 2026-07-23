@@ -30,6 +30,7 @@ class TestInvestigationsAPI:
         key = "super-secret-key-that-is-at-least-32-chars-long!"
         if monkeypatch is not None:
             monkeypatch.setenv("JWT_SECRET_KEY", key)
+            monkeypatch.setenv("USE_QUEUED_EXECUTION", "false")
             get_settings.cache_clear()
 
         email = f"testuser-{uuid.uuid4().hex[:6]}@example.com"
