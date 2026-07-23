@@ -2,7 +2,7 @@
 
 Usage:
     python tools/create_admin.py --email admin@gaiaos.ai \
-        --password 'AdminSecureP@ss1' --full-name 'System Administrator'
+        --password '<YOUR_STRONG_PASSWORD>' --full-name 'System Administrator'
 """
 
 from __future__ import annotations
