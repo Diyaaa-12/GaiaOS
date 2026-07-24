@@ -332,7 +332,13 @@ async def finalize_node(state: TaskGraphState) -> dict[str, Any]:
         avg_confidence = 0.0
 
     tier = state.get("complexity_tier")
-    tier_val = tier.value if tier is not None else ComplexityTier.TRIVIAL.value
+
+    if isinstance(tier, ComplexityTier):
+        tier_val = tier.value
+    elif isinstance(tier, str):
+        tier_val = tier
+    else:
+        tier_val = ComplexityTier.TRIVIAL.value
 
     nodes_executed = ["supervisor"]
     matched = state.get("matched_domains", [])

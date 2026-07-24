@@ -9,6 +9,8 @@ import pytest
 from langchain_core.runnables import RunnableConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth.roles import Role
+from db.repository import UserRepository
 from orchestrator.agents.critic.replan import build_replan_targets, should_replan
 from orchestrator.graph.builder import build_graph, route_after_critic
 from orchestrator.schemas.agent_io import AgentOutput, Evidence
@@ -143,9 +145,16 @@ class TestReplanLoopIntegration:
         inv_id = uuid.uuid4()
 
         from db.models.investigation import Investigation
+        user = await UserRepository.create_user(
+            session=db_session,
+            email=f"{uuid.uuid4()}@example.com",
+            hashed_password="HashedPassword123!",
+            role=Role.USER.value,
+            is_verified=True,
+)
         inv = Investigation(
             id=inv_id,
-            user_id="test_user",
+            user_id=user.id,
             query_text="Conflicting seismic query",
             status="in_progress",
         )
@@ -235,9 +244,16 @@ class TestReplanLoopIntegration:
         inv_id = uuid.uuid4()
 
         from db.models.investigation import Investigation
+        user = await UserRepository.create_user(
+            session=db_session,
+            email=f"{uuid.uuid4()}@example.com",
+            hashed_password="HashedPassword123!",
+            role=Role.USER.value,
+            is_verified=True,
+        )
         inv = Investigation(
             id=inv_id,
-            user_id="test_user",
+            user_id=user.id,
             query_text="Air quality query",
             status="in_progress",
         )
