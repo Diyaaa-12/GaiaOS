@@ -26,3 +26,5 @@ class TaskGraphState(TypedDict):
     critic_flags: list[CriticFlag]
     needs_simulation: bool
     final_answer: str | None
+    replan_count: int
+

@@ -175,6 +175,18 @@ class Settings(BaseSettings):
             "Explicit override for checkpoint TTL in seconds. If unset, calculated automatically."
         ),
     )
+    # ---------------------------------------------------------------------------
+    # Critic Replan Loop settings (Phase 3 Milestone 6)
+    # ---------------------------------------------------------------------------
+    enable_replan_loop: bool = Field(
+        default=False,
+        validation_alias="ENABLE_REPLAN_LOOP",
+        description=(
+            "Set to true to activate bounded critic replan loop on high-severity critic flags. "
+            "False (the default) keeps replanning in passthrough mode for A/B evaluation."
+        ),
+    )
+
 
     @property
     def checkpoint_ttl_seconds(self) -> int:

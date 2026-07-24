@@ -53,3 +53,8 @@ class CriticFlag(BaseModel):
     severity: Literal["low", "medium", "high"] = Field(
         description="The severity of the flag (low, medium, high).",
     )
+    flagged_domains: list[str] | None = Field(
+        default=None,
+        description="Optional structured list of domain identifiers associated with this flag.",
+    )
+

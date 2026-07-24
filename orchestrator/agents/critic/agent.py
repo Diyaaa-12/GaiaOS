@@ -76,11 +76,16 @@ async def verify(synthesis: SynthesisOutput) -> list[CriticFlag]:
                                     "type": "string",
                                     "enum": ["low", "medium", "high"],
                                 },
+                                "flagged_domains": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
                             },
                             "required": [
                                 "claim_text",
                                 "flagged_reason",
                                 "severity",
+                                "flagged_domains",
                             ],
                             "additionalProperties": False,
                         },

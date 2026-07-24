@@ -71,6 +71,21 @@ class CriticFlagEvent(BaseModel):
     data: CriticFlagData
 
 
+class ReplanningData(BaseModel):
+    """Payload for replanning event."""
+
+    cycle_number: int
+    targeted_domains: list[str]
+    trigger_reason: str
+
+
+class ReplanningEvent(BaseModel):
+    """Event emitted when a critic verification triggers a targeted replan loop cycle."""
+
+    event: Literal["replanning"] = "replanning"
+    data: ReplanningData
+
+
 class DoneData(BaseModel):
     """Payload for done event."""
 
@@ -91,5 +106,7 @@ InvestigationEvent = (
     | AgentCompletedEvent
     | SynthesizingEvent
     | CriticFlagEvent
+    | ReplanningEvent
     | DoneEvent
 )
+

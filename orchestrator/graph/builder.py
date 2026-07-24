@@ -15,6 +15,7 @@ from db.repository import InvestigationRepository
 from logging_config import get_logger
 from orchestrator.agents.air_quality.agent import run as run_air_quality
 from orchestrator.agents.critic.agent import verify
+from orchestrator.agents.critic.replan import build_replan_targets, should_replan
 from orchestrator.agents.supervisor.classifier import classify_query_complexity
 from orchestrator.agents.synthesis.agent import synthesize
 from orchestrator.graph.fan_out_coordinator import FanOutCoordinator
@@ -33,6 +34,8 @@ from orchestrator.schemas.events import (
     InvestigationEvent,
     PlanningData,
     PlanningEvent,
+    ReplanningData,
+    ReplanningEvent,
     SynthesizingEvent,
 )
 from orchestrator.schemas.synthesis import SynthesisOutput
@@ -243,18 +246,91 @@ async def critic_node(state: TaskGraphState) -> dict[str, Any]:
             ),
         )
 
-    # Render final answer text
     final_answer = render_synthesis_output(synthesis_output)
+    return {
+        "critic_flags": critic_flags,
+        "final_answer": final_answer,
+    }
+
+
+def route_after_critic(state: TaskGraphState) -> str:
+    """Route after critic verification: loop back to replan or proceed to finalize."""
+    replan_count = state.get("replan_count", 0)
+    critic_flags = state.get("critic_flags", [])
+    if should_replan(critic_flags=critic_flags, replan_count=replan_count):
+        return "replan"
+    return "finalize"
+
+
+async def replan_node(state: TaskGraphState) -> dict[str, Any]:
+    """Execute a targeted replan pass over flagged domain agents."""
+    replan_count = state.get("replan_count", 0) + 1
+    critic_flags = state.get("critic_flags", [])
+    high_flags = [f for f in critic_flags if f.severity == "high"]
+    trigger_reason = (
+        high_flags[0].flagged_reason
+        if high_flags
+        else (critic_flags[0].flagged_reason if critic_flags else "Critic verification flag")
+    )
+
+    matched_domains = state.get("matched_domains", [])
+    targets = build_replan_targets(critic_flags, fallback_domains=matched_domains)
+
+    _log.info(
+        "graph.node.replan.started",
+        investigation_id=str(state["investigation_id"]),
+        cycle_number=replan_count,
+        targeted_domains=targets,
+        trigger_reason=trigger_reason,
+    )
+
+    _safe_publish_event(
+        state["investigation_id"],
+        ReplanningEvent(
+            data=ReplanningData(
+                cycle_number=replan_count,
+                targeted_domains=targets,
+                trigger_reason=trigger_reason,
+            )
+        ),
+    )
+
+    outputs = await FanOutCoordinator.run(
+        domains=targets,
+        investigation_id=state["investigation_id"],
+        query=state["query"],
+        region_hint=None,
+    )
+
+    return {
+        "replan_count": replan_count,
+        "agent_outputs": outputs,
+    }
+
+
+async def finalize_node(state: TaskGraphState) -> dict[str, Any]:
+    """Finalize investigation, update database, emit done event, handle conflicts."""
+    _log.info("graph.node.finalize.started", investigation_id=str(state["investigation_id"]))
+    synthesis_output = state.get("synthesis_output")
+    final_answer = state.get("final_answer") or (
+        render_synthesis_output(synthesis_output) if synthesis_output else "No synthesis output."
+    )
+    critic_flags = state.get("critic_flags", [])
+    replan_count = state.get("replan_count", 0)
+
+    # If replan cap is reached with unresolved high-severity flags, append explicit conflict note
+    has_unresolved_high = any(f.severity == "high" for f in critic_flags)
+    if replan_count >= 2 and has_unresolved_high:
+        final_answer += "\n\nUnresolved conflicting evidence."
 
     # Compute overall average confidence
-    if synthesis_output.claims:
+    if synthesis_output and synthesis_output.claims:
         avg_confidence = sum(c.confidence for c in synthesis_output.claims) / len(
             synthesis_output.claims
         )
     else:
         avg_confidence = 0.0
 
-    # Build execution trace
     tier = state.get("complexity_tier")
     tier_val = tier.value if tier is not None else ComplexityTier.TRIVIAL.value
 
@@ -267,12 +343,16 @@ async def critic_node(state: TaskGraphState) -> dict[str, Any]:
     if state.get("needs_simulation", False):
         nodes_executed.append("simulation")
     nodes_executed.extend(["synthesis", "critic"])
+    if replan_count > 0:
+        nodes_executed.append("replan")
+    nodes_executed.append("finalize")
 
     evidence_count = sum(len(out.evidence) for out in state.get("agent_outputs", []))
 
     trace = {
         "nodes_executed": nodes_executed,
         "evidence_count": evidence_count,
+        "replan_count": replan_count,
         "critic_flags": [
             {
                 "claim_text": flag.claim_text,
@@ -283,7 +363,6 @@ async def critic_node(state: TaskGraphState) -> dict[str, Any]:
         ],
     }
 
-    # Save to database
     if db_session.AsyncSessionLocal is None:
         raise RuntimeError("Database session factory is not initialised.")
 
@@ -298,7 +377,6 @@ async def critic_node(state: TaskGraphState) -> dict[str, Any]:
             execution_trace=trace,
         )
 
-    # Emit done event
     _safe_publish_event(
         state["investigation_id"],
         DoneEvent(
@@ -309,10 +387,7 @@ async def critic_node(state: TaskGraphState) -> dict[str, Any]:
         ),
     )
 
-    return {
-        "critic_flags": critic_flags,
-        "final_answer": final_answer,
-    }
+    return {"final_answer": final_answer}
 
 
 def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
@@ -326,6 +401,8 @@ def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
     workflow.add_node("simulation", simulation_node)
     workflow.add_node("synthesis", synthesis_node)
     workflow.add_node("critic", critic_node)
+    workflow.add_node("replan", replan_node)
+    workflow.add_node("finalize", finalize_node)
 
     # Add Edges
     workflow.add_edge(START, "supervisor")
@@ -362,6 +439,18 @@ def build_graph(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
 
     workflow.add_edge("simulation", "synthesis")
     workflow.add_edge("synthesis", "critic")
-    workflow.add_edge("critic", END)
+
+    # Conditional edge after critic to replan or finalize
+    workflow.add_conditional_edges(
+        "critic",
+        route_after_critic,
+        {
+            "replan": "replan",
+            "finalize": "finalize",
+        },
+    )
+
+    workflow.add_edge("replan", "synthesis")
+    workflow.add_edge("finalize", END)
 
     return workflow.compile(checkpointer=checkpointer)
