@@ -143,7 +143,7 @@ class Settings(BaseSettings):
         description="Maximum burst capacity (tokens) above steady rate.",
     )
     # ---------------------------------------------------------------------------
-    # Task Queue settings (Phase 3 Milestone 3)
+    # Task Queue & Checkpoint settings (Phase 3 Milestones 3 & 4)
     # ---------------------------------------------------------------------------
     use_queued_execution: bool = Field(
         default=True,
@@ -153,6 +153,41 @@ class Settings(BaseSettings):
             "Set to false for legacy BackgroundTasks fallback execution."
         ),
     )
+    job_timeout_seconds: int = Field(
+        default=600,
+        validation_alias="JOB_TIMEOUT_SECONDS",
+        description="Maximum execution time allowed for an investigation job in seconds.",
+    )
+    job_max_retries: int = Field(
+        default=2,
+        validation_alias="JOB_MAX_RETRIES",
+        description="Maximum number of retry attempts for an investigation job upon worker crash.",
+    )
+    checkpoint_ttl_safety_factor: float = Field(
+        default=2.0,
+        validation_alias="CHECKPOINT_TTL_SAFETY_FACTOR",
+        description="Safety factor multiplier for checkpoint TTL calculation.",
+    )
+    checkpoint_ttl_seconds_override: int | None = Field(
+        default=None,
+        validation_alias="CHECKPOINT_TTL_SECONDS",
+        description=(
+            "Explicit override for checkpoint TTL in seconds. If unset, calculated automatically."
+        ),
+    )
+
+    @property
+    def checkpoint_ttl_seconds(self) -> int:
+        """Return the TTL for LangGraph checkpoint keys in Redis in seconds.
+
+        If CHECKPOINT_TTL_SECONDS is explicitly configured, returns that value.
+        Otherwise, computes default TTL from job timeout, max retries, and safety margin:
+            job_timeout_seconds * (job_max_retries + 1) * safety_factor
+        """
+        if self.checkpoint_ttl_seconds_override is not None:
+            return self.checkpoint_ttl_seconds_override
+        worst_case_duration = self.job_timeout_seconds * (self.job_max_retries + 1)
+        return int(worst_case_duration * self.checkpoint_ttl_safety_factor)
 
     # ---------------------------------------------------------------------------
     # JWT Auth settings (Milestone 1)

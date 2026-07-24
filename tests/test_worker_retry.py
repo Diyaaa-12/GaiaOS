@@ -166,7 +166,6 @@ class TestWorkerRetryFailure:
         cfg = passed_configs[0]
         assert cfg is not None and cfg["configurable"]["thread_id"] == thread_id
 
-
         # Verify job completed event
         completed_events = [e for e in emitted_events if getattr(e, "status", None) == "complete"]
         assert len(completed_events) == 1

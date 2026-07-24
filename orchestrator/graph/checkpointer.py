@@ -21,6 +21,8 @@ from langgraph.checkpoint.base import (
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from redis.asyncio import Redis
 
+from config.settings import get_settings
+
 
 def _normalize_serializable(obj: Any) -> Any:
     """Recursively convert ChainMap and non-dict mappings to standard python primitives."""
@@ -48,9 +50,19 @@ class GaiaOSSerializer(JsonPlusSerializer):
 class RedisCheckpointSaver(BaseCheckpointSaver):
     """An asynchronous LangGraph checkpointer that stores states in standard Redis."""
 
-    def __init__(self, client: Redis, *, serde: SerializerProtocol | None = None) -> None:
+    def __init__(
+        self,
+        client: Redis,
+        *,
+        serde: SerializerProtocol | None = None,
+        ttl_seconds: int | None = None,
+    ) -> None:
         super().__init__(serde=serde or GaiaOSSerializer())
         self.client = client
+        if ttl_seconds is not None:
+            self.ttl_seconds: int | None = ttl_seconds
+        else:
+            self.ttl_seconds = get_settings().checkpoint_ttl_seconds
 
     # --- Synchronous placeholders to satisfy abstract interface ---
     def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
@@ -144,7 +156,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         metadata: CheckpointMetadata,
         new_versions: Any,
     ) -> RunnableConfig:
-        """Persist a new checkpoint to Redis."""
+        """Persist a new checkpoint to Redis with TTL expiration."""
         thread_id = config.get("configurable", {}).get("thread_id")
         checkpoint_id = checkpoint["id"]
 
@@ -161,8 +173,12 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         key = f"gaiaos:checkpoint:{thread_id}:checkpoint:{checkpoint_id}"
         key_latest = f"gaiaos:checkpoint:{thread_id}:latest"
 
-        await self.client.set(key, serialized)
-        await self.client.set(key_latest, checkpoint_id)
+        if self.ttl_seconds and self.ttl_seconds > 0:
+            await self.client.set(key, serialized, ex=self.ttl_seconds)
+            await self.client.set(key_latest, checkpoint_id, ex=self.ttl_seconds)
+        else:
+            await self.client.set(key, serialized)
+            await self.client.set(key_latest, checkpoint_id)
 
         return {
             "configurable": {
@@ -178,7 +194,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         task_id: str,
         task_path: str = "",
     ) -> None:
-        """Store intermediate task writes."""
+        """Store intermediate task writes with TTL expiration."""
         thread_id = config.get("configurable", {}).get("thread_id")
         checkpoint_id = config.get("configurable", {}).get("checkpoint_id")
 
@@ -187,7 +203,11 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
 
         serialized = self.serde.dumps(_normalize_serializable(writes))
         key = f"gaiaos:checkpoint:{thread_id}:writes:{checkpoint_id}:{task_id}"
-        await self.client.set(key, serialized)
+
+        if self.ttl_seconds and self.ttl_seconds > 0:
+            await self.client.set(key, serialized, ex=self.ttl_seconds)
+        else:
+            await self.client.set(key, serialized)
 
     async def alist(
         self,

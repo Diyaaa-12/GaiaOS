@@ -174,8 +174,8 @@ async def create_investigation(
             run_investigation_job,
             str(investigation.id),
             payload.query,
-            job_timeout="10m",
-            retry=Retry(max=2),
+            job_timeout=settings.job_timeout_seconds,
+            retry=Retry(max=settings.job_max_retries),
         )
         _log.info(
             "investigation.create.enqueued",
