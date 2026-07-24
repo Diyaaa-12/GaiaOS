@@ -146,7 +146,7 @@ class TestReplanLoopIntegration:
         inv = Investigation(
             id=inv_id,
             user_id="test_user",
-            query="Conflicting seismic query",
+            query_text="Conflicting seismic query",
             status="in_progress",
         )
         db_session.add(inv)
@@ -238,7 +238,7 @@ class TestReplanLoopIntegration:
         inv = Investigation(
             id=inv_id,
             user_id="test_user",
-            query="Air quality query",
+            query_text="Air quality query",
             status="in_progress",
         )
         db_session.add(inv)
