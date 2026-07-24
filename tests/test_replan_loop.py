@@ -6,6 +6,7 @@ import uuid
 from unittest.mock import patch
 
 import pytest
+from langchain_core.runnables import RunnableConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from orchestrator.agents.critic.replan import build_replan_targets, should_replan
@@ -13,7 +14,6 @@ from orchestrator.graph.builder import build_graph, route_after_critic
 from orchestrator.schemas.agent_io import AgentOutput, Evidence
 from orchestrator.schemas.graph_state import TaskGraphState
 from orchestrator.schemas.synthesis import CriticFlag, SynthesisOutput, SynthesizedClaim
-from langchain_core.runnables import RunnableConfig
 
 
 class TestShouldReplanUnit:
@@ -221,7 +221,7 @@ class TestReplanLoopIntegration:
             }
 
             final_state = await graph.ainvoke(initial_state, config)
-            
+
             assert final_state["replan_count"] == 2
             assert "Unresolved conflicting evidence." in final_state["final_answer"]
 
