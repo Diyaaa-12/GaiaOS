@@ -155,3 +155,59 @@ async def _run_suite(
     )
 
     return suite_result
+
+
+async def fetch_latest_baseline_suite_result(
+    session: AsyncSession,
+    current_version: str | None = None,
+) -> BenchmarkSuiteResult | None:
+    """Fetch the most recent prior benchmark suite run from DB for baseline comparison.
+
+    If current_version is provided, attempts to find the latest run with a version
+    distinct from current_version. Falls back to the latest recorded run if no
+    distinct version exists.
+    """
+    stmt_versions = select(EvalBenchmarkRun.orchestrator_version).order_by(
+        EvalBenchmarkRun.run_at.desc()
+    )
+    if current_version:
+        stmt_versions = stmt_versions.where(
+            EvalBenchmarkRun.orchestrator_version != current_version
+        )
+
+    versions_res = (await session.execute(stmt_versions)).scalars().all()
+
+    target_version: str | None = None
+    if versions_res:
+        target_version = versions_res[0]
+    else:
+        stmt_all = select(EvalBenchmarkRun).order_by(EvalBenchmarkRun.run_at.desc())
+        all_runs = (await session.execute(stmt_all)).scalars().all()
+        if not all_runs:
+            return None
+        target_version = all_runs[0].orchestrator_version
+
+    stmt_runs = select(EvalBenchmarkRun).where(
+        EvalBenchmarkRun.orchestrator_version == target_version
+    )
+    runs = (await session.execute(stmt_runs)).scalars().all()
+    if not runs:
+        return None
+
+    results = [
+        BenchmarkQuestionResult(
+            question_id=r.benchmark_question_id,
+            orchestrator_version=r.orchestrator_version,
+            score=float(r.score) if r.score is not None else None,
+            metrics=r.metrics or {},
+        )
+        for r in runs
+    ]
+
+    return BenchmarkSuiteResult(
+        orchestrator_version=target_version,
+        results=results,
+        total_questions=len(results),
+        successful_runs=len([r for r in results if r.score is not None]),
+    )
+

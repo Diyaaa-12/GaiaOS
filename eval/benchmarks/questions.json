@@ -1,13 +1,206 @@
 [
   {
-    "id": "a0e0a0e0-a0e0-a0e0-a0e0-a0e0a0e0a0e0",
+    "id": "air_quality_paris_pm25",
     "question_text": "What are the PM2.5 and PM10 levels in Paris?",
     "expected_domains": ["air_quality"],
     "expected_complexity": "trivial",
-    "reference_answer": "Paris air quality is good with PM2.5 at 12 ug/m3.",
+    "reference_answer": "Paris air quality is good with PM2.5 at 12 ug/m3 and PM10 at 20 ug/m3.",
     "reference_evidence": {
       "source": "OpenAQ",
-      "pm25": 12
+      "pm25": 12,
+      "pm10": 20
+    }
+  },
+  {
+    "id": "air_quality_tokyo_aqi",
+    "question_text": "What is the current air quality index and primary pollutant in Tokyo?",
+    "expected_domains": ["air_quality"],
+    "expected_complexity": "trivial",
+    "reference_answer": "Tokyo air quality is moderate with an AQI of 45 and primary pollutant PM2.5.",
+    "reference_evidence": {
+      "source": "OpenAQ",
+      "aqi": 45,
+      "primary_pollutant": "PM2.5"
+    }
+  },
+  {
+    "id": "air_quality_delhi_no2",
+    "question_text": "What are the NO2 concentration trends in New Delhi?",
+    "expected_domains": ["air_quality"],
+    "expected_complexity": "moderate",
+    "reference_answer": "New Delhi shows elevated NO2 concentrations averaging 65 ug/m3 due to traffic emissions.",
+    "reference_evidence": {
+      "source": "OpenAQ",
+      "no2": 65
+    }
+  },
+  {
+    "id": "seismic_california_m4",
+    "question_text": "What seismic events above magnitude 4.0 were recorded in California in the last 7 days?",
+    "expected_domains": ["seismic"],
+    "expected_complexity": "moderate",
+    "reference_answer": "Two magnitude 4.2 seismic events recorded near Parkfield along the San Andreas Fault zone.",
+    "reference_evidence": {
+      "source": "USGS",
+      "min_magnitude": 4.0,
+      "count": 2
+    }
+  },
+  {
+    "id": "seismic_tokyo_hazards",
+    "question_text": "What is the recent earthquake activity and shallow fault movement near Tokyo Bay?",
+    "expected_domains": ["seismic"],
+    "expected_complexity": "moderate",
+    "reference_answer": "Minor shallow crustal activity recorded with M3.1 event at 15km depth near Tokyo Bay.",
+    "reference_evidence": {
+      "source": "USGS",
+      "region": "Tokyo Bay",
+      "magnitude": 3.1
+    }
+  },
+  {
+    "id": "seismic_ring_of_fire",
+    "question_text": "Summarize major deep-focus seismic events along the Pacific Ring of Fire.",
+    "expected_domains": ["seismic"],
+    "expected_complexity": "complex",
+    "reference_answer": "Deep-focus events exceeding 300km depth observed near Fiji and Japan trench subduction zones.",
+    "reference_evidence": {
+      "source": "USGS",
+      "depth_km": 350
+    }
+  },
+  {
+    "id": "ocean_florida_sst",
+    "question_text": "What are the ocean surface temperature anomalies along the Florida coastline?",
+    "expected_domains": ["ocean"],
+    "expected_complexity": "trivial",
+    "reference_answer": "Sea surface temperature off Miami is 28.5C, representing a +1.2C seasonal anomaly.",
+    "reference_evidence": {
+      "source": "NOAA",
+      "sst_c": 28.5,
+      "anomaly_c": 1.2
+    }
+  },
+  {
+    "id": "ocean_gulf_stream",
+    "question_text": "How have ocean current velocities in the Gulf Stream shifted over recent observations?",
+    "expected_domains": ["ocean"],
+    "expected_complexity": "moderate",
+    "reference_answer": "Gulf Stream surface velocity measured at 2.1 m/s near Cape Hatteras.",
+    "reference_evidence": {
+      "source": "NOAA",
+      "velocity_mps": 2.1
+    }
+  },
+  {
+    "id": "atmosphere_london_pressure",
+    "question_text": "What is the sea-level atmospheric pressure and frontal surface system over London?",
+    "expected_domains": ["atmosphere"],
+    "expected_complexity": "trivial",
+    "reference_answer": "Atmospheric pressure over London is 1013.2 hPa with moderate westerly winds.",
+    "reference_evidence": {
+      "source": "Open-Meteo",
+      "pressure_hpa": 1013.2
+    }
+  },
+  {
+    "id": "atmosphere_typhoon_path",
+    "question_text": "What are the atmospheric moisture transport levels and pressure troughs in the Western Pacific?",
+    "expected_domains": ["atmosphere"],
+    "expected_complexity": "complex",
+    "reference_answer": "High integrated water vapor transport (>500 kg/m/s) associated with low-pressure trough.",
+    "reference_evidence": {
+      "source": "Open-Meteo",
+      "iwv_kg_m_s": 520
+    }
+  },
+  {
+    "id": "wildfire_california_hotspots",
+    "question_text": "Identify thermal anomaly hotspots and active wildfire perimeters in Southern California.",
+    "expected_domains": ["wildfire"],
+    "expected_complexity": "moderate",
+    "reference_answer": "Thermal anomalies detected in Ventura County with high confidence radiative power (MODIS/VIIRS).",
+    "reference_evidence": {
+      "source": "NASA FIRMS",
+      "confidence": "high",
+      "count": 14
+    }
+  },
+  {
+    "id": "wildfire_amazon_detection",
+    "question_text": "What is the radiative power and spread rate of active fires detected in the Amazon basin?",
+    "expected_domains": ["wildfire"],
+    "expected_complexity": "complex",
+    "reference_answer": "Active fire cluster detected with total radiative power of 340 MW across southern Amazon basin.",
+    "reference_evidence": {
+      "source": "NASA FIRMS",
+      "frp_mw": 340
+    }
+  },
+  {
+    "id": "literature_pm25_climate",
+    "question_text": "What literature exists on PM2.5 aerosol forcing and regional radiative balance?",
+    "expected_domains": ["literature"],
+    "expected_complexity": "moderate",
+    "reference_answer": "Literature highlights strong negative shortwave radiative forcing from sulphate and nitrate aerosols.",
+    "reference_evidence": {
+      "source": "LiteratureIndex",
+      "topic": "aerosol forcing"
+    }
+  },
+  {
+    "id": "literature_fault_mechanics",
+    "question_text": "Find research papers on strain accumulation and fluid pressure in subduction zone faults.",
+    "expected_domains": ["literature"],
+    "expected_complexity": "complex",
+    "reference_answer": "Studies demonstrate pore fluid pressure variations correlate with slow slip events and seismic tremor.",
+    "reference_evidence": {
+      "source": "LiteratureIndex",
+      "topic": "fault mechanics"
+    }
+  },
+  {
+    "id": "causal_smoke_airquality",
+    "question_text": "Trace the causal chain from Northern California wildfire thermal anomalies to downwind urban air quality degradation.",
+    "expected_domains": ["wildfire", "air_quality", "atmosphere", "causal_chain"],
+    "expected_complexity": "complex",
+    "reference_answer": "Wildfire thermal anomalies generate heavy PM2.5 smoke plumes transported eastward by atmospheric winds, causing urban AQI spikes.",
+    "reference_evidence": {
+      "source": "MultiDomainCausal",
+      "chain": ["wildfire_heat", "smoke_plume", "wind_transport", "urban_pm25_spike"]
+    }
+  },
+  {
+    "id": "causal_seismic_tsunami",
+    "question_text": "Analyze the causal link between undersea megathrust earthquakes and coastal sea level anomalies.",
+    "expected_domains": ["seismic", "ocean", "causal_chain"],
+    "expected_complexity": "complex",
+    "reference_answer": "Vertical seafloor displacement from M7.5+ megathrust faulting displaces water column, propagating ocean tsunami waves to coastal tide gauges.",
+    "reference_evidence": {
+      "source": "MultiDomainCausal",
+      "chain": ["fault_slip", "water_displacement", "wave_propagation", "tide_gauge_anomaly"]
+    }
+  },
+  {
+    "id": "sim_smoke_dispersion_sf",
+    "question_text": "Run an atmospheric dispersion simulation for wildfire plume transport over the San Francisco Bay Area.",
+    "expected_domains": ["atmosphere", "wildfire", "simulation-triggering"],
+    "expected_complexity": "complex",
+    "reference_answer": "Dispersion model predicts maximum surface PM2.5 concentrations in East Bay within 12 hours of ignition.",
+    "reference_evidence": {
+      "source": "SimulationEngine",
+      "model": "dispersion_v1"
+    }
+  },
+  {
+    "id": "unanswerable_gale_crater_nitrogen",
+    "question_text": "What is the real-time soil nitrogen concentration and atmospheric methane ratio in Gale Crater on Mars?",
+    "expected_domains": ["unanswerable"],
+    "expected_complexity": "unanswerable",
+    "reference_answer": "Unable to gather evidence. Martian atmospheric and soil measurements are outside the terrestrial scope of Earth observation telemetry.",
+    "reference_evidence": {
+      "status": "unanswerable",
+      "reason": "Exceeds Earth environmental domain scope"
     }
   }
 ]

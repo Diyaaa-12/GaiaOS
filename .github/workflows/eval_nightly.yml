@@ -1,0 +1,51 @@
+name: Nightly Evaluation Benchmark & Regression Gate
+
+on:
+  schedule:
+    - cron: "0 2 * * *"  # Run nightly at 02:00 UTC
+  workflow_dispatch:     # Allow manual trigger on-demand before major merges
+
+permissions:
+  contents: read
+
+jobs:
+  eval-benchmark:
+    name: Run Benchmark Suite & CI Regression Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements/dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+
+      - name: Start PostgreSQL and Redis stack
+        run: |
+          cp docker-compose.override.yml.example docker-compose.override.yml
+          docker compose up -d --wait postgres redis
+          until docker compose exec -T postgres psql -U gaiaos -d gaiaos -c "SELECT 1" >/dev/null 2>&1; do
+            sleep 1
+          done
+
+      - name: Run Alembic Migrations
+        env:
+          DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
+          REDIS_URL: redis://localhost:6379/0
+        run: alembic upgrade head
+
+      - name: Run Evaluation Benchmark CI Gate
+        env:
+          DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
+          REDIS_URL: redis://localhost:6379/0
+          ORCHESTRATOR_VERSION: ${{ github.sha }}
+        run: python -m eval.harness.ci_gate --version "${{ github.sha }}" --threshold 0.05
