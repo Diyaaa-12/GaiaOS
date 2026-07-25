@@ -20,6 +20,7 @@ from app import __version__
 from app.api import api_router
 from app.api.root import root_router
 from app.dependencies import get_settings
+from auth.api_key_provider import ApiKeyAuthProvider
 from auth.jwt_provider import JWTAuthProvider
 from cache import dispose_redis, init_redis
 from db.session import dispose_engine, init_engine, verify_extensions
@@ -145,7 +146,7 @@ def create_app() -> FastAPI:
     # first on every incoming request.
     application.add_middleware(
         GatewayMiddleware,
-        auth=JWTAuthProvider(),
+        auth=[ApiKeyAuthProvider(), JWTAuthProvider()],
         rate_limiter=RedisRateLimiter(),
     )
 

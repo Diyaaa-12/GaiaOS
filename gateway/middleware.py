@@ -91,11 +91,16 @@ class GatewayMiddleware(BaseHTTPMiddleware):
         self,
         app: ASGIApp,
         *,
-        auth: AuthProvider | None = None,
+        auth: AuthProvider | list[AuthProvider] | None = None,
         rate_limiter: RateLimiter | None = None,
     ) -> None:
         super().__init__(app)
-        self._auth = auth if auth is not None else AuthStub()
+        if auth is None:
+            self._auth_chain: list[AuthProvider] = [AuthStub()]
+        elif isinstance(auth, list):
+            self._auth_chain = auth
+        else:
+            self._auth_chain = [auth]
         self._rate_limiter = rate_limiter if rate_limiter is not None else RateLimitStub()
 
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
@@ -104,8 +109,8 @@ class GatewayMiddleware(BaseHTTPMiddleware):
         Execution order:
             1. Generate request ID.
             2. Set context (request.state + contextvars).
-            3. Run auth stub.
-            4. Run rate-limit stub.
+            3. Run auth chain (e.g. ApiKeyAuthProvider then JWTAuthProvider).
+            4. Run rate-limit check.
             5. Call the next layer (route handler or inner middleware).
             6. Attach X-Request-ID to the response.
             7. Reset context variable (cleanup, always runs).
@@ -120,14 +125,18 @@ class GatewayMiddleware(BaseHTTPMiddleware):
         token = set_request_id(request_id)
 
         try:
-            # --- 3. Auth check (currently a no-op stub) ---
-            # TODO(M_AUTH): when auth is enabled, an HTTPException raised here
-            # will short-circuit the request before call_next() is reached.
-            await self._auth.authenticate(request)
+            # --- 3. Auth check (chained) ---
+            # If X-API-Key header is present, ApiKeyAuthProvider executes first.
+            # If user or api_key_error is attached, execution short-circuits.
+            # Otherwise, falls through to JWTAuthProvider.
+            for provider in self._auth_chain:
+                await provider.authenticate(request)
+                if getattr(request.state, "user", None) is not None or getattr(
+                    request.state, "api_key_error", None
+                ) is not None:
+                    break
 
-            # --- 4. Rate-limit check (currently a no-op stub) ---
-            # TODO(M_RATELIMIT): when rate limiting is enabled, an HTTPException
-            # raised here returns 429 before the route handler runs.
+            # --- 4. Rate-limit check ---
             await self._rate_limiter.check(request)
 
             # --- 5. Continue to the route handler ---
@@ -137,9 +146,6 @@ class GatewayMiddleware(BaseHTTPMiddleware):
 
         finally:
             # --- 7. Clean up context variable ---
-            # Always reset even if auth/rate-limit/handler raised, so the
-            # context variable does not leak across requests in tests or when
-            # coroutines are recycled.
             reset_request_id(token)
 
         # --- 6. Inject X-Request-ID into response ---
@@ -147,16 +153,19 @@ class GatewayMiddleware(BaseHTTPMiddleware):
 
         # --- 8. Emit structured access log ---
         # Security: only safe, non-sensitive fields are logged.
-        # Authorization headers, request bodies, and tokens are NEVER logged.
-        # request_id comes from contextvars (set above) — not regenerated.
-        _log.info(
-            "request",
-            request_id=request_id,
-            method=request.method,
-            path=request.url.path,
-            status_code=response.status_code,
-            duration_ms=duration_ms,
-        )
+        # Authorization headers, raw API keys, and tokens are NEVER logged.
+        log_kwargs = {
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "duration_ms": duration_ms,
+        }
+        api_key_id = getattr(request.state, "api_key_id", None)
+        if api_key_id is not None:
+            log_kwargs["key_id"] = api_key_id
+
+        _log.info("request", **log_kwargs)
 
         return response
 

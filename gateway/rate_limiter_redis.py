@@ -94,7 +94,14 @@ class RedisRateLimiter:
 
     def _extract_identity_and_role(self, request: Request) -> tuple[str, str]:
         """Extract caller identifier and role from request state or client IP."""
+        api_key_id = getattr(request.state, "api_key_id", None)
         user = getattr(request.state, "user", None)
+        if api_key_id is not None:
+            role_val = (
+                getattr(user.role, "value", str(user.role)) if user is not None else "authenticated"
+            )
+            return f"api_key:{api_key_id}", role_val
+
         if user is not None and getattr(user, "id", None):
             role_val = getattr(user.role, "value", str(user.role))
             return f"user:{user.id}", role_val
@@ -111,7 +118,11 @@ class RedisRateLimiter:
         return f"ip:{ip}", "public"
 
     def _resolve_scope(self, request: Request) -> str:
-        """Resolve rate limiting scope/action based on URL path."""
+        """Resolve rate limiting scope/action based on URL path and auth type."""
+        api_key_id = getattr(request.state, "api_key_id", None)
+        if api_key_id is not None:
+            return "api_key"
+
         path = request.url.path
         if path.startswith("/api/v1/investigations"):
             return "submit_investigation" if request.method == "POST" else "investigations"

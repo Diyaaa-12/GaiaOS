@@ -20,6 +20,15 @@ async def get_current_user(request: Request) -> User:
 
     Raises 401 if request state lacks an authenticated user.
     """
+    api_key_error = getattr(request.state, "api_key_error", None)
+    if api_key_error is not None:
+        code, msg = api_key_error
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"message": msg, "error_code": code},
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
     user = getattr(request.state, "user", None)
     if user is None:
         raise HTTPException(

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db.base import Base
 
 if TYPE_CHECKING:
+    from db.models.api_key import ApiKey
     from db.models.investigation import Investigation
 
 
@@ -88,4 +89,9 @@ class User(Base):
     investigations: Mapped[list[Investigation]] = relationship(
         "Investigation",
         back_populates="user",
+    )
+    api_keys: Mapped[list[ApiKey]] = relationship(
+        "ApiKey",
+        back_populates="owner",
+        cascade="all, delete-orphan",
     )
