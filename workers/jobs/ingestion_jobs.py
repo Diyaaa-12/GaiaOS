@@ -15,6 +15,8 @@ from ingestion.scheduled.hazard_event_sources.noaa_historical import fetch_recen
 from ingestion.scheduled.hazard_event_sources.usgs_historical import fetch_recent_usgs_events
 from ingestion.scheduled.schemas import HazardEventRecord
 from logging_config import configure_logging, get_logger
+from metrics.collector import emit, persist_metric
+from metrics.events import IngestionCompleted
 
 _log = get_logger(__name__)
 
@@ -115,6 +117,17 @@ async def _async_run_ingestion_job(source: str) -> dict[str, Any]:
             records_inserted=records_inserted,
             duration_ms=duration_ms,
         )
+
+        ingestion_event = IngestionCompleted(
+            source=source_clean,
+            records_fetched=records_fetched,
+            records_inserted=records_inserted,
+            duration_ms=duration_ms,
+            success=True,
+        )
+        emit(ingestion_event)
+        await persist_metric(session, ingestion_event)
+        await session.commit()
 
         return {
             "status": "success",

@@ -40,6 +40,11 @@ class TestInvestigationJobBridge:
             lambda checkpointer: mock_graph,
         )
 
+        monkeypatch.setattr(
+            "workers.jobs.investigation_job.persist_metric",
+            AsyncMock(),
+        )
+
         await _async_run_investigation(inv_id, "Test seismic hazard query")
 
         assert len(emitted_events) == 2
@@ -60,7 +65,12 @@ class TestInvestigationJobBridge:
             mock_async_run,
         )
 
-        with patch("asyncio.run", lambda coro: None):
+        def _close_coro(coro: object) -> None:
+            # Close the coroutine to suppress "coroutine never awaited" RuntimeWarning.
+            if hasattr(coro, "close"):
+                coro.close()  # type: ignore[union-attr]
+
+        with patch("asyncio.run", _close_coro):
             run_investigation_job(inv_id_str, "Test query")
 
         # Test string UUID conversion

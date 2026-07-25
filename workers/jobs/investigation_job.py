@@ -15,7 +15,7 @@ from cache.client import get_redis
 from config.settings import get_settings
 from db.repository import InvestigationRepository
 from logging_config import configure_logging, get_logger
-from metrics.collector import emit
+from metrics.collector import emit, persist_metric
 from metrics.events import JobCompleted, JobFailed, JobStarted
 from orchestrator.graph.builder import build_graph
 from orchestrator.graph.checkpointer import RedisCheckpointSaver
@@ -67,22 +67,35 @@ async def _async_run_investigation(investigation_id: uuid.UUID, query: str | Non
 
     start_time = time.monotonic()
     try:
-        await graph.ainvoke(state, config=config)
+        final_state = await graph.ainvoke(state, config=config)
         duration = round(time.monotonic() - start_time, 3)
+
+        # Extract complexity_tier from the graph's final state so it can be
+        # stored as the metrics group_key for group_by=complexity_tier aggregation.
+        complexity_tier: str | None = None
+        if isinstance(final_state, dict):
+            tier_val = final_state.get("complexity_tier")
+            if tier_val is not None:
+                complexity_tier = str(tier_val)
 
         _log.info(
             "investigation.job.success",
             investigation_id=str(investigation_id),
             job_id=job.id if job else None,
             duration=duration,
+            complexity_tier=complexity_tier,
         )
-        emit(
-            JobCompleted(
-                investigation_id=str(investigation_id),
-                status="complete",
-                duration_seconds=duration,
-            )
+        completed_event = JobCompleted(
+            investigation_id=str(investigation_id),
+            status="complete",
+            duration_seconds=duration,
+            complexity_tier=complexity_tier,
         )
+        emit(completed_event)
+        if db_session.AsyncSessionLocal is not None:
+            async with db_session.AsyncSessionLocal() as session:
+                await persist_metric(session, completed_event)
+                await session.commit()
 
     except Exception as exc:
         duration = round(time.monotonic() - start_time, 3)
@@ -101,14 +114,13 @@ async def _async_run_investigation(investigation_id: uuid.UUID, query: str | Non
             retries_left=retries_left,
         )
 
-        emit(
-            JobFailed(
-                investigation_id=str(investigation_id),
-                error_code=error_code,
-                error_message=str(exc),
-                attempt_number=attempt_number,
-            )
+        failed_event = JobFailed(
+            investigation_id=str(investigation_id),
+            error_code=error_code,
+            error_message=str(exc),
+            attempt_number=attempt_number,
         )
+        emit(failed_event)
 
         if is_terminal_failure and db_session.AsyncSessionLocal is not None:
             async with db_session.AsyncSessionLocal() as session:
@@ -119,6 +131,9 @@ async def _async_run_investigation(investigation_id: uuid.UUID, query: str | Non
                     answer=None,
                     execution_trace={"error": str(exc), "error_code": error_code},
                 )
+            async with db_session.AsyncSessionLocal() as session:
+                await persist_metric(session, failed_event)
+                await session.commit()
 
         raise exc
 

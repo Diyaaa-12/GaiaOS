@@ -112,20 +112,10 @@ class JWTAuthProvider:
 
         Attaches authenticated principal model to ``request.state.user``.
         """
-        settings = get_settings()
-        path = request.url.path
-        is_public = is_public_endpoint(path)
-
         auth_header = request.headers.get("Authorization")
         if not auth_header:
-            if not settings.enable_auth or is_public:
-                request.state.user = None
-                return
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Missing authorization credentials.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            request.state.user = None
+            return
 
         parts = auth_header.split()
         if len(parts) != 2 or parts[0].lower() != "bearer":

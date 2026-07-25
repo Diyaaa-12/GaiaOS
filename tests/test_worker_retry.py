@@ -96,11 +96,18 @@ class TestWorkerRetryFailure:
             mock_update_status,
         )
 
-        # Mock db session context
+        # Mock db session context; session.add() is synchronous in SQLAlchemy
         mock_session = AsyncMock()
+        mock_session.add = MagicMock()  # add() is sync — avoids "coroutine never awaited" warning
         mock_factory = MagicMock()
         mock_factory.return_value.__aenter__.return_value = mock_session
         monkeypatch.setattr("db.session.AsyncSessionLocal", mock_factory)
+
+        # Stub persist_metric so the test is isolated from the metrics table
+        monkeypatch.setattr(
+            "workers.jobs.investigation_job.persist_metric",
+            AsyncMock(),
+        )
 
         with pytest.raises(RuntimeError, match="Fatal LLM crash"):
             await _async_run_investigation(inv_id, "Fatal query")
@@ -157,6 +164,15 @@ class TestWorkerRetryFailure:
         monkeypatch.setattr(
             "workers.jobs.investigation_job.get_current_job",
             lambda: mock_job,
+        )
+
+        # Stub persist_metric so the success-path test is isolated from the metrics table.
+        # db.session.AsyncSessionLocal is None in this test's environment — the guard
+        # in _async_run_investigation skips the session block when it is None, so no
+        # extra mock is needed here.
+        monkeypatch.setattr(
+            "workers.jobs.investigation_job.persist_metric",
+            AsyncMock(),
         )
 
         await _async_run_investigation(inv_id, "Resumed query after crash")

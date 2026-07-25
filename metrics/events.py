@@ -37,6 +37,10 @@ class JobCompleted(MetricEvent):
     status: str
     duration_seconds: float
     llm_cost_estimate: float = 0.0
+    # Set from the graph's final state; used as group_key in the metrics table
+    # to support group_by=complexity_tier aggregation.
+    complexity_tier: str | None = None
+
 
 
 @dataclass
@@ -47,3 +51,15 @@ class JobFailed(MetricEvent):
     error_code: str
     error_message: str
     attempt_number: int = 1
+
+
+@dataclass
+class IngestionCompleted(MetricEvent):
+    """Emitted when a scheduled ingestion job completes (successfully or partially)."""
+
+    source: str
+    records_fetched: int
+    records_inserted: int
+    duration_ms: int
+    success: bool = True
+
