@@ -68,6 +68,14 @@ class TestCausalChainAgent:
 
             output = await run_causal_chain(agent_input)
 
+            mock_find.assert_called_once()
+            call_kwargs = mock_find.call_args.kwargs
+            assert call_kwargs["event_type"] == "earthquake"
+            assert call_kwargs["radius_meters"] == 50000.0
+            assert call_kwargs["max_depth"] == 4
+            assert isinstance(call_kwargs["point"], tuple)
+            assert len(call_kwargs["point"]) == 2
+
             assert isinstance(output, AgentOutput)
             assert output.agent_name == "causal_chain"
             assert len(output.evidence) == 1

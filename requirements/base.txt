@@ -25,5 +25,8 @@ argon2-cffi>=23.1.0,<24
 email-validator>=2.0,<3
 # Task Queue (Phase 3 Milestone 3)
 rq>=1.16,<2
+# PostGIS Geometry ORM (Phase 3 Milestone 7)
+geoalchemy2>=0.14,<1
+
 
 

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import re
 
+from config.settings import get_settings
 from db.repository import find_causal_chain
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput
+from tools.geocoding import geocode_location
 
 
 def _extract_location(query: str) -> str:
@@ -38,10 +40,32 @@ async def run(agent_input: AgentInput) -> AgentOutput:
     evidence_list = []
     errors = []
 
+    # 1. Resolve location to latitude/longitude via existing geocoding tool
+    try:
+        geo = await geocode_location(location)
+        point = (geo["lat"], geo["lon"])
+    except ValueError:
+        return AgentOutput(
+            agent_name="causal_chain",
+            evidence=[],
+            errors=["could not resolve region for causal analysis"],
+        )
+    except Exception as ge:
+        return AgentOutput(
+            agent_name="causal_chain",
+            evidence=[],
+            errors=[f"could not resolve region for causal analysis: {str(ge)}"],
+        )
+
+    # 2. Query causal chain repository using PostGIS spatial proximity
+    settings = get_settings()
+    radius_meters = settings.causal_chain_search_radius_meters
+
     try:
         evidence_list = await find_causal_chain(
             event_type=event_type,
-            region=location,
+            point=point,
+            radius_meters=radius_meters,
             max_depth=4,
         )
     except TimeoutError as te:

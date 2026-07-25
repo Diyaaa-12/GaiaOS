@@ -73,7 +73,12 @@ class Settings(BaseSettings):
     open_meteo_geocoding_url: str = Field(
         default="https://geocoding-api.open-meteo.com/v1/search",
         validation_alias="OPEN_METEO_GEOCODING_URL",
-        description="Open-Meteo location geocoding search URL.",
+        description="Open-Meteo geocoding search API URL.",
+    )
+    causal_chain_search_radius_meters: float = Field(
+        default=50000.0,
+        validation_alias="CAUSAL_CHAIN_SEARCH_RADIUS_METERS",
+        description="Default search radius in meters for causal chain spatial proximity matching.",
     )
     firms_api_url: str = Field(
         default="https://firms.modaps.eosdis.nasa.gov/api/area/csv",

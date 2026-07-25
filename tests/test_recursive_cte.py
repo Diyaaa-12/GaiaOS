@@ -5,11 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from geoalchemy2 import WKTElement
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.causal_repository import CausalChainRepository
 from db.models.hazard_event import HazardEvent, HazardRelationship
+
+TOKYO_POINT = (35.6762, 139.6503)  # (lat, lon)
 
 
 async def clean_and_seed_graph(
@@ -22,9 +25,13 @@ async def clean_and_seed_graph(
 
     events = {}
     for key, data in events_data.items():
+        lat = data.get("lat", 35.6762)
+        lon = data.get("lon", 139.6503)
+        region_name = data.get("region", "Tokyo")
         ev = HazardEvent(
             event_type=data["event_type"],
-            region=data["region"],
+            region=WKTElement(f"POINT({lon} {lat})", srid=4326),
+            region_label=region_name,
             event_date=data.get("event_date", datetime.now(UTC)),
             details=data.get("details"),
         )
@@ -64,19 +71,17 @@ class TestRecursiveCTE:
         ]
         await clean_and_seed_graph(db_session, events_data, relations_data)
 
-        # Retrieve chains starting with earthquake
+        # Retrieve chains starting with earthquake near Tokyo
         results = await CausalChainRepository.find_causal_chain(
             session=db_session,
             event_type="earthquake",
-            region="Tokyo",
+            point=TOKYO_POINT,
+            radius_meters=50000.0,
             max_depth=4,
         )
 
-        # Expected chain: A -> B, A -> B -> C, A -> B -> C -> D
-        # Result count should be 3
         assert len(results) == 3
 
-        # Sort results by depth (via path length) to assert details
         results_sorted = sorted(results, key=lambda x: x.extra_metadata["depth"])
 
         assert results_sorted[0].extra_metadata["depth"] == 2
@@ -89,7 +94,7 @@ class TestRecursiveCTE:
             "landslide",
             "river blockage",
         ]
-        assert results_sorted[1].confidence == 0.85  # min(0.85, 0.90)
+        assert results_sorted[1].confidence == 0.85
 
         assert results_sorted[2].extra_metadata["depth"] == 4
         assert results_sorted[2].extra_metadata["event_chain_path"] == [
@@ -98,7 +103,7 @@ class TestRecursiveCTE:
             "river blockage",
             "flood",
         ]
-        assert results_sorted[2].confidence == 0.85  # min(0.85, 0.90, 0.95)
+        assert results_sorted[2].confidence == 0.85
 
     async def test_depth_limiting_enforcement(self, db_session: AsyncSession) -> None:
         """Verify that traversal respects the max_depth limit and excludes deeper nodes."""
@@ -113,12 +118,11 @@ class TestRecursiveCTE:
         ]
         await clean_and_seed_graph(db_session, events_data, relations_data)
 
-        # Traversal with max_depth=2 should only return A -> B (depth 2)
-        # and skip A -> B -> C (depth 3)
         results = await CausalChainRepository.find_causal_chain(
             session=db_session,
             event_type="earthquake",
-            region="Tokyo",
+            point=TOKYO_POINT,
+            radius_meters=50000.0,
             max_depth=2,
         )
 
@@ -137,11 +141,11 @@ class TestRecursiveCTE:
         ]
         await clean_and_seed_graph(db_session, events_data, relations_data)
 
-        # Traversal should succeed and terminate, returning only the non-cyclic A -> B path
         results = await CausalChainRepository.find_causal_chain(
             session=db_session,
             event_type="earthquake",
-            region="Tokyo",
+            point=TOKYO_POINT,
+            radius_meters=50000.0,
             max_depth=5,
         )
 
@@ -159,18 +163,13 @@ class TestRecursiveCTE:
         ]
         await clean_and_seed_graph(db_session, events_data, relations_data)
 
-        # Force a database transaction local statement_timeout to 1ms
-        # This will trigger query cancel on postgres during execution
         with pytest.raises(TimeoutError) as exc_info:
-            # We patch the statement timeout setter to 1ms inside the query block
-            # To do this cleanly, we simulate it by setting SET LOCAL statement_timeout = 1
-            # inside a subtransaction before calling find_causal_chain
             async with db_session.begin_nested():
-                # Running the query will trigger query cancel
                 await CausalChainRepository.find_causal_chain(
                     session=db_session,
                     event_type="earthquake",
-                    region="Tokyo",
+                    point=TOKYO_POINT,
+                    radius_meters=50000.0,
                     statement_timeout_ms=1,
                 )
 
@@ -180,7 +179,7 @@ class TestRecursiveCTE:
         """Verify that disconnected nodes or empty relations return empty results."""
         events_data = {
             "a": {"event_type": "earthquake", "region": "Tokyo"},
-            "b": {"event_type": "landslide", "region": "Tokyo"},  # Disconnected
+            "b": {"event_type": "landslide", "region": "Tokyo"},
         }
         relations_data: list[tuple[str, str, str, float]] = []
         await clean_and_seed_graph(db_session, events_data, relations_data)
@@ -188,7 +187,8 @@ class TestRecursiveCTE:
         results = await CausalChainRepository.find_causal_chain(
             session=db_session,
             event_type="earthquake",
-            region="Tokyo",
+            point=TOKYO_POINT,
+            radius_meters=50000.0,
         )
 
         assert len(results) == 0

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
+from geoalchemy2 import Geometry
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -23,7 +25,11 @@ class HazardEvent(Base):
         default=uuid.uuid4,
     )
     event_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    region: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    region: Mapped[Any | None] = mapped_column(
+        Geometry(geometry_type="POINT", srid=4326),
+        nullable=True,
+    )
+    region_label: Mapped[str | None] = mapped_column(String, nullable=True)
     event_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

@@ -31,36 +31,45 @@ class CausalChainRepository:
     async def find_causal_chain(
         session: AsyncSession,
         event_type: str,
-        region: str,
+        point: tuple[float, float],
+        radius_meters: float,
         max_depth: int = 4,
         statement_timeout_ms: int = 2000,
     ) -> list[Evidence]:
         """Perform recursive WITH RECURSIVE CTE query to traverse hazard relationships.
 
+        Uses PostGIS ST_DWithin for spatial proximity matching within radius_meters.
         Bounded by max_depth and protected by a session-level statement timeout.
         """
         start_time = time.perf_counter()
+        lat, lon = point
 
         try:
             # 1. Protect query with a transaction-local statement timeout
             timeout_val = int(statement_timeout_ms)
             await session.execute(text(f"SET LOCAL statement_timeout = {timeout_val};"))
 
-            # 2. Bounded recursive CTE query with cycle protection
+            # 2. Bounded recursive CTE query with cycle protection & PostGIS spatial proximity
             stmt = text("""
                 WITH RECURSIVE causal_path AS (
-                    -- Anchor member: Select start event
+                    -- Anchor member: Select start event within radius_meters
                     SELECT
                         he.id AS event_id,
                         he.event_type,
-                        he.region,
+                        he.region_label AS region,
                         he.details,
                         ARRAY[he.id] AS path_ids,
                         ARRAY[he.event_type] AS path_types,
                         1 AS depth,
                         ARRAY[]::numeric[] AS edge_confidences
                     FROM hazard_events he
-                    WHERE he.event_type = :event_type AND he.region = :region
+                    WHERE he.event_type = :event_type
+                      AND he.region IS NOT NULL
+                      AND ST_DWithin(
+                            he.region::geography,
+                            ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
+                            :radius_meters
+                          )
 
                     UNION ALL
 
@@ -68,7 +77,7 @@ class CausalChainRepository:
                     SELECT
                         child.id AS event_id,
                         child.event_type,
-                        child.region,
+                        child.region_label AS region,
                         child.details,
                         cp.path_ids || child.id AS path_ids,
                         cp.path_types || child.event_type AS path_types,
@@ -88,7 +97,13 @@ class CausalChainRepository:
 
             result = await session.execute(
                 stmt,
-                {"event_type": event_type, "region": region, "max_depth": max_depth},
+                {
+                    "event_type": event_type,
+                    "lat": lat,
+                    "lon": lon,
+                    "radius_meters": radius_meters,
+                    "max_depth": max_depth,
+                },
             )
             rows = result.fetchall()
 
@@ -99,7 +114,8 @@ class CausalChainRepository:
                 _log.error(
                     "db.causal_chain.timeout",
                     event_type=event_type,
-                    region=region,
+                    point=point,
+                    radius_meters=radius_meters,
                     max_depth=max_depth,
                     duration_ms=query_duration_ms,
                     error=str(e),
@@ -110,10 +126,8 @@ class CausalChainRepository:
         # 3. Process paths and map to Evidence models
         evidence_list = []
         for row in rows:
-            # Map row elements (event_id, event_type, region, details,
-            # path_ids, path_types, depth, edge_confidences)
             event_id = row[0]
-            row_region = row[2]
+            row_region = row[2] or "unspecified region"
             details = row[3]
             path_ids = row[4]
             path_types = row[5]
@@ -133,7 +147,7 @@ class CausalChainRepository:
                 f"Initial trigger details: {details or 'N/A'}"
             )
 
-            # Preserve traversed path (event IDs and chain types) in extra_metadata
+            # Preserve traversed path in extra_metadata
             extra_metadata = {
                 "visited_event_ids": [str(eid) for eid in path_ids],
                 "event_chain_path": path_types,
@@ -158,8 +172,10 @@ class CausalChainRepository:
         _log.info(
             "db.causal_chain.completed",
             event_type=event_type,
-            region=region,
+            point=point,
+            radius_meters=radius_meters,
             max_depth=max_depth,
+            hop_count=len(evidence_list),
             chain_count=len(evidence_list),
             query_duration_ms=query_duration_ms,
         )

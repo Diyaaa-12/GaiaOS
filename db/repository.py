@@ -400,7 +400,8 @@ class LiteratureRepository:
 
 async def find_causal_chain(
     event_type: str,
-    region: str,
+    point: tuple[float, float],
+    radius_meters: float,
     max_depth: int = 4,
     statement_timeout_ms: int = 2000,
 ) -> list[Evidence]:
@@ -418,7 +419,8 @@ async def find_causal_chain(
         return await CausalChainRepository.find_causal_chain(
             session=session,
             event_type=event_type,
-            region=region,
+            point=point,
+            radius_meters=radius_meters,
             max_depth=max_depth,
             statement_timeout_ms=statement_timeout_ms,
         )
