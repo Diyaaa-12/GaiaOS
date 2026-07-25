@@ -80,6 +80,21 @@ class Settings(BaseSettings):
         validation_alias="CAUSAL_CHAIN_SEARCH_RADIUS_METERS",
         description="Default search radius in meters for causal chain spatial proximity matching.",
     )
+    enable_usgs_ingestion: bool = Field(
+        default=True,
+        validation_alias="ENABLE_USGS_INGESTION",
+        description="Enable automated USGS seismic event ingestion pipeline.",
+    )
+    enable_noaa_ingestion: bool = Field(
+        default=True,
+        validation_alias="ENABLE_NOAA_INGESTION",
+        description="Enable automated NOAA ocean event ingestion pipeline.",
+    )
+    ingestion_poll_interval_hours: int = Field(
+        default=1,
+        validation_alias="INGESTION_POLL_INTERVAL_HOURS",
+        description="Interval in hours between scheduled hazard event ingestion runs.",
+    )
     firms_api_url: str = Field(
         default="https://firms.modaps.eosdis.nasa.gov/api/area/csv",
         validation_alias="FIRMS_API_URL",

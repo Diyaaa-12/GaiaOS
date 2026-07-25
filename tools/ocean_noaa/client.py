@@ -19,18 +19,25 @@ class NOAAOceanClient:
         settings = get_settings()
         self.base_url = base_url or settings.noaa_api_url
 
-    async def get_water_temperature(self, station_id: str) -> dict[str, Any]:
-        """Fetch latest water temperature at a given NOAA station."""
-        _log.info("ocean.client.get_water_temperature", station_id=station_id)
-        params = {
+    async def get_water_temperature(
+        self,
+        station_id: str,
+        date: str = "latest",
+        range_hours: int | None = None,
+    ) -> dict[str, Any]:
+        """Fetch water temperature at a given NOAA station."""
+        _log.info("ocean.client.get_water_temperature", station_id=station_id, date=date)
+        params: dict[str, str | int] = {
             "station": station_id,
             "product": "water_temperature",
-            "date": "latest",
+            "date": date,
             "units": "metric",
-            "time_zone": "lst_ldt",
+            "time_zone": "gmt",
             "application": "gaiaos",
             "format": "json",
         }
+        if range_hours is not None:
+            params["range"] = range_hours
         async with httpx.AsyncClient() as client:
             resp = await client.get(self.base_url, params=params, timeout=10.0)
             if resp.status_code != 200:

@@ -67,8 +67,25 @@ services:
       redis:
         condition: service_healthy
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: python -m workers.scheduler
+    environment:
+      GAIAOS_ENV: ${GAIAOS_ENV:-dev}
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      DATABASE_URL: postgresql://gaiaos:${POSTGRES_PASSWORD:-gaiaos_dev_password}@postgres:5432/gaiaos
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 
 volumes:
   postgres_data:
   redis_data:
+
 

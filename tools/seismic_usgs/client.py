@@ -27,6 +27,8 @@ class USGSSeismicClient:
         radius_km: float | None = None,
         min_magnitude: float = 1.0,
         days: int = 7,
+        starttime: datetime | None = None,
+        endtime: datetime | None = None,
     ) -> list[dict[str, Any]]:
         """Fetch recent earthquakes from USGS matching criteria."""
         _log.info(
@@ -36,15 +38,17 @@ class USGSSeismicClient:
             radius_km=radius_km,
             min_magnitude=min_magnitude,
             days=days,
+            starttime=starttime,
+            endtime=endtime,
         )
 
-        endtime = datetime.now(UTC)
-        starttime = endtime - timedelta(days=days)
+        end_dt = endtime or datetime.now(UTC)
+        start_dt = starttime or (end_dt - timedelta(days=days))
 
         params: dict[str, str | int | float] = {
             "format": "geojson",
-            "starttime": starttime.isoformat(),
-            "endtime": endtime.isoformat(),
+            "starttime": start_dt.isoformat(),
+            "endtime": end_dt.isoformat(),
             "minmagnitude": min_magnitude,
         }
 
