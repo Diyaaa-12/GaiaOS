@@ -6,6 +6,7 @@ Exposes ORM mapped classes:
 - MetricEventRow: Raw metric event rows for observability aggregation (Milestone 9).
 """
 
+from db.models.api_key import ApiKey
 from db.models.eval_benchmark import EvalBenchmarkQuestion, EvalBenchmarkRun
 from db.models.hazard_event import HazardEvent, HazardRelationship
 from db.models.investigation import Investigation
@@ -14,6 +15,7 @@ from db.models.metric_event import MetricEventRow
 from db.models.user import User
 
 __all__ = [
+    "ApiKey",
     "EvalBenchmarkQuestion",
     "EvalBenchmarkRun",
     "Investigation",
