@@ -156,64 +156,52 @@ cp docker-compose.override.yml.example docker-compose.override.yml
 Copy-Item docker-compose.override.yml.example docker-compose.override.yml
 ```
 
-This publishes Postgres on `localhost:5432` and Redis on `localhost:6379`. Use the `DATABASE_URL` and `REDIS_URL` in [`config/environments/dev.env.example`](config/environments/dev.env.example) for host-run Python. When the app runs inside Docker Compose, `docker-compose.yml` sets them to use the service hostnames `postgres` and `redis` instead.
+This publishes Postgres on `localhost:5432` and Redis on `localhost:6379`. Use the `DATABASE_URL` and `REDIS_URL` in `.env` (copied from `.env.example`) for host-run Python. When the app runs inside Docker Compose, `docker-compose.yml` sets them to use the service hostnames `postgres` and `redis` instead.
 
 | Workflow | `DATABASE_URL` host | `REDIS_URL` host |
 |----------|---------------------|------------------|
 | App in Docker (default compose) | `postgres` | `redis` |
 | Python on host, stack in Docker | `localhost` | `localhost` |
 
-## Local Testing
+## Local Testing & Environment Setup
 
-The test suite runs against real PostgreSQL and Redis instances — no mocks for integration tests. Configuration tests run without external dependencies.
+The application, test suite, Alembic migrations, and RQ background workers automatically load configuration from `.env` in the project root via `pydantic-settings`.
 
-### Prerequisites
+### Environment Prerequisites
 
-1. **Docker Compose stack must be running** with Postgres exposed on `localhost:5432` and Redis on `localhost:6379`.
-   The ports are not exposed by default. Create the override file once:
+1. **Copy the `.env` template**:
 
    **Linux / macOS:**
    ```bash
+   cp .env.example .env
    cp docker-compose.override.yml.example docker-compose.override.yml
    docker compose up -d --wait postgres redis
    ```
 
    **Windows (PowerShell):**
    ```powershell
+   Copy-Item .env.example .env
    Copy-Item docker-compose.override.yml.example docker-compose.override.yml
    docker compose up -d --wait postgres redis
    ```
 
-   This publishes Postgres on `localhost:5432` and Redis on `localhost:6379`.
+   This sets up `.env` for host-run tools and publishes Postgres on `localhost:5432` and Redis on `localhost:6379`.
 
-2. **Run migrations** to initialize the database schema:
+2. **Run migrations**:
 
-   **Linux / macOS:**
    ```bash
-   DATABASE_URL=postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos alembic upgrade head
-   ```
-
-   **Windows (PowerShell):**
-   ```powershell
-   $env:DATABASE_URL = "postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos"
    alembic upgrade head
    ```
 
-3. **`DATABASE_URL` and `REDIS_URL` must be set** in the terminal where you run pytest.
+   Alembic reads `DATABASE_URL` directly from `.env` — no manual environment exports required.
 
 ### Run the complete test suite
 
-**Linux / macOS:**
 ```bash
-DATABASE_URL=postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos REDIS_URL=redis://localhost:6379/0 pytest
-```
-
-**Windows (PowerShell):**
-```powershell
-$env:DATABASE_URL = "postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos"
-$env:REDIS_URL = "redis://localhost:6379/0"
 pytest
 ```
+
+`pytest` automatically reads `DATABASE_URL` and `REDIS_URL` from `.env` via `get_settings()`.
 
 Expected output: all tests pass (`53 passed`).
 

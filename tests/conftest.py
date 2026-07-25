@@ -43,8 +43,6 @@ Postgres service on localhost (see README § Local Testing):
 
 from __future__ import annotations
 
-import os
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
@@ -55,7 +53,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 
 from app.main import create_app
-from config.settings import Settings
+from config.settings import Settings, get_settings
 
 # ---------------------------------------------------------------------------
 # Settings fixture
@@ -69,7 +67,7 @@ def settings() -> Settings:
     Session-scoped — Settings is constructed once from environment variables
     and is effectively immutable for the duration of the test session.
     """
-    return Settings()
+    return get_settings()
 
 
 # ---------------------------------------------------------------------------
@@ -88,15 +86,15 @@ async def db_session() -> AsyncSession:  # type: ignore[misc]
 
     Skips the test if ``DATABASE_URL`` is not set, with a clear message.
     """
-    database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
+    current_settings = get_settings()
+    if not current_settings.database_url:
         pytest.skip(
             "DATABASE_URL is not set — skipping database tests.  "
-            "Set DATABASE_URL to a running PostgreSQL instance before running pytest."
+            "Set DATABASE_URL in .env or environment before running pytest."
         )
 
     # Use a local settings object to get the async URL property based on the environment.
-    async_url = Settings().asyncpg_url
+    async_url = current_settings.asyncpg_url
     # NullPool: no connection is retained after the session closes.
     # This prevents "bound to a different event loop" errors because no
     # asyncpg connection object outlives the test's event loop.
@@ -129,10 +127,11 @@ async def app():  # type: ignore[misc]
 
     Skips the test if ``DATABASE_URL`` is not set.
     """
-    if not os.environ.get("DATABASE_URL"):
+    current_settings = get_settings()
+    if not current_settings.database_url:
         pytest.skip(
             "DATABASE_URL is not set — skipping application tests.  "
-            "Set DATABASE_URL to a running PostgreSQL instance before running pytest."
+            "Set DATABASE_URL in .env or environment before running pytest."
         )
 
     application = create_app()
