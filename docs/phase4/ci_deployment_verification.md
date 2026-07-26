@@ -14,7 +14,7 @@ Deployment integrity is validated end-to-end via an internal smoke-job workflow:
 1. **Endpoint:** `POST /internal/smoke-job` (mounted on the root application).
 2. **Environment Safety Gate:** The endpoint checks `Settings.GAIAOS_ENV`. If equal to `"prod"`, the endpoint immediately raises HTTP 404 Not Found, preventing accidental exposure in production deployments.
 3. **Pipeline Reuse:** In non-prod environments, calling `POST /internal/smoke-job` reuses the standard production `InvestigationRepository` to record a test investigation and enqueues `run_investigation_job` into the RQ `default` queue.
-4. **Execution & Telemetry:** An active RQ worker picks up the job, executes the investigation graph, updates the status in PostgreSQL to `complete`, and emits standard telemetry (`JobStarted` / `JobCompleted`).
+4. **Execution & Telemetry:** An active RQ worker picks up the job, initializes the database engine (`init_engine`) and async Redis client pool (`init_redis`) before job execution, executes the investigation graph, updates the status in PostgreSQL to `complete`, and emits standard telemetry (`JobStarted` / `JobCompleted`).
 5. **Verification Script:** `tests/test_worker_image_smoke.py` polls PostgreSQL / API until job completion (30s timeout). If the job fails or times out, container logs (`worker`, `scheduler`) are dumped to stdout and CI fails loudly.
 
 ---

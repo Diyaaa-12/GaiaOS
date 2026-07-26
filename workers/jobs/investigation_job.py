@@ -10,8 +10,9 @@ from typing import Any
 
 from rq import get_current_job
 
+import cache.client as cache_client
 import db.session as db_session
-from cache.client import get_redis
+from cache.client import get_redis, init_redis
 from config.settings import get_settings
 from db.repository import InvestigationRepository
 from logging_config import configure_logging, get_logger
@@ -29,6 +30,8 @@ async def _async_run_investigation(investigation_id: uuid.UUID, query: str | Non
     configure_logging(settings)
     if settings.database_url and db_session.AsyncSessionLocal is None:
         db_session.init_engine()
+    if cache_client.redis_client is None:
+        await init_redis(settings)
 
     job = get_current_job()
     enqueued_at = job.enqueued_at if job else None
