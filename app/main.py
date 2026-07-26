@@ -19,6 +19,7 @@ import db.session as _db_session
 from app import __version__
 from app.api import api_router
 from app.api.root import root_router
+from app.api.v1.internal_smoke import internal_smoke_router
 from app.dependencies import get_settings
 from auth.api_key_provider import ApiKeyAuthProvider
 from auth.jwt_provider import JWTAuthProvider
@@ -152,6 +153,7 @@ def create_app() -> FastAPI:
 
     # Service-level root (outside versioned namespace)
     application.include_router(root_router)
+    application.include_router(internal_smoke_router)
 
     # Versioned API namespace — all routes live under /api/vN
     application.include_router(api_router, prefix="/api")

@@ -1,0 +1,21 @@
+# GaiaOS Phase 4 Milestone 1 — Development & Testing Lockfile
+# Generated version pin snapshot extending base.lock.
+
+-r base.lock
+
+coverage==7.15.0
+freezegun==1.5.5
+httpx==0.28.1
+iniconfig==2.3.0
+mypy==2.2.0
+mypy_extensions==1.1.0
+pathspec==1.1.1
+pluggy==1.6.0
+Pygments==2.20.0
+pytest==8.4.2
+pytest-asyncio==0.26.0
+pytest-cov==7.1.0
+pytest-timeout==2.4.0
+respx==0.23.1
+rich==15.0.0
+ruff==0.15.20

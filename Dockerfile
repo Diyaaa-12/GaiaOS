@@ -6,9 +6,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app
 
-COPY requirements/base.txt requirements/
+COPY requirements/base.lock requirements/
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements/base.txt
+    && pip install --no-cache-dir -r requirements/base.lock
 
 COPY pyproject.toml .
 COPY alembic.ini .
