@@ -45,9 +45,9 @@ So the real decision isn't "MCP or not," it's "expose the thin protocol layer on
 
 This is cheaper than the original's "wrap everything" and more useful than the reviewer's "wrap nothing."
 
-### 1.3 Critic/Verifier recursion — **RULING: Reviewer 2 is correct. Single pass for v1.**
+### 1.3 Critic/Verifier recursion — **RULING: Bounded 2-cycle replan loop implemented in Phase 3 Milestone 6.**
 
-The original's "Critic can trigger a replan" is explicitly listed as its own *future work*, not core v1 scope — so this disagreement is smaller than it looks. Reviewer 2's proposed simplification (one verification pass, no loop) is just enforcing what the original already flagged as out-of-scope for v1. I'm ratifying that, and closing the ambiguity: **no replan loop in v1, full stop.** A bounded 2-cycle replan is a v1.1 feature added *after* the evaluation harness exists to measure whether it actually improves answer quality — because an unmeasured self-correction loop is exactly the kind of feature that looks impressive and might make answers worse (over-hedging, thrashing between agents) with no way to know.
+The original's "Critic can trigger a replan" was initially deferred until an evaluation harness existed to measure answer quality. In Phase 3 Milestone 6 (after the evaluation benchmark suite was established in M5), the bounded self-correction replan loop (`orchestrator/agents/critic/replan.py`) was implemented. It limits self-correction to a maximum of 2 cycles (`max_replan_count = 2`) to prevent thrashing and guarantee deterministic graph termination.
 
 ### 1.4 Simulation Agent mandatory vs. planner-driven — **RULING: Reviewer 2 is correct, no dispute.**
 
