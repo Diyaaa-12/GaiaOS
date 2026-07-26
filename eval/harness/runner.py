@@ -13,8 +13,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import db.session as db_session
 from db.models.eval_benchmark import EvalBenchmarkQuestion, EvalBenchmarkRun
-from db.session import AsyncSessionLocal
 from eval.harness.scorer import score_result
 from logging_config import get_logger
 
@@ -63,9 +63,9 @@ async def run_benchmark_suite(
     outcomes in `eval_benchmark_runs`. Returns a summary suite result.
     """
     if session is None:
-        if AsyncSessionLocal is None:
+        if db_session.AsyncSessionLocal is None:
             raise RuntimeError("Database session factory is not initialised.")
-        async with AsyncSessionLocal() as sess:
+        async with db_session.AsyncSessionLocal() as sess:
             return await _run_suite(orchestrator_version, sess)
     else:
         return await _run_suite(orchestrator_version, session)

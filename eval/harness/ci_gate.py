@@ -17,9 +17,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import db.session as db_session
 from config.settings import get_settings
 from db.models.eval_benchmark import EvalBenchmarkQuestion
-from db.session import AsyncSessionLocal
+from db.session import dispose_engine, init_engine
 from eval.harness.runner import (
     BenchmarkSuiteResult,
     fetch_latest_baseline_suite_result,
@@ -282,9 +283,9 @@ async def run_ci_gate(
         return report
 
     if session is None:
-        if AsyncSessionLocal is None:
+        if db_session.AsyncSessionLocal is None:
             raise RuntimeError("Database session factory is not initialised.")
-        async with AsyncSessionLocal() as sess:
+        async with db_session.AsyncSessionLocal() as sess:
             return await _execute(sess)
     else:
         return await _execute(session)
@@ -315,24 +316,29 @@ def main() -> None:
 
     import asyncio
 
-    try:
-        report = asyncio.run(
-            run_ci_gate(
+    async def _run() -> None:
+        try:
+            init_engine()
+            report = await run_ci_gate(
                 orchestrator_version=args.version,
                 threshold=args.threshold,
                 overwrite_questions=args.overwrite_questions,
             )
-        )
-        print("=" * 60)
-        print(report.summary)
-        print("=" * 60)
+            print("=" * 60)
+            print(report.summary)
+            print("=" * 60)
 
-        if report.regressed:
-            _log.error("eval.ci_gate.failed_regression_detected", threshold=report.threshold)
-            sys.exit(1)
-        else:
-            _log.info("eval.ci_gate.passed")
-            sys.exit(0)
+            if report.regressed:
+                _log.error("eval.ci_gate.failed_regression_detected", threshold=report.threshold)
+                sys.exit(1)
+            else:
+                _log.info("eval.ci_gate.passed")
+                sys.exit(0)
+        finally:
+            await dispose_engine()
+
+    try:
+        asyncio.run(_run())
     except Exception as exc:
         _log.error("eval.ci_gate.execution_error", error=str(exc))
         print(f"CI Gate execution error: {exc}", file=sys.stderr)
