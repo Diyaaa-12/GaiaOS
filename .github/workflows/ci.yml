@@ -58,8 +58,10 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
         run: pytest
 
-      - name: Build and verify production application container
+      - name: Build and verify container images
         run: |
+          docker compose build worker scheduler
+          if [ -f Dockerfile.scheduler ]; then docker build -t gaiaos-scheduler -f Dockerfile.scheduler .; fi
           docker compose up -d --build --wait app
           curl --fail http://localhost:8000/api/v1/health/live
 
