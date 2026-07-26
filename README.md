@@ -6,22 +6,24 @@ An Agentic Planetary Risk Intelligence Platform.
 
 ## Status
 
-Phase 1 — Foundation (Complete)
+Phase 1, Phase 2, and Phase 3 — Complete
 
 | Milestone | Status |
 |-----------|--------|
-| Milestone 1 — Repository & Development Environment Setup | Complete |
-| Milestone 2 — Project Structure & Configuration | Complete |
-| Milestone 3 — Docker & Docker Compose | Complete |
-| Milestone 4 — FastAPI Foundation & Request ID | Complete |
-| Milestone 5 — PostgreSQL Database Architecture | Complete |
-| Milestone 6 — Alembic Migration Pipeline | Complete |
-| Milestone 7 — Gateway Middleware & Logging | Complete |
-| Milestone 8 — Production Environment Settings | Complete |
-| Milestone 9 — Application Health Probes | Complete |
-| Milestone 10 — Test Infrastructure & GitHub Actions CI | Complete |
+| **Phase 1** — Foundation, FastAPI, PostgreSQL, Docker, Alembic, Gateway | Complete |
+| **Phase 2** — Multi-Agent Reasoning Core, LangGraph, Literature RAG, Scorer | Complete |
+| **Phase 3 — Milestone 1**: JWT Authentication & User Lifecycle | Complete |
+| **Phase 3 — Milestone 2**: API Key Authorization & Redis Rate Limiting | Complete |
+| **Phase 3 — Milestone 3**: RQ Worker Queue & Durable Task Execution | Complete |
+| **Phase 3 — Milestone 4**: SSE Streaming Investigation Progress | Complete |
+| **Phase 3 — Milestone 5**: Benchmark Suite & Regression Gate Expansion | Complete |
+| **Phase 3 — Milestone 6**: Bounded Replan Loop (Self-Correction) | Complete |
+| **Phase 3 — Milestone 7**: PostGIS Geometry Migration & Geospatial Reasoning | Complete |
+| **Phase 3 — Milestone 8**: Real Hazard Event Ingestion Pipeline | Complete |
+| **Phase 3 — Milestone 9**: Aggregated Observability & Metrics API | Complete |
+| **Phase 3 — Milestone 10**: API Hardening & Public Versioning | Complete |
 
-Architecture is frozen in [`docs/Architecture.md`](docs/Architecture.md). Phase 1 scope and ordering are defined in [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md).
+Architecture is frozen in [`docs/Architecture.md`](docs/Architecture.md). Phase 1, 2, and 3 scopes are detailed in [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md), [`docs/Roadmap_Phase2.md`](docs/Roadmap_Phase2.md), and [`docs/Roadmap_Phase3.md`](docs/Roadmap_Phase3.md).
 
 ## Prerequisites
 
@@ -203,7 +205,7 @@ pytest
 
 `pytest` automatically reads `DATABASE_URL` and `REDIS_URL` from `.env` via `get_settings()`.
 
-Expected output: all tests pass (`53 passed`).
+Expected output: all tests pass (240+ tests, exact count may grow over time).
 
 ### Verify linting
 
