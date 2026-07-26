@@ -120,6 +120,7 @@ class CausalChainRepository:
                     duration_ms=query_duration_ms,
                     error=str(e),
                 )
+                await session.rollback()
                 raise TimeoutError("causal chain query exceeded time budget") from e
             raise e
 
