@@ -56,6 +56,10 @@ class TestEmailServiceSecurity:
         ) -> None:
             captured_links.append({"email": email, "raw_token": raw_token})
 
+        key = "super-secret-key-that-is-at-least-32-chars-long!"
+        monkeypatch.setenv("JWT_SECRET_KEY", key)
+        get_settings.cache_clear()
+
         monkeypatch.setattr(DevEmailService, "send_password_reset_email", mock_send)
 
         email = f"reset-{uuid.uuid4().hex[:6]}@example.com"
