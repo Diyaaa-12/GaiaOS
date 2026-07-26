@@ -249,6 +249,26 @@ class Settings(BaseSettings):
         validation_alias="JWT_AUDIENCE",
         description="Expected JWT audience claim (aud).",
     )
+    app_base_url: str = Field(
+        default="http://localhost:8000",
+        validation_alias="APP_BASE_URL",
+        description="Configured base URL for application link generation.",
+    )
+    password_reset_expiry_minutes: int = Field(
+        default=15,
+        validation_alias="PASSWORD_RESET_EXPIRY_MINUTES",
+        description="Password reset token validity window in minutes.",
+    )
+    password_reset_rate_limit_requests: int = Field(
+        default=3,
+        validation_alias="PASSWORD_RESET_RATE_LIMIT_REQUESTS",
+        description="Maximum allowed password reset requests per time window.",
+    )
+    password_reset_rate_limit_window_seconds: int = Field(
+        default=900,
+        validation_alias="PASSWORD_RESET_RATE_LIMIT_WINDOW_SECONDS",
+        description="Rate limit time window in seconds for password reset endpoint.",
+    )
 
     @model_validator(mode="after")
     def validate_production_security(self) -> Self:

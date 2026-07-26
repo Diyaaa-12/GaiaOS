@@ -124,6 +124,8 @@ class RedisRateLimiter:
             return "api_key"
 
         path = request.url.path
+        if path == "/api/v1/auth/request-reset":
+            return "password_reset"
         if path.startswith("/api/v1/investigations"):
             return "submit_investigation" if request.method == "POST" else "investigations"
         if path.startswith("/api/v1/auth"):
@@ -168,8 +170,16 @@ class RedisRateLimiter:
         requests_per_minute, burst = self._get_quota_for_role(role)
 
         key = RedisKeyBuilder.rate_limit_key(identifier, scope)
-        refill_rate = requests_per_minute / 60.0
-        capacity = max(1, burst)
+        if scope == "password_reset":
+            capacity = max(1, settings.password_reset_rate_limit_requests)
+            refill_rate = (
+                settings.password_reset_rate_limit_requests
+                / float(max(1, settings.password_reset_rate_limit_window_seconds))
+            )
+        else:
+            refill_rate = requests_per_minute / 60.0
+            capacity = max(1, burst)
+
         now = time.time()
         cost = 1
 

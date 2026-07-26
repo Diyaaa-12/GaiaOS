@@ -8,10 +8,11 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models.investigation import Investigation
+from db.models.password_reset_token import PasswordResetToken
 from db.models.user import User
 from orchestrator.schemas.agent_io import Evidence
 
@@ -147,6 +148,82 @@ class UserRepository:
         except Exception:
             await session.rollback()
             return False
+
+    @staticmethod
+    async def create_password_reset_token(
+        session: AsyncSession,
+        user_id: uuid.UUID,
+        hashed_token: str,
+        expires_at: datetime,
+    ) -> PasswordResetToken:
+        """Persist a new password reset token record."""
+        token_record = PasswordResetToken(
+            user_id=user_id,
+            hashed_token=hashed_token,
+            expires_at=expires_at,
+        )
+        session.add(token_record)
+        try:
+            await session.commit()
+        except Exception as exc:
+            await session.rollback()
+            raise exc
+        await session.refresh(token_record)
+        return token_record
+
+    @staticmethod
+    async def reset_password_with_token(
+        session: AsyncSession,
+        hashed_token: str,
+        new_hashed_password: str,
+    ) -> User | None:
+        """Atomic password reset execution.
+
+        Executes all four operations within a single database transaction using pessimistic locking:
+        1. Fetch valid, unexpired, unconsumed reset token with row lock (SELECT FOR UPDATE).
+        2. Fetch associated user.
+        3. Update user's hashed password.
+        4. Consume presented token and invalidate ALL open reset tokens for user (used_at = now()).
+        """
+        now = datetime.now(UTC)
+        try:
+            stmt = (
+                select(PasswordResetToken)
+                .where(
+                    PasswordResetToken.hashed_token == hashed_token,
+                    PasswordResetToken.used_at.is_(None),
+                    PasswordResetToken.expires_at > now,
+                )
+                .with_for_update()
+            )
+            res = await session.execute(stmt)
+            token_obj = res.scalar_one_or_none()
+            if not token_obj:
+                return None
+
+            stmt_user = select(User).where(User.id == token_obj.user_id, User.deleted_at.is_(None))
+            res_user = await session.execute(stmt_user)
+            user = res_user.scalar_one_or_none()
+            if not user or not user.is_active:
+                return None
+
+            user.hashed_password = new_hashed_password
+
+            # Invalidate presented token and all remaining active reset tokens for user
+            await session.execute(
+                update(PasswordResetToken)
+                .where(
+                    PasswordResetToken.user_id == user.id,
+                    PasswordResetToken.used_at.is_(None),
+                )
+                .values(used_at=now)
+            )
+            await session.commit()
+            await session.refresh(user)
+            return user
+        except Exception as exc:
+            await session.rollback()
+            raise exc
 
 
 def _normalize_serializable(obj: Any) -> Any:

@@ -318,3 +318,134 @@ async def get_me(
         created_at=current_user.created_at,
         last_login_at=current_user.last_login_at,
     )
+
+
+class PasswordResetRequestPayload(BaseModel):
+    """Payload to initiate a password reset."""
+
+    email: EmailStr
+
+
+class PasswordResetConfirmPayload(BaseModel):
+    """Payload to confirm password reset with raw token and new password."""
+
+    token: str = Field(min_length=1)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+@auth_router.post(
+    "/request-reset",
+    response_model=MessageResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Request a password reset link",
+    description=(
+        "Initiates password reset flow. Returns HTTP 202 with generic response "
+        "regardless of whether the email exists to prevent account enumeration."
+    ),
+)
+async def request_password_reset(
+    payload: PasswordResetRequestPayload,
+    db_session: DbSessionDep,
+) -> Any:
+    """Request password reset link.
+
+    Security features:
+    1. Account non-enumeration: returns HTTP 202 Accepted unconditionally.
+    2. Constant-time execution: performs dummy token generation/hashing if user missing.
+    3. Host-header poisoning safety: uses app_base_url for reset links.
+    4. Sanitized logging: logs user_id/email, NEVER raw token.
+    """
+    settings = get_settings()
+    user = await UserRepository.get_user_by_email(db_session, payload.email)
+
+    if user and user.is_active:
+        raw_token = generate_verification_token()
+        hashed_token = hash_verification_token(raw_token)
+        expires_at = datetime.now(UTC) + timedelta(minutes=settings.password_reset_expiry_minutes)
+
+        await UserRepository.create_password_reset_token(
+            session=db_session,
+            user_id=user.id,
+            hashed_token=hashed_token,
+            expires_at=expires_at,
+        )
+
+        email_service = DevEmailService()
+        await email_service.send_password_reset_email(
+            email=user.email,
+            raw_token=raw_token,
+            user_id=str(user.id),
+        )
+        _log.info("auth.request_reset.success", user_id=str(user.id))
+    else:
+        # Constant-time dummy cryptographic work for non-existent accounts
+        dummy_raw = generate_verification_token()
+        _ = hash_verification_token(dummy_raw)
+        _log.info("auth.request_reset.processed")
+
+    return MessageResponse(
+        message="If an account with this email exists, a password reset link has been sent.",
+        status="success",
+    )
+
+
+@auth_router.post(
+    "/reset",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Reset password using valid reset token",
+    responses={
+        400: {"description": "Invalid or expired token"},
+        422: {"description": "Password policy violation"},
+    },
+)
+async def reset_password(
+    payload: PasswordResetConfirmPayload,
+    db_session: DbSessionDep,
+) -> Any:
+    """Reset account password using plaintext token and new password.
+
+    Security features:
+    1. Validates password strength policy.
+    2. Hashes new password with Argon2id.
+    3. Single transaction boundary: validates token, updates user password, consumes token,
+       and invalidates ALL remaining active tokens for the user atomically (SELECT FOR UPDATE).
+    """
+    # 1. Password strength policy validation
+    policy_result = validate_password_policy(payload.new_password)
+    if not policy_result.is_valid:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "detail": policy_result.error_message,
+                "error_code": "password_policy_violation",
+            },
+        )
+
+    # 2. Hash raw token and new password
+    hashed_token = hash_verification_token(payload.token)
+    new_hashed_pw = hash_password(payload.new_password)
+
+    # 3. Atomic reset execution via repository
+    user = await UserRepository.reset_password_with_token(
+        session=db_session,
+        hashed_token=hashed_token,
+        new_hashed_password=new_hashed_pw,
+    )
+
+    if not user:
+        _log.warning("auth.reset.invalid_or_expired_token")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": "Invalid or expired password reset token.",
+                "error_code": "invalid_or_expired_token",
+            },
+        )
+
+    _log.info("auth.reset.success", user_id=str(user.id))
+
+    return MessageResponse(
+        message="Password has been reset successfully. Please log in with your new password.",
+        status="success",
+    )
