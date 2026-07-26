@@ -43,27 +43,22 @@ from orchestrator.schemas.synthesis import SynthesisOutput
 _log = get_logger(__name__)
 
 
-def _safe_publish_event(investigation_id: Any, event: InvestigationEvent) -> None:
-    """Helper to publish event asynchronously and non-blockingly."""
-    import asyncio
-
-    async def _safe():
-        try:
-            await publish_event(investigation_id, event)
-        except Exception as exc:
-            _log.error(
-                "graph.event_publish_failed",
-                investigation_id=str(investigation_id),
-                error=str(exc),
-            )
-
-    asyncio.create_task(_safe())
+async def _safe_publish_event(investigation_id: Any, event: InvestigationEvent) -> None:
+    """Helper to publish event safely without leaving detached tasks."""
+    try:
+        await publish_event(investigation_id, event)
+    except Exception as exc:
+        _log.error(
+            "graph.event_publish_failed",
+            investigation_id=str(investigation_id),
+            error=str(exc),
+        )
 
 
 async def supervisor_node(state: TaskGraphState) -> dict[str, Any]:
     """Classify query complexity and route accordingly."""
     _log.info("graph.node.supervisor.started", investigation_id=str(state["investigation_id"]))
-    _safe_publish_event(
+    await _safe_publish_event(
         state["investigation_id"],
         PlanningEvent(data=PlanningData(status="planning")),
     )
@@ -102,7 +97,7 @@ async def air_quality_node(state: TaskGraphState) -> dict[str, Any]:
     _log.info("graph.node.air_quality.started", investigation_id=str(state["investigation_id"]))
     from datetime import datetime
 
-    _safe_publish_event(
+    await _safe_publish_event(
         state["investigation_id"],
         AgentStartedEvent(
             data=AgentStartedData(
@@ -117,7 +112,7 @@ async def air_quality_node(state: TaskGraphState) -> dict[str, Any]:
         region_hint=None,  # Parsed or extracted region
     )
     output = await run_air_quality(agent_input)
-    _safe_publish_event(
+    await _safe_publish_event(
         state["investigation_id"],
         AgentCompletedEvent(
             data=AgentCompletedData(
@@ -168,7 +163,7 @@ async def simulation_node(state: TaskGraphState) -> dict[str, Any]:
     _log.info("graph.node.simulation.started", investigation_id=str(state["investigation_id"]))
     from datetime import datetime
 
-    _safe_publish_event(
+    await _safe_publish_event(
         state["investigation_id"],
         AgentStartedEvent(
             data=AgentStartedData(
@@ -186,7 +181,7 @@ async def simulation_node(state: TaskGraphState) -> dict[str, Any]:
     )
     # Pass prior outputs
     output = await run_simulation_agent(agent_input, state.get("agent_outputs", []))
-    _safe_publish_event(
+    await _safe_publish_event(
         state["investigation_id"],
         AgentCompletedEvent(
             data=AgentCompletedData(
@@ -208,7 +203,7 @@ def route_after_domain_agents(state: TaskGraphState) -> str:
 async def synthesis_node(state: TaskGraphState) -> dict[str, Any]:
     """Execute the Synthesis Agent to merge findings and map citations."""
     _log.info("graph.node.synthesis.started", investigation_id=str(state["investigation_id"]))
-    _safe_publish_event(
+    await _safe_publish_event(
         state["investigation_id"],
         SynthesizingEvent(),
     )
@@ -235,7 +230,7 @@ async def critic_node(state: TaskGraphState) -> dict[str, Any]:
                 if claim.text == flag.claim_text:
                     claim_confidence = claim.confidence
                     break
-        _safe_publish_event(
+        await _safe_publish_event(
             state["investigation_id"],
             CriticFlagEvent(
                 data=CriticFlagData(
@@ -284,7 +279,7 @@ async def replan_node(state: TaskGraphState) -> dict[str, Any]:
         trigger_reason=trigger_reason,
     )
 
-    _safe_publish_event(
+    await _safe_publish_event(
         state["investigation_id"],
         ReplanningEvent(
             data=ReplanningData(
@@ -383,7 +378,7 @@ async def finalize_node(state: TaskGraphState) -> dict[str, Any]:
             execution_trace=trace,
         )
 
-    _safe_publish_event(
+    await _safe_publish_event(
         state["investigation_id"],
         DoneEvent(
             data=DoneData(

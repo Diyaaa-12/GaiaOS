@@ -142,7 +142,7 @@ class FanOutCoordinator:
                 at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             )
         )
-        asyncio.create_task(_safe_publish(start_evt))
+        await _safe_publish(start_evt)
 
         try:
             # Wrap the entire agent execution with timeout
@@ -164,7 +164,7 @@ class FanOutCoordinator:
                     evidence_count=len(output.evidence) if output and output.evidence else 0,
                 )
             )
-            asyncio.create_task(_safe_publish(complete_evt))
+            await _safe_publish(complete_evt)
 
             return output
 
@@ -185,7 +185,7 @@ class FanOutCoordinator:
                     evidence_count=0,
                 )
             )
-            asyncio.create_task(_safe_publish(complete_evt))
+            await _safe_publish(complete_evt)
 
             return AgentOutput(
                 agent_name=domain,
@@ -210,7 +210,7 @@ class FanOutCoordinator:
                     evidence_count=0,
                 )
             )
-            asyncio.create_task(_safe_publish(complete_evt))
+            await _safe_publish(complete_evt)
 
             return AgentOutput(
                 agent_name=domain,
