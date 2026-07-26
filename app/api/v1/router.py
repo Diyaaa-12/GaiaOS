@@ -8,6 +8,7 @@ included into ``v1_router`` from ``app.api.v1.__init__``).
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app.api.v1.admin_alerts import admin_alerts_router
 from app.api.v1.admin_metrics import admin_metrics_router
 from app.api.v1.api_keys import api_keys_router
 from app.api.v1.auth import auth_router
@@ -17,6 +18,7 @@ from app.api.v1.investigations_stream import stream_router
 from app.dependencies import SettingsDep
 
 v1_router = APIRouter(tags=["v1"])
+v1_router.include_router(admin_alerts_router)
 v1_router.include_router(admin_metrics_router)
 v1_router.include_router(api_keys_router)
 v1_router.include_router(auth_router)

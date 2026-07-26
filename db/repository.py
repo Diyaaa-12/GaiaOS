@@ -11,6 +11,8 @@ from typing import Any
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from db.models.alert_incident import AlertIncident
+from db.models.alert_rule import AlertRule
 from db.models.investigation import Investigation
 from db.models.password_reset_token import PasswordResetToken
 from db.models.user import User
@@ -501,3 +503,186 @@ async def find_causal_chain(
             max_depth=max_depth,
             statement_timeout_ms=statement_timeout_ms,
         )
+
+
+class AlertRepository:
+    """Repository helper for AlertRules and AlertIncidents CRUD operations."""
+
+    @staticmethod
+    async def upsert_alert_rule(
+        session: AsyncSession,
+        name: str,
+        metric: str,
+        threshold: float,
+        comparison: str = "gt",
+        window: str = "15m",
+        severity: str = "warning",
+        consecutive_cycles: int = 1,
+        is_enabled: bool = True,
+    ) -> AlertRule:
+        """Create or update an alert rule by name (idempotent upsert)."""
+        stmt = select(AlertRule).where(AlertRule.name == name)
+        res = await session.execute(stmt)
+        rule = res.scalar_one_or_none()
+
+        if rule:
+            rule.metric = metric
+            rule.threshold = threshold
+            rule.comparison = comparison
+            rule.window = window
+            rule.severity = severity
+            rule.consecutive_cycles = consecutive_cycles
+            rule.is_enabled = is_enabled
+        else:
+            rule = AlertRule(
+                name=name,
+                metric=metric,
+                threshold=threshold,
+                comparison=comparison,
+                window=window,
+                severity=severity,
+                consecutive_cycles=consecutive_cycles,
+                is_enabled=is_enabled,
+            )
+            session.add(rule)
+
+        try:
+            await session.commit()
+        except Exception as exc:
+            await session.rollback()
+            raise exc
+
+        await session.refresh(rule)
+        return rule
+
+    @staticmethod
+    async def get_active_alert_rules(session: AsyncSession) -> list[AlertRule]:
+        """Fetch all active (is_enabled=True) alert rules."""
+        stmt = select(AlertRule).where(AlertRule.is_enabled.is_(True))
+        res = await session.execute(stmt)
+        return list(res.scalars().all())
+
+    @staticmethod
+    async def list_alert_rules(session: AsyncSession) -> list[AlertRule]:
+        """Fetch all alert rules."""
+        stmt = select(AlertRule).order_by(AlertRule.name)
+        res = await session.execute(stmt)
+        return list(res.scalars().all())
+
+    @staticmethod
+    async def get_alert_rule_by_id(session: AsyncSession, rule_id: uuid.UUID) -> AlertRule | None:
+        """Fetch an alert rule by primary key ID."""
+        stmt = select(AlertRule).where(AlertRule.id == rule_id)
+        res = await session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    @staticmethod
+    async def delete_alert_rule(session: AsyncSession, rule_id: uuid.UUID) -> bool:
+        """Delete an alert rule by primary key ID."""
+        rule = await AlertRepository.get_alert_rule_by_id(session, rule_id)
+        if not rule:
+            return False
+        await session.delete(rule)
+        try:
+            await session.commit()
+            return True
+        except Exception as exc:
+            await session.rollback()
+            raise exc
+
+    @staticmethod
+    async def get_open_incident_by_rule_name(
+        session: AsyncSession, rule_name: str
+    ) -> AlertIncident | None:
+        """Fetch an open ('firing') incident for a specific rule name."""
+        stmt = select(AlertIncident).where(
+            AlertIncident.rule_name == rule_name,
+            AlertIncident.status == "firing",
+        )
+        res = await session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    @staticmethod
+    async def create_incident(
+        session: AsyncSession,
+        rule_id: uuid.UUID | None,
+        rule_name: str,
+        severity: str,
+        last_value: float,
+        threshold: float,
+        consecutive_violations: int = 1,
+    ) -> AlertIncident:
+        """Record a new firing alert incident."""
+        incident = AlertIncident(
+            rule_id=rule_id,
+            rule_name=rule_name,
+            severity=severity,
+            status="firing",
+            last_value=last_value,
+            threshold=threshold,
+            consecutive_violations=consecutive_violations,
+            fired_at=datetime.now(UTC),
+        )
+        session.add(incident)
+        try:
+            await session.commit()
+        except Exception as exc:
+            await session.rollback()
+            raise exc
+        await session.refresh(incident)
+        return incident
+
+    @staticmethod
+    async def update_incident_last_value(
+        session: AsyncSession,
+        incident_id: uuid.UUID,
+        last_value: float,
+        consecutive_violations: int,
+    ) -> None:
+        """Update last_value and consecutive_violations on an open incident."""
+        stmt = select(AlertIncident).where(AlertIncident.id == incident_id)
+        res = await session.execute(stmt)
+        incident = res.scalar_one_or_none()
+        if incident:
+            incident.last_value = last_value
+            incident.consecutive_violations = consecutive_violations
+            try:
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+    @staticmethod
+    async def resolve_incident(
+        session: AsyncSession,
+        incident_id: uuid.UUID,
+    ) -> AlertIncident | None:
+        """Mark an open incident as resolved."""
+        stmt = select(AlertIncident).where(AlertIncident.id == incident_id)
+        res = await session.execute(stmt)
+        incident = res.scalar_one_or_none()
+        if incident and incident.status == "firing":
+            incident.status = "resolved"
+            incident.resolved_at = datetime.now(UTC)
+            try:
+                await session.commit()
+                await session.refresh(incident)
+                return incident
+            except Exception as exc:
+                await session.rollback()
+                raise exc
+        return incident
+
+    @staticmethod
+    async def list_incidents(
+        session: AsyncSession,
+        status: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[AlertIncident]:
+        """List alert incidents with optional status filter."""
+        stmt = select(AlertIncident)
+        if status:
+            stmt = stmt.where(AlertIncident.status == status)
+        stmt = stmt.order_by(AlertIncident.fired_at.desc()).limit(limit).offset(offset)
+        res = await session.execute(stmt)
+        return list(res.scalars().all())
