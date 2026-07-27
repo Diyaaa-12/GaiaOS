@@ -35,34 +35,43 @@ agent_registry = AgentRegistry()
 
 
 def register_agents() -> None:
-    """Import and register active agents lazily to avoid circular dependencies."""
+    """Import and register active agents lazily to avoid circular dependencies.
+
+    Idempotent: repeated calls skip domains that are already registered,
+    so calling this function multiple times is safe.
+    """
+
+    def _register(name: str, runner: AgentRunner) -> None:
+        if name not in agent_registry._registry:
+            agent_registry.register(name, runner)
+
     from orchestrator.agents.air_quality.agent import run as run_aq
 
-    agent_registry.register("air_quality", run_aq)
+    _register("air_quality", run_aq)
 
     from orchestrator.agents.seismic.agent import run as run_seismic
 
-    agent_registry.register("seismic", run_seismic)
+    _register("seismic", run_seismic)
 
     from orchestrator.agents.ocean.agent import run as run_ocean
 
-    agent_registry.register("ocean", run_ocean)
+    _register("ocean", run_ocean)
 
     from orchestrator.agents.atmosphere.agent import run as run_atmosphere
 
-    agent_registry.register("atmosphere", run_atmosphere)
+    _register("atmosphere", run_atmosphere)
 
     from orchestrator.agents.wildfire.agent import run as run_wildfire
 
-    agent_registry.register("wildfire", run_wildfire)
+    _register("wildfire", run_wildfire)
 
     from orchestrator.agents.literature_rag.agent import run as run_literature
 
-    agent_registry.register("literature", run_literature)
+    _register("literature", run_literature)
 
     from orchestrator.agents.causal_chain.agent import run as run_causal_chain
 
-    agent_registry.register("causal_chain", run_causal_chain)
+    _register("causal_chain", run_causal_chain)
 
 
 # Populating registry

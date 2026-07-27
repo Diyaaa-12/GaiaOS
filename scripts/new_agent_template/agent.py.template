@@ -1,0 +1,35 @@
+"""${DomainTitle} domain agent implementation."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+from logging_config import get_logger
+from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
+
+_log = get_logger(__name__)
+
+
+async def run(agent_input: AgentInput) -> AgentOutput:
+    """Execute the ${domain_name} domain agent for the given input query."""
+    _log.info("${domain_name}_agent.run", query=agent_input.query)
+    evidence_list: list[Evidence] = []
+    errors: list[str] = []
+
+    try:
+        evidence_list.append(
+            Evidence(
+                source="${DomainTitle} Observation Source",
+                claim=f"Extracted ${domain_name} evidence for query: {agent_input.query}",
+                confidence=0.9,
+                retrieved_at=datetime.now(UTC),
+            )
+        )
+    except Exception as exc:
+        errors.append(f"Failed execution for ${domain_name} agent: {exc}")
+
+    return AgentOutput(
+        agent_name="${domain_name}",
+        evidence=evidence_list,
+        errors=errors,
+    )

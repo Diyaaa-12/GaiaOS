@@ -49,6 +49,10 @@ async def test_restore_drill_success_matching_metadata() -> None:
              patch("ops.backup.restore_drill._drop_scratch_database", return_value=None):
 
             mock_session = AsyncMock()
+            # session.add() is synchronous in SQLAlchemy async sessions;
+            # override to plain Mock to prevent unawaited coroutine RuntimeWarnings.
+            from unittest.mock import Mock
+            mock_session.add = Mock()
             mock_res = MagicMock()
             mock_res.scalars().first.return_value = mock_backup_record
 
@@ -113,6 +117,10 @@ async def test_restore_drill_catches_deliberately_introduced_discrepancy() -> No
              patch("ops.backup.restore_drill._drop_scratch_database", return_value=None):
 
             mock_session = AsyncMock()
+            # session.add() is synchronous in SQLAlchemy async sessions;
+            # override to plain Mock to prevent unawaited coroutine RuntimeWarnings.
+            from unittest.mock import Mock
+            mock_session.add = Mock()
             mock_res = MagicMock()
             mock_res.scalars().first.return_value = mock_backup_record
 

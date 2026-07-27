@@ -1,0 +1,26 @@
+"""Unit test suite for ${domain_name} domain agent."""
+
+from __future__ import annotations
+
+import uuid
+
+import pytest
+
+from orchestrator.agents.${domain_name}.agent import run
+from orchestrator.schemas.agent_io import AgentInput, AgentOutput
+
+
+@pytest.mark.asyncio
+async def test_${domain_name}_agent_run_success() -> None:
+    """Verify ${domain_name} agent executes successfully and returns valid AgentOutput."""
+    agent_input = AgentInput(
+        investigation_id=uuid.uuid4(),
+        query="Test query for ${domain_name}",
+        region_hint="Global",
+    )
+    output = await run(agent_input)
+
+    assert isinstance(output, AgentOutput)
+    assert output.agent_name == "${domain_name}"
+    assert len(output.evidence) > 0
+    assert len(output.errors) == 0

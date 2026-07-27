@@ -1,0 +1,5 @@
+"""${DomainTitle} domain agent package."""
+
+from orchestrator.agents.${domain_name}.agent import run
+
+__all__ = ["run"]

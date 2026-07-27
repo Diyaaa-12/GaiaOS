@@ -309,6 +309,16 @@ This project uses **pip + venv** (not Poetry).
 
 Always activate `.venv` before installing packages or running project commands.
 
+## Contributing a Domain Agent
+
+To add a new environmental or analytical domain agent to GaiaOS, follow the step-by-step contribution guide in [docs/CONTRIBUTING_AGENTS.md](docs/CONTRIBUTING_AGENTS.md).
+
+Quick start CLI:
+```bash
+python scripts/scaffold_new_agent.py <domain_name>
+python -m eval.agent_contract_validator
+```
+
 ## Branching
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branching convention: `main` plus `feature/<milestone-name>` branches.
