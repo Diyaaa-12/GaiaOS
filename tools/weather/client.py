@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
 from config.settings import get_settings
 from logging_config import get_logger
+from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
 
@@ -28,10 +27,10 @@ class WeatherClient:
             "current": "temperature_2m,wind_speed_10m,relative_humidity_2m",
         }
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(self.base_url, params=params, timeout=10.0)
-            if resp.status_code != 200:
-                _log.error("weather.client.failed", status=resp.status_code, body=resp.text)
-                resp.raise_for_status()
+        client = await get_shared_client()
+        resp = await client.get(self.base_url, params=params)
+        if resp.status_code != 200:
+            _log.error("weather.client.failed", status=resp.status_code, body=resp.text)
+            resp.raise_for_status()
 
-            return resp.json()
+        return resp.json()

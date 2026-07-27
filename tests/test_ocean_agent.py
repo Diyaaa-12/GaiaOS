@@ -15,6 +15,14 @@ class TestOceanAgent:
 
     @respx.mock
     async def test_agent_success(self) -> None:
+        respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
+            json={
+                "stations": [
+                    {"id": "9759110", "name": "Tokyo Bay", "lat": 35.65, "lng": 139.75}
+                ]
+            },
+            status_code=200,
+        )
         respx.get("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter").respond(
             json={"data": [{"t": "2026-07-20 12:00", "v": "18.5"}]},
             status_code=200,
@@ -38,6 +46,14 @@ class TestOceanAgent:
 
     @respx.mock
     async def test_agent_no_results(self) -> None:
+        respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
+            json={
+                "stations": [
+                    {"id": "8518750", "name": "Le Havre", "lat": 49.49, "lng": 0.10}
+                ]
+            },
+            status_code=200,
+        )
         respx.get("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter").respond(
             json={"error": "No data found"},
             status_code=200,
@@ -56,6 +72,14 @@ class TestOceanAgent:
 
     @respx.mock
     async def test_agent_api_error(self) -> None:
+        respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
+            json={
+                "stations": [
+                    {"id": "9759110", "name": "Tokyo Bay", "lat": 35.65, "lng": 139.75}
+                ]
+            },
+            status_code=200,
+        )
         respx.get("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter").respond(
             status_code=500,
         )

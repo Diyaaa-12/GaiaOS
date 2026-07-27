@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
 from config.settings import get_settings
 from logging_config import get_logger
+from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
 
@@ -38,14 +37,15 @@ class NOAAOceanClient:
         }
         if range_hours is not None:
             params["range"] = range_hours
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(self.base_url, params=params, timeout=10.0)
-            if resp.status_code != 200:
-                _log.error("ocean.client.failed", status=resp.status_code, body=resp.text)
-                resp.raise_for_status()
 
-            data = resp.json()
-            if "error" in data:
-                _log.warning("ocean.client.api_error", error=data["error"])
-                return {}
-            return data
+        client = await get_shared_client()
+        resp = await client.get(self.base_url, params=params)
+        if resp.status_code != 200:
+            _log.error("ocean.client.failed", status=resp.status_code, body=resp.text)
+            resp.raise_for_status()
+
+        data = resp.json()
+        if "error" in data:
+            _log.warning("ocean.client.api_error", error=data["error"])
+            return {}
+        return data

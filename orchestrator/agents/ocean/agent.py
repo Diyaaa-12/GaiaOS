@@ -29,7 +29,11 @@ async def run(agent_input: AgentInput) -> AgentOutput:
 
     try:
         geo = await geocode_location(location)
-        station_id = geo.get("station_id", "8518750")
+        station_id = geo.get("station_id")
+        if not station_id:
+            errors.append(f"No active NOAA ocean station found for location '{location}'.")
+            return AgentOutput(agent_name="ocean", evidence=[], errors=errors)
+
         client = NOAAOceanClient()
         data = await client.get_water_temperature(station_id)
 

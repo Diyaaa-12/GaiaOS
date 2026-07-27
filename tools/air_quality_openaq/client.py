@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
 from logging_config import get_logger
+from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
 
@@ -28,16 +27,16 @@ class OpenAQClient:
         url = f"{self.base_url}/latest"
         params: dict[str, str | int] = {"city": city, "limit": 10}
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params, headers=headers, timeout=10.0)
-            if response.status_code != 200:
-                _log.error(
-                    "openaq.client.fetch_failed",
-                    city=city,
-                    status=response.status_code,
-                    body=response.text,
-                )
-                response.raise_for_status()
+        client = await get_shared_client()
+        response = await client.get(url, params=params, headers=headers)
+        if response.status_code != 200:
+            _log.error(
+                "openaq.client.fetch_failed",
+                city=city,
+                status=response.status_code,
+                body=response.text,
+            )
+            response.raise_for_status()
 
-            data = response.json()
-            return data.get("results", [])
+        data = response.json()
+        return data.get("results", [])

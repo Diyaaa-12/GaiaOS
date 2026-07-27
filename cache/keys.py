@@ -41,3 +41,16 @@ class RedisKeyBuilder:
         Example: ``gaiaos:events:550e8400-e29b-41d4-a716-446655440000``
         """
         return f"gaiaos:events:{investigation_id}"
+
+    @staticmethod
+    def station_key(lat: float, lon: float, network: str = "noaa") -> str:
+        """Return a namespaced key for cached nearest station lookups by rounded coordinates.
+
+        Rounding coordinates to 2 decimal places provides ~1.11 km spatial resolution
+        at the equator, balancing cache key reuse vs geographic accuracy.
+
+        Example: ``gaiaos:cache:station:noaa:35.68:139.65``
+        """
+        rounded_lat = round(lat, 2)
+        rounded_lon = round(lon, 2)
+        return f"gaiaos:cache:station:{network}:{rounded_lat}:{rounded_lon}"

@@ -7,7 +7,6 @@ from typing import Any
 
 from ingestion.scheduled.schemas import HazardEventRecord
 from logging_config import get_logger
-from tools.geocoding import LOCAL_GEOCODE_DB
 from tools.ocean_noaa.client import NOAAOceanClient
 
 _log = get_logger(__name__)
@@ -28,18 +27,12 @@ async def fetch_recent_noaa_events(
     client = NOAAOceanClient()
     records: list[HazardEventRecord] = []
 
-    # Map city station IDs to coordinates from LOCAL_GEOCODE_DB
-    stations_to_process: dict[str, dict[str, Any]] = {}
-    for city, geo_data in LOCAL_GEOCODE_DB.items():
-        st_id = geo_data.get("station_id")
-        if st_id and st_id not in stations_to_process:
-            lat_raw = geo_data.get("lat", 0.0)
-            lon_raw = geo_data.get("lon", 0.0)
-            stations_to_process[str(st_id)] = {
-                "city": city.capitalize(),
-                "lat": float(str(lat_raw)),
-                "lon": float(str(lon_raw)),
-            }
+    # Default NOAA monitoring stations for oceanographic hazard event ingestion
+    stations_to_process: dict[str, dict[str, Any]] = {
+        "8518750": {"city": "New York", "lat": 40.7128, "lon": -74.006},
+        "9759110": {"city": "Tokyo", "lat": 35.6762, "lon": 139.6503},
+        "9414290": {"city": "San Francisco", "lat": 37.7749, "lon": -122.4194},
+    }
 
     for station_id, meta in stations_to_process.items():
         try:

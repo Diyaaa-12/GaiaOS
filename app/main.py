@@ -28,6 +28,7 @@ from db.session import dispose_engine, init_engine, verify_extensions
 from gateway.middleware import GatewayMiddleware
 from gateway.rate_limiter_redis import RedisRateLimiter
 from logging_config import configure_logging, get_logger
+from tools.http_client import close_shared_client
 
 _log = get_logger(__name__)
 
@@ -112,6 +113,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     # --- shutdown ---
+    await close_shared_client()
     await dispose_redis()
     await dispose_engine()
     _log.info("app.shutdown")
