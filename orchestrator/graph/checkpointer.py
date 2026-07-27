@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import ChainMap
 from collections.abc import AsyncIterator, Iterator, Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
@@ -24,27 +24,64 @@ from redis.asyncio import Redis
 from config.settings import get_settings
 
 
-def _normalize_serializable(obj: Any) -> Any:
-    """Recursively convert ChainMap and non-dict mappings to standard python primitives."""
+def _is_unpicklable_callable(val: Any) -> bool:
+    return callable(val) and not isinstance(val, type)
 
+
+def _normalize_serializable(obj: Any) -> Any:
+    """Recursively convert ChainMap and mappings to python primitives, stripping callables."""
+    if _is_unpicklable_callable(obj):
+        return None
     if isinstance(obj, (ChainMap, Mapping)) or hasattr(obj, "maps"):
-        return {str(k): _normalize_serializable(v) for k, v in obj.items()}
+        return {
+            str(k): _normalize_serializable(v)
+            for k, v in obj.items()
+            if k != "stream_writer" and not _is_unpicklable_callable(v)
+        }
     if isinstance(obj, dict):
-        return {str(k): _normalize_serializable(v) for k, v in obj.items()}
+        return {
+            str(k): _normalize_serializable(v)
+            for k, v in obj.items()
+            if k != "stream_writer" and not _is_unpicklable_callable(v)
+        }
     if isinstance(obj, tuple):
-        return tuple(_normalize_serializable(item) for item in obj)
+        return tuple(
+            _normalize_serializable(item)
+            for item in obj
+            if not _is_unpicklable_callable(item)
+        )
     if isinstance(obj, (list, set)):
-        return [_normalize_serializable(item) for item in obj]
+        return [
+            _normalize_serializable(item)
+            for item in obj
+            if not _is_unpicklable_callable(item)
+        ]
     return obj
 
 
 class GaiaOSSerializer(JsonPlusSerializer):
     """Custom JsonPlusSerializer that normalizes ChainMap and non-dict Mappings."""
 
-    def _default(self, obj: Any) -> Any:
-        if isinstance(obj, (ChainMap, Mapping)) or hasattr(obj, "maps"):
-            return dict(obj)
-        return super()._default(obj)
+    def __init__(self, *, pickle_fallback: bool = True, **kwargs: Any) -> None:
+        super().__init__(pickle_fallback=pickle_fallback, **kwargs)
+
+    def dumps_typed(self, obj: Any) -> tuple[str, bytes]:
+        sanitized = _normalize_serializable(obj)
+        try:
+            return super().dumps_typed(sanitized)
+        except Exception:
+            import json
+            return "json", json.dumps(sanitized, default=str).encode("utf-8")
+
+    def dumps(self, obj: Any) -> bytes:
+        type_, data_ = self.dumps_typed(obj)
+        return type_.encode("utf-8") + b":" + data_
+
+    def loads(self, data: bytes) -> Any:
+        if b":" in data:
+            type_bytes, _, payload = data.partition(b":")
+            return self.loads_typed((type_bytes.decode("utf-8"), payload))
+        return self.loads_typed(("msgpack", data))
 
 
 class RedisCheckpointSaver(BaseCheckpointSaver):
@@ -122,7 +159,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         if not serialized:
             return None
 
-        data = self.serde.loads(serialized)
+        data = cast(Any, self.serde).loads(serialized)
         checkpoint = data["checkpoint"]
         metadata = data["metadata"]
         parent_config = data.get("parent_config")
@@ -137,7 +174,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
             task_id = wkey_str.split(":")[-1]
             w_data = await self.client.get(wkey)
             if w_data:
-                channel_values = self.serde.loads(w_data)
+                channel_values = cast(Any, self.serde).loads(w_data)
                 for channel, value in channel_values:
                     pending_writes.append((task_id, channel, value))
 
@@ -168,7 +205,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
             "metadata": _normalize_serializable(metadata),
             "parent_config": _normalize_serializable(config),
         }
-        serialized = self.serde.dumps(data)
+        serialized = cast(Any, self.serde).dumps(data)
 
         key = f"gaiaos:checkpoint:{thread_id}:checkpoint:{checkpoint_id}"
         key_latest = f"gaiaos:checkpoint:{thread_id}:latest"
@@ -201,7 +238,12 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         if not thread_id or not checkpoint_id:
             raise ValueError("thread_id and checkpoint_id are required for aput_writes.")
 
-        serialized = self.serde.dumps(_normalize_serializable(writes))
+        filtered_writes = [
+            (channel, val)
+            for channel, val in writes
+            if channel != "stream_writer" and not callable(val)
+        ]
+        serialized = cast(Any, self.serde).dumps(_normalize_serializable(filtered_writes))
         key = f"gaiaos:checkpoint:{thread_id}:writes:{checkpoint_id}:{task_id}"
 
         if self.ttl_seconds and self.ttl_seconds > 0:
@@ -233,7 +275,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         for key in keys:
             serialized = await self.client.get(key)
             if serialized:
-                data = self.serde.loads(serialized)
+                data = cast(Any, self.serde).loads(serialized)
                 checkpoint = data["checkpoint"]
                 metadata = data["metadata"]
                 parent_config = data.get("parent_config")
@@ -249,7 +291,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
                     task_id = wkey_str.split(":")[-1]
                     w_data = await self.client.get(wkey)
                     if w_data:
-                        channel_values = self.serde.loads(w_data)
+                        channel_values = cast(Any, self.serde).loads(w_data)
                         for channel, value in channel_values:
                             pending_writes.append((task_id, channel, value))
 
