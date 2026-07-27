@@ -26,6 +26,7 @@ COPY mcp_servers/ mcp_servers/
 COPY ingestion/ ingestion/
 COPY simulation_engine/ simulation_engine/
 COPY eval/ eval/
+COPY alerting/ alerting/
 
 RUN groupadd -g 10000 gaiaos \
     && useradd -u 10000 -g gaiaos -s /bin/bash -m gaiaos \

@@ -269,6 +269,26 @@ class Settings(BaseSettings):
         validation_alias="PASSWORD_RESET_RATE_LIMIT_WINDOW_SECONDS",
         description="Rate limit time window in seconds for password reset endpoint.",
     )
+    alerting_enabled: bool = Field(
+        default=True,
+        validation_alias="ALERTING_ENABLED",
+        description="Global feature flag for automated production alerting.",
+    )
+    alert_evaluation_interval_minutes: int = Field(
+        default=5,
+        validation_alias="ALERT_EVALUATION_INTERVAL_MINUTES",
+        description="Evaluation frequency in minutes for background alert worker job.",
+    )
+    alert_webhook_url: str | None = Field(
+        default=None,
+        validation_alias="ALERT_WEBHOOK_URL",
+        description="Target Webhook URL for alert notifications (secret, never logged).",
+    )
+    alert_flapping_min_cycles: int = Field(
+        default=1,
+        validation_alias="ALERT_FLAPPING_MIN_CYCLES",
+        description="Global default minimum consecutive firing cycles before notifying.",
+    )
 
     @model_validator(mode="after")
     def validate_production_security(self) -> Self:

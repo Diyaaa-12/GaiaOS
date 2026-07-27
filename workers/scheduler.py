@@ -53,6 +53,25 @@ def main() -> None:
                 repeat=None,  # Infinite recurrence
             )
 
+    # Idempotent scheduling for alert evaluation job
+    target_alert_func = "workers.jobs.alert_evaluation_job.run_alert_evaluation_job"
+    alert_interval = settings.alert_evaluation_interval_minutes * 60
+    if is_job_already_scheduled(scheduler, target_alert_func, "alert_evaluation"):
+        _log.info("scheduler.job_exists_skipping", source="alert_evaluation")
+    else:
+        _log.info(
+            "scheduler.registering_job",
+            source="alert_evaluation",
+            interval_seconds=alert_interval,
+        )
+        scheduler.schedule(
+            scheduled_time=datetime.now(UTC) + timedelta(seconds=15),
+            func=target_alert_func,
+            args=["alert_evaluation"],
+            interval=alert_interval,
+            repeat=None,
+        )
+
     _log.info("scheduler.running")
     scheduler.run()
 
