@@ -162,10 +162,20 @@ async def verify_extensions(session: AsyncSession) -> dict[str, bool]:
     }
 
 
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    """Return the initialised session factory, calling init_engine() if needed."""
+    global AsyncSessionLocal
+    if AsyncSessionLocal is None:
+        init_engine()
+    assert AsyncSessionLocal is not None
+    return AsyncSessionLocal
+
+
 __all__ = [
     "AsyncSessionLocal",
     "engine",
     "get_db_session",
+    "get_session_factory",
     "init_engine",
     "dispose_engine",
     "verify_extensions",

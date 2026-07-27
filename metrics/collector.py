@@ -7,7 +7,15 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from logging_config import get_logger
-from metrics.events import IngestionCompleted, JobCompleted, JobFailed, MetricEvent
+from metrics.events import (
+    BackupCompleted,
+    IngestionCompleted,
+    JobCompleted,
+    JobFailed,
+    MetricEvent,
+    RestoreDrillCompleted,
+    RestoreDrillFailed,
+)
 
 _log = get_logger(__name__)
 
@@ -63,6 +71,30 @@ async def persist_metric(session: AsyncSession, event: MetricEvent) -> None:
             duration_ms=event.duration_ms,
             cost_estimate=Decimal("0"),
             success=event.success,
+        )
+    elif isinstance(event, BackupCompleted):
+        row = MetricEventRow(
+            event_type="BackupCompleted",
+            group_key=event.backup_id,
+            duration_ms=int(event.duration_ms),
+            cost_estimate=Decimal("0"),
+            success=event.success,
+        )
+    elif isinstance(event, RestoreDrillCompleted):
+        row = MetricEventRow(
+            event_type="RestoreDrillCompleted",
+            group_key=event.drill_id,
+            duration_ms=int(event.duration_ms),
+            cost_estimate=Decimal("0"),
+            success=event.success,
+        )
+    elif isinstance(event, RestoreDrillFailed):
+        row = MetricEventRow(
+            event_type="RestoreDrillFailed",
+            group_key=event.drill_id,
+            duration_ms=int(event.duration_ms),
+            cost_estimate=Decimal("0"),
+            success=False,
         )
     else:
         # Unknown event subclass — log and skip rather than fail.

@@ -72,6 +72,36 @@ def main() -> None:
             repeat=None,
         )
 
+    # Idempotent scheduling for automated database backup job via cron config
+    target_backup_func = "workers.jobs.backup_jobs.run_postgres_backup_job"
+    if is_job_already_scheduled(scheduler, target_backup_func, "postgres_backup"):
+        _log.info("scheduler.job_exists_skipping", source="postgres_backup")
+    else:
+        _log.info("scheduler.registering_job", source="postgres_backup", cron=settings.backup_cron)
+        scheduler.cron(
+            cron_string=settings.backup_cron,
+            func=target_backup_func,
+            args=["postgres_backup"],
+            repeat=None,
+        )
+
+    # Idempotent scheduling for automated restore drill job via cron config
+    target_drill_func = "workers.jobs.backup_jobs.run_restore_drill_job"
+    if is_job_already_scheduled(scheduler, target_drill_func, "restore_drill"):
+        _log.info("scheduler.job_exists_skipping", source="restore_drill")
+    else:
+        _log.info(
+            "scheduler.registering_job",
+            source="restore_drill",
+            cron=settings.restore_drill_cron,
+        )
+        scheduler.cron(
+            cron_string=settings.restore_drill_cron,
+            func=target_drill_func,
+            args=["restore_drill"],
+            repeat=None,
+        )
+
     _log.info("scheduler.running")
     scheduler.run()
 

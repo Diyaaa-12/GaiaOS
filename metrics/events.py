@@ -63,3 +63,35 @@ class IngestionCompleted(MetricEvent):
     duration_ms: int
     success: bool = True
 
+
+@dataclass
+class BackupCompleted(MetricEvent):
+    """Emitted when a scheduled or manual database backup completes."""
+
+    backup_id: str
+    size_bytes: int
+    duration_ms: float
+    success: bool = True
+
+
+@dataclass
+class RestoreDrillCompleted(MetricEvent):
+    """Emitted when an automated restore drill completes successfully."""
+
+    drill_id: str
+    backup_id: str
+    duration_ms: float
+    success: bool = True
+
+
+@dataclass
+class RestoreDrillFailed(MetricEvent):
+    """Emitted immediately when an automated restore drill fails or detects a discrepancy."""
+
+    drill_id: str
+    backup_id: str
+    duration_ms: float
+    error_message: str
+    discrepancies: dict[str, Any] = field(default_factory=dict)
+
+

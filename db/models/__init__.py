@@ -9,6 +9,7 @@ Exposes ORM mapped classes:
 from db.models.alert_incident import AlertIncident
 from db.models.alert_rule import AlertRule
 from db.models.api_key import ApiKey
+from db.models.backup_record import BackupRecord, BackupStatus, RestoreDrillRecord
 from db.models.eval_benchmark import EvalBenchmarkQuestion, EvalBenchmarkRun
 from db.models.hazard_event import HazardEvent, HazardRelationship
 from db.models.investigation import Investigation
@@ -21,6 +22,8 @@ __all__ = [
     "AlertIncident",
     "AlertRule",
     "ApiKey",
+    "BackupRecord",
+    "BackupStatus",
     "EvalBenchmarkQuestion",
     "EvalBenchmarkRun",
     "Investigation",
@@ -29,5 +32,6 @@ __all__ = [
     "HazardRelationship",
     "MetricEventRow",
     "PasswordResetToken",
+    "RestoreDrillRecord",
     "User",
 ]

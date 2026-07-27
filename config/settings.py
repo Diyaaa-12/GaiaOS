@@ -129,6 +129,29 @@ class Settings(BaseSettings):
         description="Character overlap for literature chunks.",
     )
     # ---------------------------------------------------------------------------
+    # Backup & Disaster Recovery settings (Phase 4 Milestone 6)
+    # ---------------------------------------------------------------------------
+    backup_cron: str = Field(
+        default="0 2 * * *",
+        validation_alias="BACKUP_CRON",
+        description="Cron expression for automated database backup schedule.",
+    )
+    restore_drill_cron: str = Field(
+        default="0 4 1 * *",
+        validation_alias="RESTORE_DRILL_CRON",
+        description="Cron expression for automated database restore drill schedule.",
+    )
+    backup_retention_days: int = Field(
+        default=30,
+        validation_alias="BACKUP_RETENTION_DAYS",
+        description="Retention period in days before expired backups are purged.",
+    )
+    backup_storage_path: str = Field(
+        default="./backups",
+        validation_alias="BACKUP_STORAGE_PATH",
+        description="Local storage directory for database backup files.",
+    )
+    # ---------------------------------------------------------------------------
     # Gateway settings (Milestone 7)
     # ---------------------------------------------------------------------------
     enable_auth: bool = Field(
