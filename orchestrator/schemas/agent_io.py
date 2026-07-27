@@ -12,6 +12,10 @@ from pydantic import BaseModel, Field
 class Evidence(BaseModel):
     """A supporting evidence item extracted by a domain agent."""
 
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        description="Unique immutable ID for this evidence item.",
+    )
     source: str = Field(description="Name or URL of the data source.")
     claim: str = Field(description="The factual claim or observation extracted.")
     confidence: float = Field(

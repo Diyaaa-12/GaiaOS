@@ -2,11 +2,29 @@
 
 from __future__ import annotations
 
+import uuid
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 from orchestrator.schemas.agent_io import Evidence
+
+
+class RawCitedEvidence(BaseModel):
+    """Raw citation payload parsed from LLM completion response."""
+
+    evidence_id: uuid.UUID | None = Field(
+        default=None,
+        description="Optional evidence_id cited by LLM.",
+    )
+    source: str = Field(description="Name or URL of the data source.")
+    claim: str = Field(description="The factual claim or observation extracted.")
+    confidence: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Assigned confidence level for this citation.",
+    )
 
 
 class SynthesizedClaim(BaseModel):
