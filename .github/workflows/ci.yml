@@ -38,24 +38,23 @@ jobs:
           # The override file exposes port 5432 and 6379 to the GitHub Actions runner (localhost).
           cp docker-compose.override.yml.example docker-compose.override.yml
           docker compose up -d --wait postgres redis
-          until docker compose exec -T postgres psql -U gaiaos -d gaiaos -c "SELECT 1" >/dev/null 2>&1; do
+          until PGPASSWORD=gaiaos_dev_password psql -h 127.0.0.1 -U gaiaos -d gaiaos -c "SELECT 1" >/dev/null 2>&1; do
             sleep 1
           done
-
 
       - name: Run Ruff
         run: ruff check .
 
       - name: Run Alembic Migrations
         env:
-          DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
-          REDIS_URL: redis://localhost:6379/0
+          DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@127.0.0.1:5432/gaiaos
+          REDIS_URL: redis://127.0.0.1:6379/0
         run: alembic upgrade head
 
       - name: Run Pytest
         env:
-          DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos
-          REDIS_URL: redis://localhost:6379/0
+          DATABASE_URL: postgresql://gaiaos:gaiaos_dev_password@127.0.0.1:5432/gaiaos
+          REDIS_URL: redis://127.0.0.1:6379/0
         run: pytest
 
       - name: Build and verify container images (app, worker, scheduler)
