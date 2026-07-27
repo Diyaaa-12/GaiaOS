@@ -29,6 +29,7 @@ COPY mcp_servers/ mcp_servers/
 COPY ingestion/ ingestion/
 COPY simulation_engine/ simulation_engine/
 COPY eval/ eval/
+COPY alerting/ alerting/
 
 
 # Create a non-root user and group
