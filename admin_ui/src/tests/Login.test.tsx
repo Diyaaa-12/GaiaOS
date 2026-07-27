@@ -22,7 +22,7 @@ vi.mock('../api/client', () => ({
 
 const renderLoginWithRoutes = (initialEntry = '/login') =>
   render(
-    <MemoryRouter initialEntries={[initialEntry]}>
+    <MemoryRouter initialEntries={[initialEntry]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/metrics" element={<div>Metrics Destination</div>} />
