@@ -102,6 +102,25 @@ def main() -> None:
             repeat=None,
         )
 
+    # Idempotent scheduling for periodic worker scaling advisory summary log
+    target_scaling_func = "workers.scaling_policy.emit_scaling_summary_log"
+    scaling_interval = settings.scaling_summary_interval_s
+    if is_job_already_scheduled(scheduler, target_scaling_func, "scaling_summary"):
+        _log.info("scheduler.job_exists_skipping", source="scaling_summary")
+    else:
+        _log.info(
+            "scheduler.registering_job",
+            source="scaling_summary",
+            interval_seconds=scaling_interval,
+        )
+        scheduler.schedule(
+            scheduled_time=datetime.now(UTC) + timedelta(seconds=20),
+            func=target_scaling_func,
+            args=["scaling_summary"],
+            interval=scaling_interval,
+            repeat=None,
+        )
+
     _log.info("scheduler.running")
     scheduler.run()
 

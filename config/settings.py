@@ -219,6 +219,59 @@ class Settings(BaseSettings):
         ),
     )
     # ---------------------------------------------------------------------------
+    # Worker Scaling & Resource Configuration (Phase 4 Milestone 7)
+    # ---------------------------------------------------------------------------
+    worker_pool_size: int = Field(
+        default=2,
+        validation_alias="WORKER_POOL_SIZE",
+        description="Configured worker process pool size (minimum bound for scaling).",
+    )
+    worker_concurrency_per_process: int = Field(
+        default=1,
+        validation_alias="WORKER_CONCURRENCY_PER_PROCESS",
+        description="Concurrency threads per worker process instance.",
+    )
+    worker_target_max_wait_s: float = Field(
+        default=60.0,
+        validation_alias="WORKER_TARGET_MAX_WAIT_S",
+        description="Target maximum queue wait SLA in seconds for scaling recommendations.",
+    )
+    app_cpu_limit: str = Field(
+        default="1.0",
+        validation_alias="APP_CPU_LIMIT",
+        description="Configurable CPU limit for main API app container.",
+    )
+    app_memory_limit: str = Field(
+        default="512M",
+        validation_alias="APP_MEMORY_LIMIT",
+        description="Configurable memory limit for main API app container.",
+    )
+    worker_cpu_limit: str = Field(
+        default="1.0",
+        validation_alias="WORKER_CPU_LIMIT",
+        description="Configurable CPU limit for background worker container.",
+    )
+    worker_memory_limit: str = Field(
+        default="512M",
+        validation_alias="WORKER_MEMORY_LIMIT",
+        description="Configurable memory limit for background worker container.",
+    )
+    scheduler_cpu_limit: str = Field(
+        default="0.5",
+        validation_alias="SCHEDULER_CPU_LIMIT",
+        description="Configurable CPU limit for RQ scheduler container.",
+    )
+    scheduler_memory_limit: str = Field(
+        default="256M",
+        validation_alias="SCHEDULER_MEMORY_LIMIT",
+        description="Configurable memory limit for RQ scheduler container.",
+    )
+    scaling_summary_interval_s: int = Field(
+        default=300,
+        validation_alias="SCALING_SUMMARY_INTERVAL_S",
+        description="Interval in seconds for periodic worker scaling log summary.",
+    )
+    # ---------------------------------------------------------------------------
     # Critic Replan Loop settings (Phase 3 Milestone 6)
     # ---------------------------------------------------------------------------
     enable_replan_loop: bool = Field(

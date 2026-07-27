@@ -22,6 +22,7 @@ from app.dependencies import DbSessionDep
 from auth.dependencies import RequireRole
 from auth.roles import Role
 from metrics.aggregation import GroupBy, MetricRollup, aggregate_metrics
+from workers.scaling_policy import get_scaling_metrics
 
 admin_metrics_router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -45,11 +46,14 @@ class MetricRollupSchema(BaseModel):
 
 
 class MetricsResponse(BaseModel):
-    """Container for the metrics rollup list."""
+    """Container for metrics rollups and advisory worker pool scaling metrics."""
 
     window: str
     group_by: str
     rollups: list[MetricRollupSchema]
+    queue_depth: int
+    worker_utilization_pct: float
+    recommended_pool_size: int
 
 
 # ---------------------------------------------------------------------------
@@ -62,10 +66,9 @@ class MetricsResponse(BaseModel):
     response_model=MetricsResponse,
     summary="Aggregated observability metrics",
     description=(
-        "Returns aggregated p50/p95 latency, success rate, and cost estimate "
-        "rollups for the requested time window and grouping dimension. "
-        "An empty rollups list is returned when no data exists in the window — "
-        "this is a valid state (e.g. freshly deployed system), not an error. "
+        "Returns aggregated p50/p95 latency, success rate, cost estimate "
+        "rollups, and advisory worker scaling recommendations (queue_depth, "
+        "worker_utilization_pct, recommended_pool_size) for the requested window. "
         "Requires ADMIN role."
     ),
 )
@@ -75,16 +78,21 @@ async def get_admin_metrics(
     group_by: GroupBy = GroupBy.COMPLEXITY_TIER,
     _admin: object = Depends(RequireRole(Role.ADMIN)),
 ) -> MetricsResponse:
-    """Return aggregated metric rollups for the given window and group dimension."""
+    """Return aggregated metric rollups and worker scaling status for given window."""
     rollups: list[MetricRollup] = await aggregate_metrics(
         session=session,
         window=window,
         group_by=group_by,
     )
+    scaling_data = get_scaling_metrics()
+
     return MetricsResponse(
         window=window,
         group_by=group_by,
         rollups=[MetricRollupSchema(**r.__dict__) for r in rollups],
+        queue_depth=scaling_data["current_queue_depth"],
+        worker_utilization_pct=scaling_data["worker_utilization_pct"],
+        recommended_pool_size=scaling_data["recommended_pool_size"],
     )
 
 
