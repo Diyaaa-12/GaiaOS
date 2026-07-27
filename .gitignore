@@ -22,6 +22,7 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+coverage/
 
 # Docker local overrides
 docker-compose.override.yml
@@ -37,3 +38,6 @@ Thumbs.db
 # Backups and temporary dump files
 backups/
 
+# Node / Frontend
+node_modules/
+*.log

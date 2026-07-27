@@ -104,9 +104,22 @@ services:
           cpus: '${SCHEDULER_CPU_LIMIT:-0.5}'
           memory: '${SCHEDULER_MEMORY_LIMIT:-256M}'
 
+  admin_ui:
+    build:
+      context: ./admin_ui
+      dockerfile: Dockerfile.admin_ui
+    ports:
+      - "3000:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '${ADMIN_UI_CPU_LIMIT:-0.25}'
+          memory: '${ADMIN_UI_MEMORY_LIMIT:-128M}'
+
 
 volumes:
   postgres_data:
   redis_data:
-
-
