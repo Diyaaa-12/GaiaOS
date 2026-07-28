@@ -69,13 +69,15 @@ These audit documents are living engineering records that maintain a historical 
 
 ## Repository Status Matrix
 
-| Phase / Milestone | Version Tag | Engineering Status | Governance Status | OSS Readiness |
-| ----------------- | ----------- | ------------------ | ----------------- | ------------- |
-| Phase 1           | v1.0.0      | ✅ Complete         | Internal          | N/A           |
-| Phase 2           | v2.0.0      | ✅ Complete         | Internal          | N/A           |
-| Phase 3           | v3.0.0      | ✅ Complete         | Internal          | N/A           |
-| Phase 4           | v4.0.0      | ✅ Complete         | Internal          | Pending       |
-| **v4.1.0**        | **v4.1.0**  | **✅ Complete**    | **✅ Apache-2.0**  | **✅ Ready**   |
+Detailed release history and tag evolution strategy are documented in [`docs/releases/Versioning.md`](docs/releases/Versioning.md).
+
+| Phase / Milestone | Git Tag | Engineering Status | Governance Status | OSS Readiness |
+| ----------------- | ------- | ------------------ | ----------------- | ------------- |
+| Phase 1           | (dev)   | ✅ Complete         | Internal          | N/A           |
+| Phase 2           | v0.2.0  | ✅ Complete         | Internal          | N/A           |
+| Phase 3           | v0.3.0  | ✅ Complete         | Internal          | N/A           |
+| Phase 4           | v4.0.0  | ✅ Complete         | Internal          | Pending       |
+| **v4.1.0**        | **v4.1.0** | **✅ Complete**   | **✅ Apache-2.0**  | **✅ Ready**   |
 
 ---
 

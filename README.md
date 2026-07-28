@@ -86,6 +86,7 @@ python scripts/generate_openapi_spec.py
 
 GaiaOS uses dedicated documentation for specific workflows:
 
+- **Project Versioning Strategy**: [`docs/releases/Versioning.md`](docs/releases/Versioning.md)
 - **API Specification & Versioning**: [`docs/api/CHANGELOG.md`](docs/api/CHANGELOG.md) & [`docs/api/openapi/openapi.json`](docs/api/openapi/openapi.json)
 - **Domain Agent Contribution Guide**: [`docs/CONTRIBUTING_AGENTS.md`](docs/CONTRIBUTING_AGENTS.md)
 - **General Contributing Guidelines**: [`CONTRIBUTING.md`](CONTRIBUTING.md)
