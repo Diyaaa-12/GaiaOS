@@ -4,6 +4,19 @@ Thank you for your interest in contributing to GaiaOS! GaiaOS is an Agentic Plan
 
 ---
 
+## Documentation & Navigation
+
+Before starting work, review our central documentation guides:
+
+- **[Documentation Hub](docs/README.md)** — Primary navigation entry point for all system specifications and guides.
+- **[Environment Setup Guide](docs/contributing/ENVIRONMENT_SETUP.md)** — OS-specific setup (Windows, Linux, macOS), troubleshooting, and FAQ.
+- **[First Pull Request Walkthrough](docs/contributing/FIRST_PR.md)** — Step-by-step walkthrough for first-time contributors.
+- **[Project Structure & Code Placement Guide](docs/contributing/PROJECT_STRUCTURE.md)** — Codebase map and *"Where should I add new code?"* matrix.
+- **[Step-by-Step How-To Guides](docs/contributing/HOW_TO_GUIDES.md)** — Procedures for adding agents, APIs, models, tests, and spec updates.
+- **[Development & CI Workflow Guide](docs/contributing/DEVELOPMENT_WORKFLOW.md)** — Quality checks, verification tools, and CI parity.
+
+---
+
 ## Getting Started & Support
 
 Before starting work, please review our core community guidelines:
@@ -40,6 +53,8 @@ If you want to contribute a new domain-specific risk agent (e.g. seismic, wildfi
 3. Verify your changes locally using automated quality checks (see below).
 4. Submit a Pull Request targeting `main`.
 
+For a full step-by-step walkthrough, see the [First PR Walkthrough](docs/contributing/FIRST_PR.md).
+
 ---
 
 ## Local Development Setup
@@ -49,7 +64,7 @@ Python **3.12** is required (pinned in [`.python-version`](.python-version) and 
 1. Set up a virtual environment:
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+   source .venv/bin/activate  # Windows PowerShell: .\.venv\Scripts\Activate.ps1
    ```
 2. Install pinned development dependencies from the lockfile:
    ```bash
@@ -60,17 +75,25 @@ Python **3.12** is required (pinned in [`.python-version`](.python-version) and 
    cp .env.example .env
    cp docker-compose.override.yml.example docker-compose.override.yml
    ```
-4. (Optional) Spin up Postgres & Redis containers for local integration testing:
+4. Spin up Postgres & Redis containers for local testing:
    ```bash
-   docker compose up -d --build postgres redis
+   docker compose up -d postgres redis
    ```
+
+For detailed OS-specific setup guidance (Windows PowerShell execution policy, git line endings, Docker Desktop setup), see the [Environment Setup Guide](docs/contributing/ENVIRONMENT_SETUP.md).
 
 ---
 
 ## Local Automated Verification
 
-Before submitting a PR, ensure all local automated checks pass cleanly:
+Before submitting a PR, ensure all local automated checks pass cleanly.
 
+### Option A: Unified Local CI Verification Script (Recommended)
+```bash
+python scripts/verify.py
+```
+
+### Option B: Individual Step Execution
 ```bash
 # 1. Code linting
 ruff check .
@@ -86,6 +109,8 @@ python scripts/generate_openapi_spec.py
 git diff --exit-code docs/api/openapi/openapi.json
 ```
 
+For complete workflow details, see the [Development & CI Workflow Guide](docs/contributing/DEVELOPMENT_WORKFLOW.md).
+
 ---
 
 ## Pull Request Guidelines & Checklist
@@ -96,3 +121,5 @@ Every pull request uses our standard [PR Template](.github/PULL_REQUEST_TEMPLATE
 - **Test Coverage**: Include unit or integration tests for new code paths.
 - **Documentation**: Update docstrings, README, or per-milestone `docs/` files if affected.
 - **Commit Messages**: Write clear, descriptive commit messages explaining *why* changes were made.
+
+
