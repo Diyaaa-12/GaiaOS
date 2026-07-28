@@ -10,7 +10,7 @@ To maintain **100% parity between your local environment and CI**, GaiaOS provid
 
 ---
 
-## ⚡ Unified Local Verification Command
+## Unified Local Verification Command
 
 Run the entire local quality suite with one command before committing or pushing changes:
 
@@ -26,7 +26,7 @@ python scripts/verify.py
 
 ---
 
-## 🛠️ The 5 Verification Pillars (Individual CLI Commands)
+## The 5 Verification Pillars (Individual CLI Commands)
 
 You can also run each step of the verification pipeline individually during development:
 
@@ -94,7 +94,7 @@ python -m tests.test_worker_image_smoke
 
 ---
 
-## 🔄 GitHub Actions CI Parity Table
+## GitHub Actions CI Parity Table
 
 Here is how local verification commands map directly to `.github/workflows/ci.yml`:
 
@@ -106,3 +106,4 @@ Here is how local verification commands map directly to `.github/workflows/ci.ym
 | `python scripts/generate_openapi_spec.py` | `Verify OpenAPI specification drift` | Detect out-of-sync API contracts |
 | `docker compose up -d --build --wait` | `Build and verify container images` | Production container sanity check |
 | **`python scripts/verify.py`** | **Full CI Job Sequence** | **Runs all steps locally in one command** |
+

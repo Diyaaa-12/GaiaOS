@@ -8,7 +8,7 @@ Welcome to GaiaOS! This end-to-end guide walks first-time contributors through e
 
 ---
 
-## 🧭 Step 1: Find a Suitable Issue
+## Step 1: Find a Suitable Issue
 
 Browse open issues in our GitHub tracker:
 - **[`good first issue`](https://github.com/Diyaaa-12/GaiaOS/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)**: Small, self-contained tasks designed for first-time contributors.
@@ -18,7 +18,7 @@ Comment on the issue to let maintainers know you would like to work on it!
 
 ---
 
-## 🍴 Step 2: Fork & Clone the Repository
+## Step 2: Fork & Clone the Repository
 
 1. Click the **Fork** button at the top right of the [GaiaOS repository page](https://github.com/Diyaaa-12/GaiaOS).
 2. Clone your fork locally:
@@ -33,29 +33,14 @@ Comment on the issue to let maintainers know you would like to work on it!
 
 ---
 
-## ⚙️ Step 3: Set Up Your Development Environment
+## Step 3: Set Up Your Development Environment
 
-Follow the [Environment Setup Guide](ENVIRONMENT_SETUP.md) to create your Python 3.12 virtual environment and install dependencies:
+Configure your local Python 3.12 virtual environment, install pinned dependencies (`requirements/dev.lock`), copy environment configurations, and spin up PostgreSQL and Redis infrastructure containers by following the **[Environment Setup Guide](ENVIRONMENT_SETUP.md)**.
 
-```bash
-# Create and activate virtualenv
-python -m venv .venv
-source .venv/bin/activate  # Windows: .\.venv\Scripts\Activate.ps1
-
-# Install pinned dependencies
-pip install -r requirements/dev.lock
-
-# Copy environment configurations
-cp .env.example .env
-cp docker-compose.override.yml.example docker-compose.override.yml
-
-# Start infrastructure services (PostgreSQL & Redis)
-docker compose up -d postgres redis
-```
 
 ---
 
-## 🌿 Step 4: Create a Feature Branch
+## Step 4: Create a Feature Branch
 
 Always create a new branch off the latest `main` branch before making changes:
 
@@ -69,7 +54,7 @@ Use descriptive branch names, such as `feature/add-wind-speed-tool` or `fix/jwt-
 
 ---
 
-## 💻 Step 5: Implement Changes & Write Tests
+## Step 5: Implement Changes & Write Tests
 
 1. Refer to the [Project Structure Guide](PROJECT_STRUCTURE.md) to locate where your changes belong.
 2. Follow our [How-To Guides](HOW_TO_GUIDES.md) when adding new agents, API endpoints, database models, or tests.
@@ -77,7 +62,7 @@ Use descriptive branch names, such as `feature/add-wind-speed-tool` or `fix/jwt-
 
 ---
 
-## 🧪 Step 6: Run Local Verification
+## Step 6: Run Local Verification
 
 Before committing, run full local verification to ensure your changes satisfy all quality gates:
 
@@ -95,7 +80,7 @@ python scripts/generate_openapi_spec.py
 
 ---
 
-## 📝 Step 7: Commit & Push Changes
+## Step 7: Commit & Push Changes
 
 Write clear, descriptive commit messages:
 
@@ -107,7 +92,7 @@ git push origin feature/short-descriptive-name
 
 ---
 
-## 🚀 Step 8: Open a Pull Request
+## Step 8: Open a Pull Request
 
 1. Navigate to your fork on GitHub.
 2. Click **Compare & pull request** next to your branch.
@@ -119,9 +104,10 @@ git push origin feature/short-descriptive-name
 
 ---
 
-## 🔄 Step 9: Pass CI & Respond to Review Feedback
+## Step 9: Pass CI & Respond to Review Feedback
 
 - **Continuous Integration**: GitHub Actions will automatically run the CI pipeline (`.github/workflows/ci.yml`). Ensure all checks pass (green checkmark).
 - **Code Review**: Maintainers may request minor tweaks or clarifying questions. Address feedback by pushing additional commits to your branch — the PR will update automatically.
 
 Congratulations on making your contribution to GaiaOS! 🎉
+

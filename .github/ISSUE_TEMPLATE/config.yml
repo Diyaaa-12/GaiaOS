@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GaiaOS Community Support & Q&A
+    url: https://github.com/Diyaaa-12/GaiaOS/blob/main/SUPPORT.md
+    about: Ask questions, get help, or discuss architectural features with the community.
+  - name: Report a Security Vulnerability
+    url: https://github.com/Diyaaa-12/GaiaOS/security/advisories/new
+    about: Report private security vulnerabilities via GitHub Private Vulnerability Reporting.

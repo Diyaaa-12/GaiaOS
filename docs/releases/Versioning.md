@@ -4,18 +4,17 @@ This document details the versioning strategy, tag evolution, and milestone rele
 
 ## Release Map
 
-| Git Tag | Development Milestone |
-| ------- | --------------------- |
-| Pre-tag | Phase 1               |
-| v0.2.0  | Phase 2               |
-| v0.3.0  | Phase 3               |
-| v4.0.0  | Phase 4               |
-| v4.1.0  | Repository Governance |
-| v4.2.0  | Community Health      |
-| v4.3.0  | Contributor Experience|
-| v4.4.0  | Engineering Cleanup   |
-| v4.5.0  | Open Source RC        |
-| v5.0.0  | Phase 5               |
+| Git Tag | Development Milestone | Status |
+| ------- | --------------------- | ------ |
+| Pre-tag | Phase 1 | Complete |
+| v0.2.0  | Phase 2 | Complete |
+| v0.3.0  | Phase 3 | Complete |
+| v4.0.0  | Phase 4 | Complete |
+| v4.1.0  | Repository Governance | Complete |
+| v4.2.0  | Community Health | Complete |
+| v4.3.0  | Contributor Experience | Complete |
+| v4.4.0  | Open Source Release Polish | Complete (Final Readiness) |
+| v5.0.0  | Phase 5 | Target |
 
 ---
 
@@ -46,13 +45,12 @@ GaiaOS follows a milestone-oriented release strategy inspired by Semantic Versio
 - **v4.1.0** — Repository Governance
 - **v4.2.0** — Community Health
 - **v4.3.0** — Contributor Experience
-- **v4.4.0** — Engineering Cleanup
-- **v4.5.0** — Open Source Release Candidate
+- **v4.4.0** — Open Source Release Polish (Final Open Source Readiness Release)
 
 ---
 
 ## Future Releases
 
-- **v5.0.0** — Phase 5
+- **v5.0.0** — Phase 5 (Planetary Intelligence Scale & Production System)
 
 *(Refer to the project roadmap for current scope.)*

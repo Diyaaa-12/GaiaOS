@@ -8,7 +8,7 @@ This guide provides concise instructions for configuring your local GaiaOS devel
 
 ---
 
-## 📋 Prerequisites
+## Prerequisites
 
 | Tool | Required Version | Purpose |
 |------|------------------|---------|
@@ -19,7 +19,7 @@ This guide provides concise instructions for configuring your local GaiaOS devel
 
 ---
 
-## 🛠️ Step-by-Step Environment Setup
+## Step-by-Step Environment Setup
 
 ### 1. Clone the Repository
 ```bash
@@ -76,7 +76,7 @@ docker compose ps
 
 ---
 
-## 🖥️ OS-Specific Setup & Pitfalls
+## OS-Specific Setup & Pitfalls
 
 ### Windows Setup Notes
 - **Line Endings (CRLF vs LF)**: Git on Windows may convert line endings to `CRLF`, causing shell scripts or Docker build checks to fail. Set line ending behavior before cloning:
@@ -107,7 +107,7 @@ docker compose ps
 
 ---
 
-## ❓ Common Setup Problems & Troubleshooting
+## Common Setup Problems & Troubleshooting
 
 ### Problem 1: Port Binding Conflict (5432, 6379, 8000, 3000)
 - **Symptom**: `Error starting userland proxy: listen tcp4 0.0.0.0:5432: bind: address already in use`
@@ -138,7 +138,7 @@ docker compose ps
 
 ---
 
-## 🙋 Frequently Asked Questions (FAQ)
+## Frequently Asked Questions (FAQ)
 
 #### Q1: Do I need Docker running to execute pure unit tests?
 **A**: No. Pure unit tests (such as domain agent unit tests or utility function tests) run directly in your Python environment without Docker:
@@ -161,3 +161,4 @@ python scripts/generate_openapi_spec.py
 git add docs/api/openapi/openapi.json
 git commit -m "docs: update openapi specification"
 ```
+

@@ -8,7 +8,7 @@ This document provides step-by-step procedural guides for common development tas
 
 ---
 
-## 🤖 1. How to Add a New Domain Agent
+## 1. How to Add a New Domain Agent
 
 Adding a new domain-specific analytical agent (e.g. `hydrology`, `volcanic`, `wildfire`) follows a standardized contract framework.
 
@@ -51,7 +51,7 @@ Adding a new domain-specific analytical agent (e.g. `hydrology`, `volcanic`, `wi
 
 ---
 
-## 🌐 2. How to Add an API Endpoint
+## 2. How to Add an API Endpoint
 
 Adding a new REST or SSE endpoint to the GaiaOS public API.
 
@@ -90,7 +90,7 @@ Adding a new REST or SSE endpoint to the GaiaOS public API.
 
 ---
 
-## 🗄️ 3. How to Add a DB Model & Alembic Migration
+## 3. How to Add a DB Model & Alembic Migration
 
 Adding a new PostgreSQL database table or modifying column definitions using SQLAlchemy 2.0 and Alembic.
 
@@ -128,7 +128,7 @@ Adding a new PostgreSQL database table or modifying column definitions using SQL
 
 ---
 
-## 🧪 4. How to Write and Run Tests
+## 4. How to Write and Run Tests
 
 GaiaOS uses `pytest` with `pytest-asyncio` configured in `asyncio_mode = "auto"`.
 
@@ -156,7 +156,7 @@ pytest tests/test_health.py -k test_live_health_endpoint
 
 ---
 
-## 📄 5. How to Update the OpenAPI Specification
+## 5. How to Update the OpenAPI Specification
 
 GaiaOS maintains a deterministic OpenAPI 3.1.0 specification stored at `docs/api/openapi/openapi.json`.
 
@@ -171,3 +171,4 @@ GaiaOS maintains a deterministic OpenAPI 3.1.0 specification stored at `docs/api
    ```
 3. **Commit Updated Spec**:
    If routes, response models, or docstrings changed, stage and commit the updated `openapi.json` file along with your code changes.
+

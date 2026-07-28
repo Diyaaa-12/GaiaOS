@@ -11,7 +11,7 @@ This document provides a complete directory map of the GaiaOS repository and a d
 
 ---
 
-## 📂 Repository Directory Layout Map
+## Repository Directory Layout Map
 
 ```text
 GaiaOS/
@@ -64,7 +64,7 @@ GaiaOS/
 
 ---
 
-## 🗺️ "Where Should I Add New Code?"
+## "Where Should I Add New Code?"
 
 Use this reference table to determine the exact location for new files and features:
 
@@ -78,3 +78,4 @@ Use this reference table to determine the exact location for new files and featu
 | **Add Configuration Setting** | `config/settings.py` | 1. Add field to `Settings` class using `pydantic.Field`<br>2. Update `.env.example` with default value |
 | **Add Integration / Unit Tests** | `tests/` | Add test file matching `tests/test_<feature>.py` |
 | **Add Developer CLI Script** | `scripts/` | Add utility script in `scripts/<utility_name>.py` |
+

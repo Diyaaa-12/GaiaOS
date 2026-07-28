@@ -59,28 +59,10 @@ For a full step-by-step walkthrough, see the [First PR Walkthrough](docs/contrib
 
 ## Local Development Setup
 
-Python **3.12** is required (pinned in [`.python-version`](.python-version) and enforced in [`pyproject.toml`](pyproject.toml)).
+GaiaOS requires Python **3.12** (pinned in [`.python-version`](.python-version) and enforced in [`pyproject.toml`](pyproject.toml)), Docker Engine 24+, and Docker Compose v2.
 
-1. Set up a virtual environment:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # Windows PowerShell: .\.venv\Scripts\Activate.ps1
-   ```
-2. Install pinned development dependencies from the lockfile:
-   ```bash
-   pip install -r requirements/dev.lock
-   ```
-3. Copy environment configuration:
-   ```bash
-   cp .env.example .env
-   cp docker-compose.override.yml.example docker-compose.override.yml
-   ```
-4. Spin up Postgres & Redis containers for local testing:
-   ```bash
-   docker compose up -d postgres redis
-   ```
+For step-by-step virtual environment creation, lockfile installation (`requirements/dev.lock`), infrastructure service startup, and OS-specific setup notes (Windows PowerShell execution policy, git line endings, Docker Desktop setup), refer to the canonical **[Environment Setup Guide](docs/contributing/ENVIRONMENT_SETUP.md)**.
 
-For detailed OS-specific setup guidance (Windows PowerShell execution policy, git line endings, Docker Desktop setup), see the [Environment Setup Guide](docs/contributing/ENVIRONMENT_SETUP.md).
 
 ---
 
