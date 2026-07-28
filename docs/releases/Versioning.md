@@ -6,7 +6,7 @@ This document details the versioning strategy, tag evolution, and milestone rele
 
 | Git Tag | Development Milestone |
 | ------- | --------------------- |
-| (dev)   | Phase 1               |
+| Pre-tag | Phase 1               |
 | v0.2.0  | Phase 2               |
 | v0.3.0  | Phase 3               |
 | v4.0.0  | Phase 4               |
@@ -24,9 +24,9 @@ This document details the versioning strategy, tag evolution, and milestone rele
 - **v0.2.0** — Phase 2: Multi-Agent Reasoning Core, LangGraph Integration & Literature RAG
 - **v0.3.0** — Phase 3: Durable Execution, JWT/API Key Auth & Evaluation Suite
 
-During early development, GaiaOS used simple project tags (`v0.2.0`, `v0.3.0`) to mark internal engineering milestones.
+During the early development lifecycle, GaiaOS used project version tags (`v0.2.0`, `v0.3.0`) to identify major engineering milestones (Phase 2 and Phase 3).
 
-Beginning with Phase 4, the project adopted a structured release strategy to support long-term maintenance, governance, and public open-source development.
+Beginning with Phase 4, the project adopted a structured milestone-oriented release strategy to support long-term maintenance, governance, and public open-source development.
 
 The historical tags are intentionally preserved to maintain an accurate engineering history.
 

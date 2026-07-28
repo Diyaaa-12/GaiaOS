@@ -73,7 +73,7 @@ Detailed release history and tag evolution strategy are documented in [`docs/rel
 
 | Phase / Milestone | Git Tag | Engineering Status | Governance Status | OSS Readiness |
 | ----------------- | ------- | ------------------ | ----------------- | ------------- |
-| Phase 1           | (dev)   | ✅ Complete         | Internal          | N/A           |
+| Phase 1           | Pre-tag | ✅ Complete         | Internal          | N/A           |
 | Phase 2           | v0.2.0  | ✅ Complete         | Internal          | N/A           |
 | Phase 3           | v0.3.0  | ✅ Complete         | Internal          | N/A           |
 | Phase 4           | v4.0.0  | ✅ Complete         | Internal          | Pending       |
