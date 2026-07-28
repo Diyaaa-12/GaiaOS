@@ -26,3 +26,15 @@ GaiaOS enforces strict semantic versioning guarantees on all public HTTP API end
   - Dedicated rate limit scope (`scope="api_key"`) for API-key-authenticated requests.
 - **Audit Logging**:
   - Access log includes non-sensitive `key_id` identifier for per-key audit logging without credential leakage.
+
+### Phase 4 Milestone 10 — Documentation & API Specification Publishing
+
+#### Added
+- **OpenAPI 3.1.0 Specification Publishing**:
+  - Automated spec generation script (`scripts/generate_openapi_spec.py`).
+  - Machine-readable specification saved to [`docs/api/openapi/openapi.json`](openapi/openapi.json).
+- **OpenAPI Schema Hardening**:
+  - Internal infrastructure routes (such as `/internal/smoke-job`) are excluded from published API schema using FastAPI's native `include_in_schema=False`.
+- **CI Specification Drift Enforcement**:
+  - CI workflow checks generated spec against committed version (`git diff --exit-code`) to prevent schema drift.
+

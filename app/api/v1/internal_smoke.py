@@ -17,7 +17,9 @@ from workers.jobs.investigation_job import run_investigation_job
 
 _log = get_logger(__name__)
 
-internal_smoke_router = APIRouter(prefix="/internal", tags=["Internal Infrastructure"])
+internal_smoke_router = APIRouter(
+    prefix="/internal", tags=["Internal Infrastructure"], include_in_schema=False
+)
 
 
 class SmokeJobResponse(BaseModel):

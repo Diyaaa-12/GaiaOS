@@ -57,6 +57,14 @@ jobs:
           REDIS_URL: redis://127.0.0.1:6379/0
         run: pytest
 
+      - name: Verify OpenAPI specification drift
+        run: |
+          python scripts/generate_openapi_spec.py
+          if ! git diff --exit-code docs/api/openapi/openapi.json; then
+            echo "::error::OpenAPI specification is out of date. Run scripts/generate_openapi_spec.py and commit the updated docs/api/openapi/openapi.json."
+            exit 1
+          fi
+
       - name: Build and verify container images (app, worker, scheduler)
         run: |
           docker compose up -d --build --wait app worker scheduler
