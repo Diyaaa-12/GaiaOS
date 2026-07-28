@@ -1,47 +1,98 @@
 # Contributing to GaiaOS
 
-Thank you for contributing. This project is built one milestone at a time — see `docs/Roadmap_Phase1.md` for the current scope.
+Thank you for your interest in contributing to GaiaOS! GaiaOS is an Agentic Planetary Risk Intelligence Platform built following a structured, milestone-oriented release strategy (see [`docs/releases/Versioning.md`](docs/releases/Versioning.md)).
 
-## Branching Convention
+---
 
-- **`main`** — stable branch; always reflects the latest completed milestone.
-- **`feature/<milestone-name>`** — one branch per milestone (e.g. `feature/milestone-1-repo-setup`, `feature/milestone-2-project-structure`).
+## Getting Started & Support
 
-Workflow:
+Before starting work, please review our core community guidelines:
 
-1. Branch from `main`: `git checkout -b feature/milestone-N-short-name`
-2. Implement only the current milestone's deliverables.
-3. Open a pull request into `main` when acceptance criteria are met.
-4. Do not start the next milestone until the current one is merged.
+- **Need Help / Have Questions?** Check [`SUPPORT.md`](SUPPORT.md) for community support guidelines, Q&A channels, and maintainer expectations.
+- **Security Vulnerabilities**: Read [`SECURITY.md`](SECURITY.md) to report vulnerabilities privately via GitHub Private Security Advisories.
+- **Code of Conduct**: All community members and contributors must adhere to our [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
-## Development Setup
+---
 
-Follow the setup steps in [README.md](README.md). A fresh clone must produce a working virtual environment with no undocumented steps.
+## Finding an Issue to Work On
 
-## Scope Discipline
+We welcome contributions of all sizes! Look for issues in our tracker with these tags:
 
-- Implement only what the active milestone lists under **Deliverables**.
-- Do not add code, folders, or dependencies from later milestones.
-- The frozen architecture lives in `docs/Architecture.md` — do not modify it.
-- Phase 1 roadmap details live in `docs/Roadmap_Phase1.md`.
+- **[`good first issue`](https://github.com/Diyaaa-12/GaiaOS/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)**: Small, self-contained issues perfect for first-time contributors.
+- **[`help wanted`](https://github.com/Diyaaa-12/GaiaOS/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)**: Tasks where community assistance is actively sought.
 
-## Python Version
+If you want to contribute a new domain-specific risk agent (e.g. seismic, wildfire, atmospheric), please follow the dedicated [Domain Agent Contribution Guide](docs/CONTRIBUTING_AGENTS.md).
 
-Python **3.12** is required. The version is pinned in `.python-version` and enforced in `pyproject.toml` via `requires-python`.
+---
 
-## Dependency Management
+## Branching Convention & Workflow
 
-This project uses **pip + venv** with split requirement files:
+- **`main`**: Stable branch representing the latest completed release milestone.
+- **`feature/<milestone-name>`**: Feature branches scoped to specific milestone deliverables (e.g., `feature/agent-contract-check`).
 
-- `requirements/base.lock` / `requirements/dev.lock` — pinned reproducible lockfiles
-- `requirements/base.txt` / `requirements/dev.txt` — source version ranges
+### Workflow Steps
 
-Install development dependencies using the lockfile after activating your virtual environment:
+1. Fork the repository and create your branch from `main`:
+   ```bash
+   git checkout -b feature/short-descriptive-name
+   ```
+2. Implement your changes following the active milestone scope or open issue acceptance criteria.
+3. Verify your changes locally using automated quality checks (see below).
+4. Submit a Pull Request targeting `main`.
+
+---
+
+## Local Development Setup
+
+Python **3.12** is required (pinned in [`.python-version`](.python-version) and enforced in [`pyproject.toml`](pyproject.toml)).
+
+1. Set up a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+   ```
+2. Install pinned development dependencies from the lockfile:
+   ```bash
+   pip install -r requirements/dev.lock
+   ```
+3. Copy environment configuration:
+   ```bash
+   cp .env.example .env
+   cp docker-compose.override.yml.example docker-compose.override.yml
+   ```
+4. (Optional) Spin up Postgres & Redis containers for local integration testing:
+   ```bash
+   docker compose up -d --build postgres redis
+   ```
+
+---
+
+## Local Automated Verification
+
+Before submitting a PR, ensure all local automated checks pass cleanly:
 
 ```bash
-pip install -r requirements/dev.lock
+# 1. Code linting
+ruff check .
+
+# 2. Static type checking
+mypy .
+
+# 3. Test suite
+pytest
+
+# 4. OpenAPI spec drift verification
+python scripts/generate_openapi_spec.py
+git diff --exit-code docs/api/openapi/openapi.json
 ```
 
-## Commits
+---
 
-Write clear, focused commit messages that describe *why* the change was made, not just what changed. Keep each commit scoped to the milestone you are working on.
+## Pull Request Guidelines & Checklist
+
+Every pull request uses our standard [PR Template](.github/PULL_REQUEST_TEMPLATE.md) and requires:
+
+- **Focused Scope**: Keep PRs focused on a single feature, bug fix, or documentation enhancement.
+- **Test Coverage**: Include unit or integration tests for new code paths.
+- **Documentation**: Update docstrings, README, or per-milestone `docs/` files if affected.
+- **Commit Messages**: Write clear, descriptive commit messages explaining *why* changes were made.

@@ -1,0 +1,43 @@
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers; small scope and clear acceptance criteria."
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention or community contribution requested."
+
+- name: "bug"
+  color: "d73a4a"
+  description: "Confirmed bug or unexpected system behavior."
+
+- name: "enhancement"
+  color: "a2eeef"
+  description: "New feature, performance improvement, or capability addition."
+
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements to guides, README, API docs, or code comments."
+
+- name: "security"
+  color: "b60205"
+  description: "Security hardening, dependency vulnerabilities, or security policies."
+
+- name: "triage"
+  color: "fbca04"
+  description: "Newly submitted issue awaiting maintainer review."
+
+- name: "area/agent"
+  color: "1d76db"
+  description: "Tasks related to domain risk reasoning agents in orchestrator/."
+
+- name: "area/gateway"
+  color: "5319e7"
+  description: "Tasks related to FastAPI endpoints, gateway middleware, or auth."
+
+- name: "area/ops"
+  color: "bfd4f2"
+  description: "Tasks related to Docker Compose, RQ workers, alerting, or ops."
+
+- name: "area/eval"
+  color: "c2e0c6"
+  description: "Tasks related to evaluation benchmarks and metrics in eval/."
