@@ -13,12 +13,9 @@ structlog>=24.1,<26
 # Redis client (Milestone 1)
 redis>=5.0,<6
 # Stateful agent orchestration (Milestone 2)
-langgraph>=0.2.0,<0.3.0
+langgraph>=1.0.0,<2.0.0
 # Model Context Protocol SDK (Milestone 4)
 mcp>=0.1.0
-# Authentication dependencies (Milestone 1)
-PyJWT>=2.8.0,<3
-argon2-cffi>=23.1.0,<24
 # Authentication dependencies (Milestone 1)
 PyJWT>=2.8.0,<3
 argon2-cffi>=23.1.0,<24

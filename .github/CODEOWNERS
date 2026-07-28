@@ -1,0 +1,29 @@
+# GaiaOS Codeowners
+
+# Global owners for entire repository
+* @Diyaaa-12
+
+# Core Gateway and Security
+/app/ @Diyaaa-12
+/gateway/ @Diyaaa-12
+/auth/ @Diyaaa-12
+
+# Orchestrator and Domain Agents
+/orchestrator/ @Diyaaa-12
+
+# Infrastructure, Database and Ops
+/db/ @Diyaaa-12
+/ops/ @Diyaaa-12
+/infra/ @Diyaaa-12
+/workers/ @Diyaaa-12
+/alerting/ @Diyaaa-12
+
+# Evaluation and Admin UI
+/eval/ @Diyaaa-12
+/admin_ui/ @Diyaaa-12
+
+# Governance and Security Policies
+/.github/ @Diyaaa-12
+SECURITY.md @Diyaaa-12
+CODE_OF_CONDUCT.md @Diyaaa-12
+LICENSE @Diyaaa-12

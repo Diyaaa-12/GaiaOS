@@ -1,0 +1,60 @@
+name: Bug Report
+description: Create a report to help us reproduce and fix a bug in GaiaOS.
+title: "[BUG]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug in GaiaOS! Please provide clear information so we can reproduce and fix the issue quickly.
+  - type: input
+    id: version
+    attributes:
+      label: GaiaOS Version / Commit SHA
+      description: What version or git commit SHA of GaiaOS are you running? (e.g., v4.1.0 or 6bb8c2a)
+      placeholder: v4.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior.
+      placeholder: |
+        1. Start GaiaOS using `docker compose up -d`
+        2. Submit POST request to `/api/v1/investigations` with body...
+        3. See error...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs & Stack Traces
+      description: Paste any relevant logs, server outputs, or error stack traces.
+      render: shell
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Deployment Environment
+      options:
+        - Docker Compose Local
+        - Bare Virtual Environment (.venv)
+        - Production Kubernetes / Container Platform
+        - Other
+    validations:
+      required: true

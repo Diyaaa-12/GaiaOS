@@ -33,13 +33,13 @@ Python **3.12** is required. The version is pinned in `.python-version` and enfo
 
 This project uses **pip + venv** with split requirement files:
 
-- `requirements/base.txt` — runtime dependencies
-- `requirements/dev.txt` — development dependencies (includes base via `-r base.txt`)
+- `requirements/base.lock` / `requirements/dev.lock` — pinned reproducible lockfiles
+- `requirements/base.txt` / `requirements/dev.txt` — source version ranges
 
-Install development dependencies after activating your virtual environment:
+Install development dependencies using the lockfile after activating your virtual environment:
 
 ```bash
-pip install -r requirements/dev.txt
+pip install -r requirements/dev.lock
 ```
 
 ## Commits
