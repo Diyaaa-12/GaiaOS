@@ -24,3 +24,11 @@ python scripts/check_requirements_drift.py requirements/dev.txt requirements/dev
 3. Verifies that every package declared in `.txt` has a pinned version in `.lock` that satisfies the range specifier.
 4. Ignores transitive-only dependencies present in `.lock`.
 5. Exits with status `1` and outputs failure details if a declared dependency is missing from the lockfile or if the locked version violates the declared version range.
+# Verify lockfiles match pip dependency resolution output (used in CI)
+python scripts/regenerate_lockfiles.py --check
+```
+
+## Security & Workflow Model
+
+- **Safe CI Permission Model**: Uses standard `pull_request` event with read-only permissions (`contents: read`). Avoids `pull_request_target` and write-token permissions.
+- **No Text Replacement**: Lockfiles are generated using `pip`'s dependency resolver, guaranteeing valid dependency graphs.
