@@ -8,6 +8,7 @@ import uuid
 
 from logging_config import get_logger
 from orchestrator.agents.synthesis.citation_mapper import CitationMapper
+from orchestrator.agents.synthesis.uncertainty_propagation import propagate_uncertainty
 from orchestrator.schemas.agent_io import AgentOutput, Evidence
 from orchestrator.schemas.synthesis import (
     RawCitedEvidence,
@@ -212,7 +213,9 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
             )
             continue
 
-        calc_confidence = sum(e.confidence for e in verified_ev) / len(verified_ev)
+        estimates = [e.uncertainty for e in verified_ev]
+        claim_uncertainty = propagate_uncertainty(estimates)
+
         uncertainty_bounds = None
         assumptions = None
         for ev in verified_ev:
@@ -221,11 +224,14 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
             if ev.assumptions:
                 assumptions = ev.assumptions
 
+        if uncertainty_bounds is None:
+            uncertainty_bounds = (claim_uncertainty.lower_bound, claim_uncertainty.upper_bound)
+
         valid_claims.append(
             SynthesizedClaim(
                 text=raw_claim["text"],
                 supporting_evidence=verified_ev,
-                confidence=calc_confidence,
+                uncertainty=claim_uncertainty,
                 uncertainty_bounds=uncertainty_bounds,
                 assumptions=assumptions,
             )

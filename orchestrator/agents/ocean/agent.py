@@ -6,6 +6,7 @@ import re
 from datetime import UTC, datetime
 
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
+from orchestrator.schemas.uncertainty import UncertaintyEstimate
 from tools.geocoding import geocode_location
 from tools.ocean_noaa.client import NOAAOceanClient
 
@@ -54,7 +55,9 @@ async def run(agent_input: AgentInput) -> AgentOutput:
                     Evidence(
                         source=f"NOAA Ocean API (Station: {station_id})",
                         claim=claim,
-                        confidence=0.95,
+                        uncertainty=UncertaintyEstimate.from_point_estimate(
+                            0.95, source="well_supported"
+                        ),
                         retrieved_at=datetime.now(UTC),
                     )
                 )

@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 
 from config.settings import get_settings
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
+from orchestrator.schemas.uncertainty import UncertaintyEstimate
 from tools.air_quality_openaq.client import OpenAQClient
 
 
@@ -58,7 +59,9 @@ async def run(agent_input: AgentInput) -> AgentOutput:
                     Evidence(
                         source=f"OpenAQ API (Station: {location})",
                         claim=claim,
-                        confidence=0.95,  # direct sensor readings are highly confident
+                        uncertainty=UncertaintyEstimate.from_point_estimate(
+                            0.95, source="well_supported"
+                        ),
                         retrieved_at=datetime.now(UTC),
                     )
                 )

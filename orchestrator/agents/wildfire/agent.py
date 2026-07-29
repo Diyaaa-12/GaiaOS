@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from config.settings import get_settings
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
+from orchestrator.schemas.uncertainty import SourceType, UncertaintyEstimate
 from tools.geocoding import geocode_location
 from tools.wildfire_firms.client import FIRMSWildfireClient
 
@@ -64,11 +65,16 @@ async def run(agent_input: AgentInput) -> AgentOutput:
                     f"with confidence '{conf}' on {acq_date} {acq_time}."
                 )
                 confidence_score = 0.90 if conf in ("h", "100") else 0.70
+                source_tag: SourceType = (
+                    "well_supported" if confidence_score > 0.8 else "data_sparsity"
+                )
                 evidence_list.append(
                     Evidence(
                         source="NASA FIRMS API",
                         claim=claim,
-                        confidence=confidence_score,
+                        uncertainty=UncertaintyEstimate.from_point_estimate(
+                            confidence_score, source=source_tag
+                        ),
                         retrieved_at=datetime.now(UTC),
                     )
                 )

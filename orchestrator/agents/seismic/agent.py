@@ -6,6 +6,7 @@ import re
 from datetime import UTC, datetime
 
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
+from orchestrator.schemas.uncertainty import UncertaintyEstimate
 from tools.geocoding import geocode_location
 from tools.seismic_usgs.client import USGSSeismicClient
 
@@ -53,7 +54,9 @@ async def run(agent_input: AgentInput) -> AgentOutput:
                 Evidence(
                     source="USGS Seismic API",
                     claim=claim,
-                    confidence=0.98,
+                    uncertainty=UncertaintyEstimate.from_point_estimate(
+                        0.98, source="well_supported"
+                    ),
                     retrieved_at=datetime.now(UTC),
                 )
             )
