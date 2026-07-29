@@ -1,22 +1,11 @@
 # GaiaOS — Phase 2 Final Engineering Audit
-# GaiaOS Phase 2 Final Engineering Audit
 
-Document Status
-
-Historical Engineering Audit
-
-Repository State:
-End of Phase 2
-
-Current Repository Status:
-Phase 3 Completed
-
-Several findings documented below have since been resolved.
-
-See:
-docs/audits/Phase3_Final_Audit.md
+> [!NOTE]
+> **Historical Engineering Audit — End of Phase 2**
+> Several findings documented below have since been resolved in Phase 3 and Phase 4. See [`GaiaOS_Phase3_Final_Audit.md`](GaiaOS_Phase3_Final_Audit.md) and [`GaiaOS_Phase4_Final_Audit.md`](GaiaOS_Phase4_Final_Audit.md).
 
 **Scope:** every file in the uploaded repository, Phase 1 + Phase 2, read directly (not inferred). Git history inspected via `git log --stat` and `git show`. Every finding below is either **confirmed** (traced to a specific file/line I read) or explicitly labeled as a **design-risk** (a reasoned prediction, not an observed failure) — I do not have a running instance or load test results, so any claim about runtime behavior under real traffic is marked as such, not asserted as fact.
+
 
 **Calibration pass applied before writing this report, per your instructions:** every High/Critical finding below was re-checked against the actual code a second time. Two findings from my working notes were downgraded or removed during that pass:
 - The suspected "Redis client used-after-request-scope in background tasks" concern — **removed**. Verified `cache/client.py`'s `redis_client` is a true module-level singleton, not a per-request pooled object, so passing it into a `BackgroundTasks` callback is safe. This was an assumption that didn't survive verification.

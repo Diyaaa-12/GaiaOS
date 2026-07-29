@@ -97,7 +97,9 @@ async def test_ocean_agent_fails_fast_when_station_id_is_none() -> None:
         status_code=200,
     )
     # Ensure water temperature API is NEVER called when station resolution fails
-    datagetter_route = respx.get("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter").respond(
+    datagetter_route = respx.get(
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
+    ).respond(
         status_code=200,
     )
 

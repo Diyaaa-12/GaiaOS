@@ -75,13 +75,13 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
                 "{\n"
                 '  "text": "At station Paris-South, PM10 is 30.0 ug/m3.",\n'
                 '  "supporting_evidence": [\n'
-                '    {\n'
+                "    {\n"
                 '      "evidence_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",\n'
                 '      "source": "OpenAQ API (Station: Paris-South)",\n'
                 '      "claim": "At station Paris-South, PM10 is 30.0 ug/m3.",\n'
                 '      "confidence": 0.95\n'
-                '    }\n'
-                '  ],\n'
+                "    }\n"
+                "  ],\n"
                 '  "confidence": 0.95\n'
                 "}\n\n"
                 "IMPORTANT SAFETY AND SECURITY DIRECTIVES:\n"
@@ -123,9 +123,7 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
                                     "items": {
                                         "type": "object",
                                         "properties": {
-                                            "evidence_id": {
-                                                "type": ["string", "null"]
-                                            },
+                                            "evidence_id": {"type": ["string", "null"]},
                                             "source": {"type": "string"},
                                             "claim": {"type": "string"},
                                             "confidence": {"type": "number"},

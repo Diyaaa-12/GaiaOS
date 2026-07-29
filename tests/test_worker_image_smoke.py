@@ -28,7 +28,9 @@ async def test_smoke_job_gated_in_production(
     monkeypatch.setenv("ENABLE_AUTH", "true")
     monkeypatch.setenv("ENABLE_RATE_LIMITING", "true")
     monkeypatch.setenv("JWT_SECRET_KEY", "secret-key-that-is-at-least-32-chars-long!")
-    monkeypatch.setenv("DATABASE_URL", "postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos")
+    monkeypatch.setenv(
+        "DATABASE_URL", "postgresql://gaiaos:gaiaos_dev_password@localhost:5432/gaiaos"
+    )
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
 
     response = await client.post("/internal/smoke-job")
@@ -83,9 +85,7 @@ def run_live_smoke_verification(
         return False
 
     if resp.status_code != 202:
-        print(
-            f"[!] Expected HTTP 202 from {endpoint}, got status {resp.status_code}: {resp.text}"
-        )
+        print(f"[!] Expected HTTP 202 from {endpoint}, got status {resp.status_code}: {resp.text}")
         return False
 
     job_data = resp.json()

@@ -115,13 +115,13 @@ class TestRedisCheckpointerTTL:
 
         config = cast(
             RunnableConfig,
-        {
+            {
                 "configurable": {
                     "thread_id": "test_thread_123",
                     "checkpoint_id": "chk_001",
-        }
-    },
-)
+                }
+            },
+        )
         writes = [("channel_a", "val_a")]
 
         await checkpointer.aput_writes(config, writes, task_id="task_1")
@@ -198,12 +198,12 @@ class TestRedisPersistenceIntegration:
 
         thread_id = f"test_aof_restart_{uuid.uuid4()}"
         config = cast(
-             RunnableConfig,
+            RunnableConfig,
             {"configurable": {"thread_id": thread_id}},
         )
 
         checkpoint = cast(
-             Checkpoint,
+            Checkpoint,
             {"id": "chk_aof_01", "ts": "2026-07-24T12:00:00Z", "v": 1},
         )
 
@@ -211,7 +211,6 @@ class TestRedisPersistenceIntegration:
             CheckpointMetadata,
             {"source": "aof_test"},
         )
-
 
         # 1. Write checkpoint
         await saver.aput(config, checkpoint, metadata, new_versions={})

@@ -27,4 +27,3 @@ class TaskGraphState(TypedDict):
     needs_simulation: bool
     final_answer: str | None
     replan_count: int
-

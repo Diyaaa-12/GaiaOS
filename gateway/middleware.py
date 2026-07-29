@@ -131,9 +131,10 @@ class GatewayMiddleware(BaseHTTPMiddleware):
             # Otherwise, falls through to JWTAuthProvider.
             for provider in self._auth_chain:
                 await provider.authenticate(request)
-                if getattr(request.state, "user", None) is not None or getattr(
-                    request.state, "api_key_error", None
-                ) is not None:
+                if (
+                    getattr(request.state, "user", None) is not None
+                    or getattr(request.state, "api_key_error", None) is not None
+                ):
                     break
 
             # --- 4. Rate-limit check ---

@@ -109,4 +109,3 @@ InvestigationEvent = (
     | ReplanningEvent
     | DoneEvent
 )
-

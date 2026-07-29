@@ -162,15 +162,11 @@ def check_for_regression(
 
     # Compute baseline and current average scores over common scored questions
     common_baseline_scores = [
-        cast(float, baseline_map[q_id])
-        for q_id in common_ids
-        if baseline_map[q_id] is not None
+        cast(float, baseline_map[q_id]) for q_id in common_ids if baseline_map[q_id] is not None
     ]
 
     common_current_scores = [
-        cast(float, current_map[q_id])
-        for q_id in common_ids
-        if current_map[q_id] is not None
+        cast(float, current_map[q_id]) for q_id in common_ids if current_map[q_id] is not None
     ]
 
     avg_baseline = (
@@ -179,9 +175,7 @@ def check_for_regression(
         else None
     )
     avg_current = (
-        sum(common_current_scores) / len(common_current_scores)
-        if common_current_scores
-        else None
+        sum(common_current_scores) / len(common_current_scores) if common_current_scores else None
     )
 
     overall_delta: float | None = None

@@ -75,4 +75,3 @@ class CriticFlag(BaseModel):
         default=None,
         description="Optional structured list of domain identifiers associated with this flag.",
     )
-

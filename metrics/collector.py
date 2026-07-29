@@ -105,4 +105,3 @@ async def persist_metric(session: AsyncSession, event: MetricEvent) -> None:
         return
 
     session.add(row)
-

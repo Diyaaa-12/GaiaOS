@@ -62,12 +62,8 @@ class TestCheckForRegressionUnit:
         current = BenchmarkSuiteResult(
             orchestrator_version="v1.0.1",
             results=[
-                BenchmarkQuestionResult(
-                    question_id=q1, orchestrator_version="v1.0.1", score=0.85
-                ),
-                BenchmarkQuestionResult(
-                    question_id=q2, orchestrator_version="v1.0.1", score=0.70
-                ),
+                BenchmarkQuestionResult(question_id=q1, orchestrator_version="v1.0.1", score=0.85),
+                BenchmarkQuestionResult(question_id=q2, orchestrator_version="v1.0.1", score=0.70),
             ],
             total_questions=2,
             successful_runs=2,
@@ -97,12 +93,8 @@ class TestCheckForRegressionUnit:
         current = BenchmarkSuiteResult(
             orchestrator_version="v1.0.1",
             results=[
-                BenchmarkQuestionResult(
-                    question_id=q1, orchestrator_version="v1.0.1", score=0.80
-                ),
-                BenchmarkQuestionResult(
-                    question_id=q2, orchestrator_version="v1.0.1", score=0.80
-                ),
+                BenchmarkQuestionResult(question_id=q1, orchestrator_version="v1.0.1", score=0.80),
+                BenchmarkQuestionResult(question_id=q2, orchestrator_version="v1.0.1", score=0.80),
             ],
             total_questions=2,
             successful_runs=2,
@@ -132,12 +124,8 @@ class TestCheckForRegressionUnit:
         current = BenchmarkSuiteResult(
             orchestrator_version="v1.0.1",
             results=[
-                BenchmarkQuestionResult(
-                    question_id=q1, orchestrator_version="v1.0.1", score=0.60
-                ),
-                BenchmarkQuestionResult(
-                    question_id=q2, orchestrator_version="v1.0.1", score=0.95
-                ),
+                BenchmarkQuestionResult(question_id=q1, orchestrator_version="v1.0.1", score=0.60),
+                BenchmarkQuestionResult(question_id=q2, orchestrator_version="v1.0.1", score=0.95),
             ],
             total_questions=2,
             successful_runs=2,

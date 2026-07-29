@@ -60,8 +60,7 @@ async def fetch_recent_noaa_events(
                     lon_val = float(meta["lon"])
                     ext_id = f"noaa_{station_id}_{str(t_str).replace(' ', 'T')}"
                     details = (
-                        f"NOAA station {station_id} "
-                        f"({city_label}) water temperature: {v_str}°C"
+                        f"NOAA station {station_id} ({city_label}) water temperature: {v_str}°C"
                     )
 
                     records.append(

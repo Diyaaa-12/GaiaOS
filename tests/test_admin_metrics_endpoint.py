@@ -27,9 +27,7 @@ pytestmark = pytest.mark.asyncio
 class TestAdminMetricsEndpoint:
     """Integration tests for the /admin/metrics endpoint."""
 
-    async def _create_user(
-        self, session: AsyncSession, role: Role
-    ):
+    async def _create_user(self, session: AsyncSession, role: Role):
         """Create a verified user with the given role."""
         email = f"{role.value}-{uuid.uuid4().hex[:6]}@gaiaos-test.example"
         user = await UserRepository.create_user(
@@ -126,9 +124,7 @@ class TestAdminMetricsEndpoint:
         )
         assert res.status_code == 403
 
-    async def test_unauthenticated_gets_401(
-        self, client: AsyncClient, monkeypatch
-    ) -> None:
+    async def test_unauthenticated_gets_401(self, client: AsyncClient, monkeypatch) -> None:
         """Unauthenticated request returns 401."""
         key = "super-secret-key-that-is-at-least-32-chars-long!"
         monkeypatch.setenv("JWT_SECRET_KEY", key)

@@ -86,9 +86,7 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_alert_incidents_rule_name"), "alert_incidents", ["rule_name"], unique=False
     )
-    op.create_index(
-        op.f("ix_alert_incidents_status"), "alert_incidents", ["status"], unique=False
-    )
+    op.create_index(op.f("ix_alert_incidents_status"), "alert_incidents", ["status"], unique=False)
 
 
 def downgrade() -> None:

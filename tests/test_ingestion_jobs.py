@@ -66,10 +66,11 @@ class TestIngestionJobs:
         target_fetch = "workers.jobs.ingestion_jobs.fetch_recent_usgs_events"
         target_settings = "workers.jobs.ingestion_jobs.get_settings"
 
-        with patch(target_factory) as mock_sess_factory, \
-             patch(target_fetch) as mock_fetch, \
-             patch(target_settings) as mock_settings:
-
+        with (
+            patch(target_factory) as mock_sess_factory,
+            patch(target_fetch) as mock_fetch,
+            patch(target_settings) as mock_settings,
+        ):
             mock_sess_factory.return_value.__aenter__.return_value = db_session
             mock_settings.return_value.enable_usgs_ingestion = True
             mock_fetch.return_value = mock_records

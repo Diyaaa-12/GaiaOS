@@ -172,9 +172,8 @@ class RedisRateLimiter:
         key = RedisKeyBuilder.rate_limit_key(identifier, scope)
         if scope == "password_reset":
             capacity = max(1, settings.password_reset_rate_limit_requests)
-            refill_rate = (
-                settings.password_reset_rate_limit_requests
-                / float(max(1, settings.password_reset_rate_limit_window_seconds))
+            refill_rate = settings.password_reset_rate_limit_requests / float(
+                max(1, settings.password_reset_rate_limit_window_seconds)
             )
         else:
             refill_rate = requests_per_minute / 60.0

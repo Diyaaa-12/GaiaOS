@@ -42,7 +42,6 @@ class JobCompleted(MetricEvent):
     complexity_tier: str | None = None
 
 
-
 @dataclass
 class JobFailed(MetricEvent):
     """Emitted when an investigation job fails after retries or unhandled exception."""
@@ -93,5 +92,3 @@ class RestoreDrillFailed(MetricEvent):
     duration_ms: float
     error_message: str
     discrepancies: dict[str, Any] = field(default_factory=dict)
-
-

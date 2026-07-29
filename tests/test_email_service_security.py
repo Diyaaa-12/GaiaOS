@@ -210,9 +210,7 @@ class TestEmailServiceSecurity:
         assert res_3.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_non_enumeration_response_unconditional_202(
-        self, client: AsyncClient
-    ) -> None:
+    async def test_non_enumeration_response_unconditional_202(self, client: AsyncClient) -> None:
         """POST /auth/request-reset returns HTTP 202 for both existing and non-existing emails."""
         # Non-existing email
         res1 = await client.post(

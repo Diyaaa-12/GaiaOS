@@ -145,13 +145,14 @@ class TestReplanLoopIntegration:
         inv_id = uuid.uuid4()
 
         from db.models.investigation import Investigation
+
         user = await UserRepository.create_user(
             session=db_session,
             email=f"{uuid.uuid4()}@example.com",
             hashed_password="HashedPassword123!",
             role=Role.USER.value,
             is_verified=True,
-)
+        )
         inv = Investigation(
             id=inv_id,
             user_id=user.id,
@@ -191,10 +192,14 @@ class TestReplanLoopIntegration:
         patch_ver = patch("orchestrator.graph.builder.verify")
         patch_set = patch("orchestrator.agents.critic.replan.get_settings")
 
-        with patch_sess as mock_session_factory, patch_class as mock_classify, \
-             patch_fan as mock_fanout, patch_syn as mock_synthesize, \
-             patch_ver as mock_verify, patch_set as mock_settings:
-
+        with (
+            patch_sess as mock_session_factory,
+            patch_class as mock_classify,
+            patch_fan as mock_fanout,
+            patch_syn as mock_synthesize,
+            patch_ver as mock_verify,
+            patch_set as mock_settings,
+        ):
             mock_session_factory.return_value.__aenter__.return_value = db_session
             mock_settings.return_value.enable_replan_loop = True
 
@@ -244,6 +249,7 @@ class TestReplanLoopIntegration:
         inv_id = uuid.uuid4()
 
         from db.models.investigation import Investigation
+
         user = await UserRepository.create_user(
             session=db_session,
             email=f"{uuid.uuid4()}@example.com",
@@ -291,11 +297,15 @@ class TestReplanLoopIntegration:
         patch_ver = patch("orchestrator.graph.builder.verify")
         patch_set = patch("orchestrator.agents.critic.replan.get_settings")
 
-        with patch_sess as mock_session_factory, patch_class as mock_classify, \
-             patch_aq as mock_run_aq, patch_fan as mock_fanout, \
-             patch_syn as mock_synthesize, patch_ver as mock_verify, \
-             patch_set as mock_settings:
-
+        with (
+            patch_sess as mock_session_factory,
+            patch_class as mock_classify,
+            patch_aq as mock_run_aq,
+            patch_fan as mock_fanout,
+            patch_syn as mock_synthesize,
+            patch_ver as mock_verify,
+            patch_set as mock_settings,
+        ):
             mock_session_factory.return_value.__aenter__.return_value = db_session
             mock_settings.return_value.enable_replan_loop = True
 
@@ -328,8 +338,8 @@ class TestReplanLoopIntegration:
             }
 
             config: RunnableConfig = {
-               "configurable": {
-                  "thread_id": str(inv_id),
+                "configurable": {
+                    "thread_id": str(inv_id),
                 }
             }
 

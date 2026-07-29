@@ -13,7 +13,7 @@ from eval.harness.runner import (
     fetch_latest_baseline_suite_result,
     run_benchmark_suite,
 )
-from eval.harness.scorer import score_result
+from eval.harness.scorer import score_result, score_suite
 
 __all__ = [
     "RegressionReport",
@@ -22,5 +22,6 @@ __all__ = [
     "run_benchmark_suite",
     "run_ci_gate",
     "score_result",
+    "score_suite",
     "sync_benchmark_questions",
 ]

@@ -46,16 +46,10 @@ def _normalize_serializable(obj: Any) -> Any:
         }
     if isinstance(obj, tuple):
         return tuple(
-            _normalize_serializable(item)
-            for item in obj
-            if not _is_unpicklable_callable(item)
+            _normalize_serializable(item) for item in obj if not _is_unpicklable_callable(item)
         )
     if isinstance(obj, (list, set)):
-        return [
-            _normalize_serializable(item)
-            for item in obj
-            if not _is_unpicklable_callable(item)
-        ]
+        return [_normalize_serializable(item) for item in obj if not _is_unpicklable_callable(item)]
     return obj
 
 
@@ -71,6 +65,7 @@ class GaiaOSSerializer(JsonPlusSerializer):
             return super().dumps_typed(sanitized)
         except Exception:
             import json
+
             return "json", json.dumps(sanitized, default=str).encode("utf-8")
 
     def dumps(self, obj: Any) -> bytes:

@@ -46,9 +46,7 @@ def _is_threshold_violated(current_value: float, threshold: float, comparison: s
     return False
 
 
-async def _fetch_window_metrics_snapshot(
-    session: AsyncSession, window: str
-) -> dict[str, float]:
+async def _fetch_window_metrics_snapshot(session: AsyncSession, window: str) -> dict[str, float]:
     """Fetch single grouped SQL metrics snapshot for a specific sliding time window."""
     interval = _WINDOW_INTERVAL.get(window, timedelta(minutes=15))
     result = await session.execute(_SQL_WINDOW_SNAPSHOT, {"interval": interval})

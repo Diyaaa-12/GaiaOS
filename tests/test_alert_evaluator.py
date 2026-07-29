@@ -30,9 +30,7 @@ class TestAlertEvaluatorIntegration:
         await db_session.commit()
 
     @pytest.mark.asyncio
-    async def test_evaluate_rules_firing_transition(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_evaluate_rules_firing_transition(self, db_session: AsyncSession) -> None:
         """Evaluator detects threshold violation and returns AlertFiring."""
         # 1. Seed metric row crossing 10000ms threshold
         await db_session.execute(

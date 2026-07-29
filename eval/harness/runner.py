@@ -15,10 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import db.session as db_session
 from db.models.eval_benchmark import EvalBenchmarkQuestion, EvalBenchmarkRun
-from eval.harness.scorer import score_result
+from eval.harness.scorer import score_result, score_suite
 from logging_config import get_logger
 
 _log = get_logger(__name__)
+
+type CollectedRow = tuple[EvalBenchmarkQuestion, float | None, dict[str, Any]]
 
 
 class BenchmarkQuestionResult(BaseModel):
@@ -79,20 +81,23 @@ async def _run_suite(
     result = await session.execute(stmt)
     questions = result.scalars().all()
 
-    question_results: list[BenchmarkQuestionResult] = []
-    successful_runs = 0
-
     _log.info(
         "eval.runner.suite_started",
         version=orchestrator_version,
         total_questions=len(questions),
     )
 
+    # ------------------------------------------------------------------
+    # Phase 1 — Execute and per-question score.
+    # DB records are not created yet; we collect everything in memory so
+    # that suite-level metrics can be computed before any row is written.
+    # ------------------------------------------------------------------
+    collected: list[CollectedRow] = []
+    successful_runs = 0
+
     for q in questions:
         try:
-            # 1. Stub execution
             stub_result = await run_stub_benchmark(q)
-            # 2. Stub scoring
             score, metrics = await score_result(q, stub_result)
             successful_runs += 1
             _log.info(
@@ -113,12 +118,41 @@ async def _run_suite(
                 error=str(e),
             )
 
-        # 3. Persist run results
+        collected.append((q, score, metrics))
+
+    # ------------------------------------------------------------------
+    # Phase 2 — Suite-level metrics.
+    # score_suite lives in scorer.py to maintain scoring responsibility
+    # there.  runner.py only calls it and passes the results through.
+    # ------------------------------------------------------------------
+    per_question_metrics = [metrics for _, _, metrics in collected]
+    suite_metrics = score_suite(per_question_metrics)
+
+    _log.info(
+        "eval.runner.suite_metrics",
+        ece=suite_metrics.get("ece"),
+        calibration_status=suite_metrics.get("calibration_status"),
+        mean_retrieval_precision=suite_metrics.get("mean_retrieval_precision"),
+        precision_status=suite_metrics.get("precision_status"),
+    )
+
+    # ------------------------------------------------------------------
+    # Phase 3 — Persist.
+    # Suite metrics are merged under the "suite" key in each row's metrics
+    # JSONB.  No schema change: the existing metrics column absorbs them.
+    # In-memory BenchmarkQuestionResult objects carry identical full metrics
+    # for consistency between callers and DB reads.
+    # ------------------------------------------------------------------
+    question_results: list[BenchmarkQuestionResult] = []
+
+    for q, score, metrics in collected:
+        full_metrics = {**metrics, "suite": suite_metrics}
+
         run_record = EvalBenchmarkRun(
             benchmark_question_id=q.id,
             orchestrator_version=orchestrator_version,
             score=score,
-            metrics=metrics,
+            metrics=full_metrics,
         )
         session.add(run_record)
 
@@ -127,11 +161,11 @@ async def _run_suite(
                 question_id=q.id,
                 orchestrator_version=orchestrator_version,
                 score=score,
-                metrics=metrics,
+                metrics=full_metrics,
             )
         )
 
-    # Only commit if we have runs to persist
+    # Only commit if there are records to write.
     if questions:
         try:
             await session.commit()
@@ -210,4 +244,3 @@ async def fetch_latest_baseline_suite_result(
         total_questions=len(results),
         successful_runs=len([r for r in results if r.score is not None]),
     )
-

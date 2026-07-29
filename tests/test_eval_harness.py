@@ -34,8 +34,18 @@ class TestEvaluationHarness:
         db_runs = (await db_session.execute(stmt)).scalars().all()
         assert len(db_runs) == 0
 
-    async def test_stub_benchmark_execution_and_persistence(self, db_session: AsyncSession) -> None:
-        """Suite executes correctly against questions and persists scores to database."""
+    async def test_benchmark_execution_and_persistence(self, db_session: AsyncSession) -> None:
+        """Suite executes correctly against questions and persists scored results to database.
+
+        The stub runner returns no evidence and no confidence value, so:
+        - per-question score remains None (correctness methodology deferred).
+        - retrieval_precision_status is "no_evidence_retrieved".
+        - suite calibration_status is "insufficient_data".
+        - suite precision_status is "insufficient_data".
+
+        These are the correct, explicitly-marked outcomes for a stub runner —
+        not silently-zero placeholders.
+        """
         # 1. Clean database
         await db_session.execute(delete(EvalBenchmarkRun))
         await db_session.execute(delete(EvalBenchmarkQuestion))
@@ -75,16 +85,33 @@ class TestEvaluationHarness:
         assert result.successful_runs == 2
         assert len(result.results) == 2
 
-        # Verify items
         res_map = {res.question_id: res for res in result.results}
         assert q1.id in res_map
         assert q2.id in res_map
 
         assert res_map[q1.id].orchestrator_version == orchestrator_ver
-        assert res_map[q1.id].score is None  # stub returns None
+
+        # Per-question score is None — correctness methodology not yet defined.
+        assert res_map[q1.id].score is None
+
+        # Per-question metrics reflect the real scorer (not the old stub).
         m1 = res_map[q1.id].metrics
         assert m1 is not None
-        assert m1["status"] == "stub_scored"
+        assert m1["status"] == "scored"
+        assert m1["confidence"] is None  # stub runner: no confidence signal
+        assert m1["is_correct"] is None  # correctness methodology deferred
+        assert m1["retrieval_precision"] is None  # no evidence retrieved from stub
+        assert m1["retrieval_precision_status"] == "no_evidence_retrieved"
+
+        # Suite-level metrics are merged into each per-question result.
+        suite = m1["suite"]
+        assert suite is not None
+        assert suite["calibration_status"] == "insufficient_data"  # no pairs available
+        assert suite["ece"] is None
+        assert suite["ece_n_predictions"] == 0
+        assert suite["precision_status"] == "insufficient_data"
+        assert suite["mean_retrieval_precision"] is None
+        assert suite["precision_n_questions"] == 0
 
         # 5. Verify database persistence
         db_runs = (await db_session.execute(select(EvalBenchmarkRun))).scalars().all()
@@ -95,6 +122,12 @@ class TestEvaluationHarness:
         assert q2.id in run_map
 
         assert run_map[q1.id].orchestrator_version == orchestrator_ver
+
         m2 = run_map[q1.id].metrics
         assert m2 is not None
-        assert m2["status"] == "stub_scored"
+        assert m2["status"] == "scored"
+        assert m2["retrieval_precision_status"] == "no_evidence_retrieved"
+
+        # Suite key is present in every persisted row.
+        assert "suite" in m2
+        assert m2["suite"]["calibration_status"] == "insufficient_data"

@@ -50,9 +50,7 @@ class CitationMapper:
             return 0.0
         return self.matched_by_text_fallback_count / self.total_citations
 
-    def map_citations(
-        self, citations: Sequence[RawCitedEvidence]
-    ) -> list[Evidence] | None:
+    def map_citations(self, citations: Sequence[RawCitedEvidence]) -> list[Evidence] | None:
         """Map raw LLM citations to verified Evidence entities from the pool.
 
         Returns None if any cited evidence is fabricated or ambiguous.
@@ -186,4 +184,3 @@ class CitationMapper:
         if not text:
             return ""
         return re.sub(r"\s+", "", text).lower()
-

@@ -283,7 +283,6 @@ class Settings(BaseSettings):
         ),
     )
 
-
     @property
     def checkpoint_ttl_seconds(self) -> int:
         """Return the TTL for LangGraph checkpoint keys in Redis in seconds.

@@ -89,7 +89,6 @@ class TestMetricEventDataclasses:
             rollup.count = 99  # type: ignore[misc]
 
 
-
 class TestGroupByEnum:
     """GroupBy StrEnum values are what the API passes as SQL selectors."""
 
@@ -104,9 +103,7 @@ class TestGroupByEnum:
 class TestPersistMetricUnit:
     """persist_metric maps event types to correct MetricEventRow fields."""
 
-    async def test_persist_job_completed_marks_success(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_persist_job_completed_marks_success(self, db_session: AsyncSession) -> None:
         event = JobCompleted(
             investigation_id=str(uuid.uuid4()),
             status="complete",
@@ -129,9 +126,7 @@ class TestPersistMetricUnit:
         assert row.duration_ms == 2500
         assert row.group_key == "moderate"
 
-    async def test_persist_job_failed_marks_not_success(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_persist_job_failed_marks_not_success(self, db_session: AsyncSession) -> None:
         event = JobFailed(
             investigation_id=str(uuid.uuid4()),
             error_code="job_retries_exhausted",
@@ -177,9 +172,7 @@ class TestPersistMetricUnit:
         assert row.duration_ms == 750
         assert row.success is True
 
-    async def test_persist_unknown_event_skips_gracefully(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_persist_unknown_event_skips_gracefully(self, db_session: AsyncSession) -> None:
         """Unknown MetricEvent subclass is skipped without raising."""
         from metrics.events import MetricEvent
 
@@ -289,9 +282,7 @@ class TestAggregateMetrics:
         assert test_group[0].count == 10
         assert abs(test_group[0].success_rate - 0.8) < 0.01
 
-    async def test_group_by_day_returns_string_date_keys(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_group_by_day_returns_string_date_keys(self, db_session: AsyncSession) -> None:
         """group_by=day returns 'YYYY-MM-DD' string group_keys."""
         db_session.add(
             MetricEventRow(

@@ -44,14 +44,16 @@ async def test_restore_drill_success_matching_metadata() -> None:
         mock_provider.extract_verification_metadata.return_value = matching_metadata
 
         test_db_url = "postgresql://postgres:postgres@localhost:5432/gaiaos_scratch"
-        with patch("ops.backup.restore_drill.get_session_factory") as mock_sf, \
-             patch("ops.backup.restore_drill._create_scratch_database", return_value=test_db_url), \
-             patch("ops.backup.restore_drill._drop_scratch_database", return_value=None):
-
+        with (
+            patch("ops.backup.restore_drill.get_session_factory") as mock_sf,
+            patch("ops.backup.restore_drill._create_scratch_database", return_value=test_db_url),
+            patch("ops.backup.restore_drill._drop_scratch_database", return_value=None),
+        ):
             mock_session = AsyncMock()
             # session.add() is synchronous in SQLAlchemy async sessions;
             # override to plain Mock to prevent unawaited coroutine RuntimeWarnings.
             from unittest.mock import Mock
+
             mock_session.add = Mock()
             mock_res = MagicMock()
             mock_res.scalars().first.return_value = mock_backup_record
@@ -112,14 +114,16 @@ async def test_restore_drill_catches_deliberately_introduced_discrepancy() -> No
         mock_provider.extract_verification_metadata.return_value = mismatched_extracted_metadata
 
         test_db_url = "postgresql://postgres:postgres@localhost:5432/gaiaos_scratch"
-        with patch("ops.backup.restore_drill.get_session_factory") as mock_sf, \
-             patch("ops.backup.restore_drill._create_scratch_database", return_value=test_db_url), \
-             patch("ops.backup.restore_drill._drop_scratch_database", return_value=None):
-
+        with (
+            patch("ops.backup.restore_drill.get_session_factory") as mock_sf,
+            patch("ops.backup.restore_drill._create_scratch_database", return_value=test_db_url),
+            patch("ops.backup.restore_drill._drop_scratch_database", return_value=None),
+        ):
             mock_session = AsyncMock()
             # session.add() is synchronous in SQLAlchemy async sessions;
             # override to plain Mock to prevent unawaited coroutine RuntimeWarnings.
             from unittest.mock import Mock
+
             mock_session.add = Mock()
             mock_res = MagicMock()
             mock_res.scalars().first.return_value = mock_backup_record
