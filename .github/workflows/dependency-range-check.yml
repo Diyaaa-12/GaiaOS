@@ -1,0 +1,43 @@
+name: Dependency Range Drift Check
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "requirements/**"
+      - "scripts/check_requirements_drift.py"
+      - ".github/workflows/dependency-range-check.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "requirements/**"
+      - "scripts/check_requirements_drift.py"
+      - ".github/workflows/dependency-range-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check-dependency-drift:
+    name: Dependency Range Drift Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install packaging
+
+      - name: Check base requirements range drift
+        run: python scripts/check_requirements_drift.py requirements/base.txt requirements/base.lock
+
+      - name: Check dev requirements range drift
+        run: python scripts/check_requirements_drift.py requirements/dev.txt requirements/dev.lock

@@ -82,6 +82,24 @@ def main() -> None:
     steps: list[tuple[str, list[str]]] = [
         ("Ruff Linting", [sys.executable, "-m", "ruff", "check", "."]),
         ("Mypy Static Type Checking", [sys.executable, "-m", "mypy", "."]),
+        (
+            "Dependency Range Drift Check (Base)",
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "check_requirements_drift.py"),
+                "requirements/base.txt",
+                "requirements/base.lock",
+            ],
+        ),
+        (
+            "Dependency Range Drift Check (Dev)",
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "check_requirements_drift.py"),
+                "requirements/dev.txt",
+                "requirements/dev.lock",
+            ],
+        ),
     ]
 
     if not args.skip_tests:
