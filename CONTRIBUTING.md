@@ -61,7 +61,25 @@ For a full step-by-step walkthrough, see the [First PR Walkthrough](docs/contrib
 
 GaiaOS requires Python **3.12** (pinned in [`.python-version`](.python-version) and enforced in [`pyproject.toml`](pyproject.toml)), Docker Engine 24+, and Docker Compose v2.
 
-For step-by-step virtual environment creation, lockfile installation (`requirements/dev.lock`), infrastructure service startup, and OS-specific setup notes (Windows PowerShell execution policy, git line endings, Docker Desktop setup), refer to the canonical **[Environment Setup Guide](docs/contributing/ENVIRONMENT_SETUP.md)**.
+```bash
+# Clone & virtualenv setup
+git clone https://github.com/Diyaaa-12/GaiaOS.git
+cd GaiaOS
+python -m venv .venv
+source .venv/bin/activate  # Windows PowerShell: .\.venv\Scripts\Activate.ps1
+
+# Install dependencies using canonical lockfile
+pip install -r requirements/dev.lock
+
+# Copy environment configs
+cp .env.example .env
+cp docker-compose.override.yml.example docker-compose.override.yml
+
+# Start full stack via Docker Compose
+docker compose up -d --build
+```
+
+For OS-specific setup notes (Windows execution policy, line endings, troubleshooting), refer to the canonical **[Environment Setup Guide](docs/contributing/ENVIRONMENT_SETUP.md)**.
 
 
 ---
