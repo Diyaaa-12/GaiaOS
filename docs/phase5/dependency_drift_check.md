@@ -1,29 +1,34 @@
-# Dependency Range Drift Check — Phase 5 Reference
+# Dependency Range Drift & Lockfile Resolution — Phase 5 Reference
 
-**Script:** [`scripts/check_requirements_drift.py`](../../scripts/check_requirements_drift.py)  
+**Validation Script:** [`scripts/check_requirements_drift.py`](../../scripts/check_requirements_drift.py)  
+**Lockfile Resolution Script:** [`scripts/regenerate_lockfiles.py`](../../scripts/regenerate_lockfiles.py)  
 **CI Workflow:** [`.github/workflows/dependency-range-check.yml`](../../.github/workflows/dependency-range-check.yml)
 
 ## Overview
 
-The dependency range drift checker verifies that pinned package versions in lockfiles (`.lock`) satisfy the version range specifiers declared in requirements files (`.txt`).
+GaiaOS enforces strict, multi-layer dependency hygiene:
+
+1. **Deterministic Repository Integrity Checker (`check_requirements_drift.py`)**:
+   - Primary repository integrity gate operating purely on static local `.txt` and `.lock` files.
+   - Asserts that every pinned version in `.lock` satisfies the declared range in `.txt`.
+   - 100% deterministic across all operating systems, CI runners, and offline environments.
+
+2. **Lockfile Generation (`regenerate_lockfiles.py`)**:
+   - Uses `pip`'s dependency resolver (`pip install --dry-run --report`) to produce reproducible lockfiles directly from `.txt` requirements without text replacement.
+   - **Canonical Generation Environment**: Linux (Ubuntu 22.04+ / `ubuntu-latest`) + Python 3.12.
+   - **Platform-Neutral Marker Filtering**: Environment markers (e.g., `sys_platform == "win32"`) are evaluated against the canonical environment context (`CANONICAL_ENV`).
+   - **Reachability Policy**: A dependency is retained if it is reachable through at least one requirement whose environment marker evaluates true in the canonical environment.
 
 ## Usage
 
 ```bash
-# Validate base runtime requirements
+# Deterministic repository integrity validation
 python scripts/check_requirements_drift.py requirements/base.txt requirements/base.lock
-
-# Validate development requirements
 python scripts/check_requirements_drift.py requirements/dev.txt requirements/dev.lock
-```
 
-## Validation Rules
+# Regenerate lockfiles using pip's dependency resolver
+python scripts/regenerate_lockfiles.py
 
-1. Parses package requirement range specifiers from `.txt` files (processing recursive `-r` includes).
-2. Parses pinned package versions from `.lock` files (processing recursive `-r` includes).
-3. Verifies that every package declared in `.txt` has a pinned version in `.lock` that satisfies the range specifier.
-4. Ignores transitive-only dependencies present in `.lock`.
-5. Exits with status `1` and outputs failure details if a declared dependency is missing from the lockfile or if the locked version violates the declared version range.
 # Verify lockfiles match pip dependency resolution output (used in CI)
 python scripts/regenerate_lockfiles.py --check
 ```
