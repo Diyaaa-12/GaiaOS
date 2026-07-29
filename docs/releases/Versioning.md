@@ -14,7 +14,7 @@ This document details the versioning strategy, tag evolution, and milestone rele
 | v4.2.0  | Community Health | Complete |
 | v4.3.0  | Contributor Experience | Complete |
 | v4.4.0  | Open Source Release Polish | Complete (Final Readiness) |
-| v5.0.0  | Phase 5 | Target |
+v5.0.0 | Phase 5 Milestones 1–2 | Complete
 
 ---
 
