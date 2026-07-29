@@ -6,6 +6,7 @@ import re
 
 from logging_config import get_logger
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
+from orchestrator.schemas.uncertainty import UncertaintyEstimate
 from simulation_engine import run_simulation
 
 _log = get_logger(__name__)
@@ -121,10 +122,24 @@ async def run(
             sanity_check_result="passed",
         )
 
+        # Simulation models output lower and upper physical bounds (e.g., confidence intervals).
+        # We clamp these bounds to [0.0, 1.0] for UncertaintyEstimate and compute their midpoint
+        # as the point estimate to preserve symmetric confidence around central estimate.
+        low, high = result.uncertainty_bounds
+        low_norm = max(0.0, min(1.0, low))
+        high_norm = max(0.0, min(1.0, high))
+        pt_est = max(0.0, min(1.0, (low_norm + high_norm) / 2.0))
+        sim_uncertainty = UncertaintyEstimate(
+            point_estimate=pt_est,
+            lower_bound=low_norm,
+            upper_bound=high_norm,
+            source="model_uncertainty",
+        )
+
         evidence = Evidence(
             source=result.model_used,
             claim=result.prediction,
-            confidence=0.90,  # baseline simulation confidence
+            uncertainty=sim_uncertainty,
             uncertainty_bounds=result.uncertainty_bounds,
             assumptions=result.assumptions,
             extra_metadata={"model_used": result.model_used},

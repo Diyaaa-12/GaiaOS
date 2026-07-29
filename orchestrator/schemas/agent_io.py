@@ -6,7 +6,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
+from pydantic_core import InitErrorDetails, PydanticCustomError
+
+from orchestrator.schemas.uncertainty import UncertaintyEstimate
 
 
 class Evidence(BaseModel):
@@ -18,10 +21,11 @@ class Evidence(BaseModel):
     )
     source: str = Field(description="Name or URL of the data source.")
     claim: str = Field(description="The factual claim or observation extracted.")
-    confidence: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Assigned confidence level for this evidence item.",
+    uncertainty: UncertaintyEstimate = Field(
+        default_factory=lambda: UncertaintyEstimate(
+            point_estimate=0.5, lower_bound=0.4, upper_bound=0.6, source="model_uncertainty"
+        ),
+        description="Assigned structured uncertainty estimate for this evidence item.",
     )
     retrieved_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
@@ -56,6 +60,29 @@ class Evidence(BaseModel):
         description="Explicit list of assumptions for the simulation/prediction model.",
     )
 
+    def __init__(self, confidence: float | None = None, **data: Any) -> None:
+        if confidence is not None and "uncertainty" not in data:
+            if not (0.0 <= confidence <= 1.0):
+                raise ValidationError.from_exception_data(
+                    "Evidence",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "value_error", "Confidence must be between 0.0 and 1.0"
+                            ),
+                            loc=("confidence",),
+                            input=confidence,
+                        )
+                    ],
+                )
+            data["uncertainty"] = UncertaintyEstimate.from_legacy_confidence(confidence)
+        super().__init__(**data)
+
+    @property
+    def confidence(self) -> float:
+        """Backward-compatible read-only property returning uncertainty point estimate."""
+        return self.uncertainty.point_estimate
+
 
 class SimulationResult(BaseModel):
     """The structured result of a simulation model prediction."""
@@ -69,6 +96,10 @@ class SimulationResult(BaseModel):
         description="Explicit assumptions made by the model.",
     )
     model_used: str = Field(description="The name of the simulation model utilized.")
+    uncertainty: UncertaintyEstimate | None = Field(
+        default=None,
+        description="Explicit structured uncertainty estimate representation.",
+    )
 
 
 class AgentInput(BaseModel):

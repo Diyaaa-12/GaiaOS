@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
+from pydantic_core import InitErrorDetails, PydanticCustomError
 
 from orchestrator.schemas.agent_io import Evidence
+from orchestrator.schemas.uncertainty import UncertaintyEstimate
 
 
 class RawCitedEvidence(BaseModel):
@@ -35,10 +37,11 @@ class SynthesizedClaim(BaseModel):
         default_factory=list,
         description="List of supporting evidence objects cited for this claim.",
     )
-    confidence: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Calculated confidence score for this claim.",
+    uncertainty: UncertaintyEstimate = Field(
+        default_factory=lambda: UncertaintyEstimate(
+            point_estimate=0.5, lower_bound=0.4, upper_bound=0.6, source="model_uncertainty"
+        ),
+        description="Structured uncertainty estimate calculated for this claim.",
     )
     uncertainty_bounds: tuple[float, float] | None = Field(
         default=None,
@@ -48,6 +51,29 @@ class SynthesizedClaim(BaseModel):
         default=None,
         description="Explicit list of assumptions for simulation claims.",
     )
+
+    def __init__(self, confidence: float | None = None, **data: Any) -> None:
+        if confidence is not None and "uncertainty" not in data:
+            if not (0.0 <= confidence <= 1.0):
+                raise ValidationError.from_exception_data(
+                    "SynthesizedClaim",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "value_error", "Confidence must be between 0.0 and 1.0"
+                            ),
+                            loc=("confidence",),
+                            input=confidence,
+                        )
+                    ],
+                )
+            data["uncertainty"] = UncertaintyEstimate.from_legacy_confidence(confidence)
+        super().__init__(**data)
+
+    @property
+    def confidence(self) -> float:
+        """Backward-compatible read-only property returning uncertainty point estimate."""
+        return self.uncertainty.point_estimate
 
 
 class SynthesisOutput(BaseModel):
