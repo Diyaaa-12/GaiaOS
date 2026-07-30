@@ -28,7 +28,7 @@ class UncertaintyEstimate(BaseModel):
 | Constant | Value | Purpose | Rationale |
 | :--- | :--- | :--- | :--- |
 | `DEFAULT_LEGACY_FALLBACK_MARGIN` | `0.10` | Half-width for legacy float conversion | Conservative compatibility fallback only; not statistically derived. |
-| `DEFAULT_POINT_ESTIMATE_MARGIN` | `0.08` | Half-width for `from_point_estimate` | Standard symmetric interval around domain observations. |
+| `DEFAULT_POINT_ESTIMATE_INTERVAL_MARGIN` | `0.08` | Half-width for `from_point_estimate` | Standard symmetric interval around domain observations. |
 | `CONFLICT_SPREAD_THRESHOLD` | `0.15` | Minimum point estimate spread for conflict | Intentionally conservative and deterministic to surface disagreement. |
 | `MIN_CONFLICT_PADDING` | `0.05` | Minimum conflict interval expansion | Guarantees interval widens under conflict to avoid overconfidence. |
 
@@ -70,3 +70,5 @@ The `propagate_uncertainty` function aggregates uncertainty estimates across sup
 > - `confidence` remains available as a **read-only compatibility property** returning `uncertainty.point_estimate`.
 > - All new code and new domain agents **must use `uncertainty`**.
 > - Existing plugins and legacy callers providing `confidence: float` remain fully compatible via automatic schema conversion.
+
+Existing consumers should migrate to `uncertainty`; the backward-compatible `confidence` property will remain during the Phase 5 migration period.

@@ -25,7 +25,7 @@ scores into an UncertaintyEstimate. This is a conservative compatibility mechani
 and is not statistically derived.
 """
 
-DEFAULT_POINT_ESTIMATE_MARGIN: float = 0.08
+DEFAULT_POINT_ESTIMATE_INTERVAL_MARGIN: float = 0.08
 """Default symmetric margin (+/- 0.08) around point estimates when constructing
 
 UncertaintyEstimate intervals via helper functions.
@@ -62,8 +62,7 @@ class UncertaintyEstimate(BaseModel):
     def validate_bounds(self) -> UncertaintyEstimate:
         """Validate ordering invariant: lower_bound <= point_estimate <= upper_bound.
 
-        Field constraints (ge=0.0, le=1.0) enforce numeric range [0.0, 1.0].
-        This validator strictly enforces lower_bound <= point_estimate <= upper_bound.
+        Numeric range validation (ge=0.0, le=1.0) is handled by Pydantic field constraints.
 
         Raises:
             ValueError: If lower_bound > point_estimate or point_estimate > upper_bound.
@@ -80,7 +79,7 @@ class UncertaintyEstimate(BaseModel):
     def from_point_estimate(
         cls,
         point_estimate: float,
-        margin: float = DEFAULT_POINT_ESTIMATE_MARGIN,
+        margin: float = DEFAULT_POINT_ESTIMATE_INTERVAL_MARGIN,
         source: SourceType = "well_supported",
     ) -> UncertaintyEstimate:
         """Construct an UncertaintyEstimate interval around a point estimate.
@@ -89,7 +88,8 @@ class UncertaintyEstimate(BaseModel):
 
         Args:
             point_estimate: Central probability or confidence score in [0.0, 1.0].
-            margin: Symmetric interval half-width (defaults to DEFAULT_POINT_ESTIMATE_MARGIN).
+            margin: Symmetric interval half-width (defaults to
+                DEFAULT_POINT_ESTIMATE_INTERVAL_MARGIN).
             source: Source tag identifying origin of uncertainty.
 
         Returns:
