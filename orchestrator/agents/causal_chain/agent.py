@@ -6,6 +6,7 @@ import re
 
 from config.settings import get_settings
 from db.repository import find_causal_chain
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput
 from tools.geocoding import geocode_location
 
@@ -32,7 +33,7 @@ def _extract_event_type(query: str) -> str:
     return "earthquake"
 
 
-async def run(agent_input: AgentInput) -> AgentOutput:
+async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Run causal chain traversal over historical hazard events."""
     location = agent_input.region_hint or _extract_location(agent_input.query)
     event_type = _extract_event_type(agent_input.query)

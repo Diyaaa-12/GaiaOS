@@ -9,12 +9,13 @@ import uuid
 import pytest
 
 from orchestrator.agents.registry import agent_registry
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.graph.fan_out_coordinator import FanOutCoordinator
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
 
 
 # Define dummy agent runners for testing
-async def runner_fast(agent_input: AgentInput) -> AgentOutput:
+async def runner_fast(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     await asyncio.sleep(0.1)
     return AgentOutput(
         agent_name="fast",
@@ -22,7 +23,7 @@ async def runner_fast(agent_input: AgentInput) -> AgentOutput:
     )
 
 
-async def runner_slow(agent_input: AgentInput) -> AgentOutput:
+async def runner_slow(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     await asyncio.sleep(0.3)
     return AgentOutput(
         agent_name="slow",
@@ -30,11 +31,13 @@ async def runner_slow(agent_input: AgentInput) -> AgentOutput:
     )
 
 
-async def runner_fail(agent_input: AgentInput) -> AgentOutput:
+async def runner_fail(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     raise RuntimeError("Intentional runner failure")
 
 
-async def runner_timeout(agent_input: AgentInput) -> AgentOutput:
+async def runner_timeout(
+    agent_input: AgentInput, bus: CollaborationBus | None = None
+) -> AgentOutput:
     await asyncio.sleep(1.0)
     return AgentOutput(agent_name="timeout", evidence=[])
 

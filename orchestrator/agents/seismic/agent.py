@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime
 
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
 from orchestrator.schemas.uncertainty import UncertaintyEstimate
 from tools.geocoding import geocode_location
@@ -22,7 +23,7 @@ def _extract_location(query: str) -> str:
     return query
 
 
-async def run(agent_input: AgentInput) -> AgentOutput:
+async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Fetch earthquake listings near target region."""
     location = agent_input.region_hint or _extract_location(agent_input.query)
     evidence_list: list[Evidence] = []
@@ -41,6 +42,24 @@ async def run(agent_input: AgentInput) -> AgentOutput:
 
         if not features:
             errors.append(f"No recent earthquakes found near {location}.")
+        elif bus is not None:
+            from orchestrator.schemas.collaboration import CollaborationMessage
+
+            top_feat = features[0]
+            props = top_feat.get("properties", {})
+            mag = props.get("mag", 0.0)
+            place = props.get("place", location)
+            await bus.broadcast(
+                CollaborationMessage(
+                    from_agent="seismic",
+                    finding_summary=f"Recent earthquake magnitude {mag} near {place}.",
+                    uncertainty=UncertaintyEstimate.from_point_estimate(
+                        0.95, source="well_supported"
+                    ),
+                    suggested_refinement={"region_hint": location},
+                    round=0,
+                )
+            )
 
         for feat in features:
             props = feat.get("properties", {})

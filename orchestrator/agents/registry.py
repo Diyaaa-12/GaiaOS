@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
-from orchestrator.schemas.agent_io import AgentInput, AgentOutput
+from orchestrator.schemas.agent_io import AgentOutput
 
-AgentRunner = Callable[[AgentInput], Awaitable[AgentOutput]]
+AgentRunner = Callable[..., Awaitable[AgentOutput]]
 
 
 class AgentRegistry:

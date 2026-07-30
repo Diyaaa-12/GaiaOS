@@ -55,6 +55,11 @@ class Settings(BaseSettings):
         validation_alias="AGENT_TIMEOUT",
         description="Timeout for individual agent executions in seconds.",
     )
+    enable_agent_collaboration: bool = Field(
+        default=False,
+        validation_alias="ENABLE_AGENT_COLLABORATION",
+        description="Feature flag for Phase 5 Milestone 4 Multi-Agent Collaboration Protocol.",
+    )
     usgs_api_url: str = Field(
         default="https://earthquake.usgs.gov/fdsnws/event/1/query",
         validation_alias="USGS_API_URL",

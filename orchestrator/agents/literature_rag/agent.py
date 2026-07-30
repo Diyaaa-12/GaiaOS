@@ -8,10 +8,11 @@ from config.settings import get_settings
 from db.repository import LiteratureRepository
 from db.session import AsyncSessionLocal
 from orchestrator.agents.literature_rag.embedding import get_embedding_provider
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput
 
 
-async def run(agent_input: AgentInput) -> AgentOutput:
+async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Execute hybrid retrieval over planetary risk literature chunks.
 
     Orchestration-only: delegates the actual hybrid search and db queries

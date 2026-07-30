@@ -5,7 +5,9 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime
 
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
+from orchestrator.schemas.collaboration import CollaborationMessage
 from orchestrator.schemas.uncertainty import UncertaintyEstimate
 from tools.geocoding import geocode_location
 from tools.ocean_noaa.client import NOAAOceanClient
@@ -22,7 +24,7 @@ def _extract_location(query: str) -> str:
     return query
 
 
-async def run(agent_input: AgentInput) -> AgentOutput:
+async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Fetch sea surface temperature measurements from NOAA."""
     location = agent_input.region_hint or _extract_location(agent_input.query)
     evidence_list: list[Evidence] = []
@@ -69,3 +71,24 @@ async def run(agent_input: AgentInput) -> AgentOutput:
         evidence=evidence_list,
         errors=errors,
     )
+
+
+def on_peer_finding(message: CollaborationMessage, agent_input: AgentInput) -> AgentInput | None:
+    """Refining hook for ocean agent when receiving peer findings.
+
+    If peer seismic agent broadcasts a seismic finding with a region hint,
+    and ocean agent's current region_hint does not match, return a refined input.
+    """
+    if message.from_agent == "seismic" and message.suggested_refinement:
+        region = message.suggested_refinement.get("region_hint")
+        if region and agent_input.region_hint != region:
+            return AgentInput(
+                investigation_id=agent_input.investigation_id,
+                query=agent_input.query,
+                region_hint=region,
+            )
+    return None
+
+
+# Attach collaboration peer finding hook to runner callable
+run.on_peer_finding = on_peer_finding  # type: ignore[attr-defined]

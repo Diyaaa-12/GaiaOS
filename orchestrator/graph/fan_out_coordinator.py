@@ -10,13 +10,16 @@ from typing import Any
 from config.settings import get_settings
 from logging_config import get_logger
 from orchestrator.agents.registry import agent_registry
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput
 
 _log = get_logger(__name__)
 
 
 def _make_failed_runner(domain: str) -> Any:
-    async def failed_runner(agent_input: AgentInput) -> AgentOutput:
+    async def failed_runner(
+        agent_input: AgentInput, bus: CollaborationBus | None = None
+    ) -> AgentOutput:
         return AgentOutput(
             agent_name=domain,
             evidence=[],
@@ -43,6 +46,18 @@ class FanOutCoordinator:
         settings = get_settings()
         timeout = settings.agent_timeout
 
+        # Construct one bus per investigation if collaboration feature flag is enabled
+        bus: CollaborationBus | None = None
+        if settings.enable_agent_collaboration:
+            from orchestrator.graph.collaboration_bus import CollaborationBus
+
+            bus = CollaborationBus(investigation_id=str(investigation_id))
+            _log.info(
+                "collaboration.bus.created",
+                investigation_id=str(investigation_id),
+            )
+
+        domain_inputs: dict[str, AgentInput] = {}
         tasks = []
         for domain in domains:
             try:
@@ -56,12 +71,13 @@ class FanOutCoordinator:
                 query=query,
                 region_hint=region_hint,
             )
+            domain_inputs[domain] = agent_input
 
             # Wrap the agent execution with timeout, logging, and error boundaries
             tasks.append(
                 asyncio.create_task(
                     FanOutCoordinator._run_agent_with_monitoring(
-                        domain, agent_runner, agent_input, timeout
+                        domain, agent_runner, agent_input, timeout, bus=bus
                     )
                 )
             )
@@ -91,14 +107,63 @@ class FanOutCoordinator:
                 )
             elif isinstance(res, AgentOutput):
                 processed_results.append(res)
-            else:
-                processed_results.append(
-                    AgentOutput(
-                        agent_name=domain,
-                        evidence=[],
-                        errors=[f"Unexpected output type from runner: {type(res)}"],
-                    )
-                )
+        # Stage B: Collaboration Refinement Check (Round 1)
+        # Policy: Evaluate all peer messages for each agent, then deterministically
+        # apply the latest applicable peer refinement (chronologically last broadcast).
+        if bus is not None:
+            snapshot = await bus.snapshot()
+            if snapshot:
+                for idx, domain in enumerate(domains):
+                    try:
+                        agent_runner = agent_registry.get(domain)
+                    except ValueError:
+                        continue
+
+                    peer_hook = getattr(agent_runner, "on_peer_finding", None)
+                    if callable(peer_hook):
+                        initial_input = domain_inputs.get(domain)
+                        if initial_input is None:
+                            continue
+
+                        peer_msgs = await bus.peer_findings(requesting_agent=domain, since_round=0)
+
+                        # Evaluate all peer messages first to avoid iteration order ambiguity
+                        candidates: list[tuple[Any, AgentInput]] = []
+                        for peer_msg in peer_msgs:
+                            # Peer hooks are optional extension points; exceptions are intentionally
+                            # isolated so one faulty collaboration hook cannot interrupt fan-out
+                            # execution.
+                            try:
+                                candidate_input = peer_hook(peer_msg, initial_input)
+                                if candidate_input is not None:
+                                    candidates.append((peer_msg, candidate_input))
+                            except Exception as exc:
+                                _log.error(
+                                    "collaboration.peer_hook.error",
+                                    investigation_id=str(investigation_id),
+                                    agent_name=domain,
+                                    from_agent=peer_msg.from_agent,
+                                    error=str(exc),
+                                )
+
+                        # Deterministic Policy: Select the latest applicable peer refinement
+                        if candidates:
+                            last_peer_msg, selected_refined_input = candidates[-1]
+                            _log.info(
+                                "collaboration.refinement.triggered",
+                                investigation_id=str(investigation_id),
+                                agent_name=domain,
+                                from_agent=last_peer_msg.from_agent,
+                                round=1,
+                            )
+                            refined_output = await FanOutCoordinator._run_agent_with_monitoring(
+                                domain,
+                                agent_runner,
+                                selected_refined_input,
+                                timeout,
+                                bus=bus,
+                            )
+                            processed_results[idx] = refined_output
 
         return processed_results
 
@@ -108,6 +173,7 @@ class FanOutCoordinator:
         runner: Any,
         agent_input: AgentInput,
         timeout: float,
+        bus: CollaborationBus | None = None,
     ) -> AgentOutput:
         from datetime import datetime
 
@@ -145,8 +211,8 @@ class FanOutCoordinator:
         await _safe_publish(start_evt)
 
         try:
-            # Wrap the entire agent execution with timeout
-            output = await asyncio.wait_for(runner(agent_input), timeout=timeout)
+            # Single execution path passing agent_input and optional bus
+            output = await asyncio.wait_for(runner(agent_input, bus=bus), timeout=timeout)
             duration_ms = int((time.perf_counter() - start_time) * 1000)
 
             _log.info(
