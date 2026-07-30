@@ -22,9 +22,15 @@ class CitationMapper:
 
     def __init__(self, gathered_outputs: list[AgentOutput]):
         self.evidence_pool: list[Evidence] = []
+        self.evidence_domain_map: dict[str, str] = {}
+
         for output in gathered_outputs:
+            domain_name = output.agent_name
             if output.evidence:
-                self.evidence_pool.extend(output.evidence)
+                for e in output.evidence:
+                    self.evidence_pool.append(e)
+                    if e.id:
+                        self.evidence_domain_map[str(e.id)] = domain_name
 
         # O(1) Lookup Indices built once during initialization
         self.id_index: dict[str, Evidence] = {}
@@ -49,6 +55,42 @@ class CitationMapper:
         if self.total_citations == 0:
             return 0.0
         return self.matched_by_text_fallback_count / self.total_citations
+
+    def get_cited_domains(self, claim: SynthesizedClaim) -> set[str]:
+        """Return the set of distinct domain names supporting the claim's citations.
+
+        Inspects evidence pool mapping to determine domain origin for each verified citation.
+        Duplicate citations from the same domain are deduplicated in the returned set.
+        """
+        domains: set[str] = set()
+        for ev in claim.supporting_evidence:
+            if ev.id and str(ev.id) in self.evidence_domain_map:
+                domains.add(self.evidence_domain_map[str(ev.id)])
+            elif ev.extra_metadata.get("domain"):
+                domains.add(str(ev.extra_metadata["domain"]))
+            elif ev.source:
+                src_lower = ev.source.lower()
+                for known in (
+                    "usgs",
+                    "noaa",
+                    "openaq",
+                    "open-meteo",
+                    "firms",
+                    "rag",
+                    "causal",
+                    "seismic",
+                    "ocean",
+                    "wildfire",
+                    "atmosphere",
+                    "air_quality",
+                    "simulation",
+                ):
+                    if known in src_lower:
+                        domains.add(known)
+                        break
+                else:
+                    domains.add(ev.source)
+        return domains
 
     def map_citations(self, citations: Sequence[RawCitedEvidence]) -> list[Evidence] | None:
         """Map raw LLM citations to verified Evidence entities from the pool.

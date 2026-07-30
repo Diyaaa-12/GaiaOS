@@ -6,6 +6,7 @@ import json
 import time
 import uuid
 
+from config.settings import get_settings
 from logging_config import get_logger
 from orchestrator.agents.synthesis.citation_mapper import CitationMapper
 from orchestrator.agents.synthesis.uncertainty_propagation import propagate_uncertainty
@@ -24,8 +25,13 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
     """Synthesize evidence from multiple domain agents into a citation-mapped answer.
 
     Enforces citation integrity using CitationMapper, dropping claims with fabricated citations.
+    Enforces minimum distinct-domain evidence requirements for cross_domain_pattern claims.
     """
     start_time = time.perf_counter()
+    settings = get_settings()
+    cross_domain_accepted_count = 0
+    cross_domain_rejection_count = 0
+    cross_domain_domains_per_claim: list[int] = []
 
     # 1. Collate actual evidence and identify domain gaps
     all_evidence: list[Evidence] = []
@@ -68,18 +74,22 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
             "role": "system",
             "content": (
                 "You are the Synthesis Agent of GaiaOS. Your job is to merge evidence "
-                "from multiple domain agents into a list of cohesive synthesized claims. "
+                "from multiple domain agents into a list of cohesive synthesized claims.\n\n"
+                "For claims that identify multi-hazard or cross-domain patterns spanning "
+                "multiple distinct domain sources, set 'claim_type' to 'cross_domain_pattern'. "
+                "Otherwise, default 'claim_type' to 'single_domain'.\n\n"
                 "For each claim you make, you MUST cite supporting evidence by providing "
                 "its exact 'evidence_id' (UUID), 'source', and 'claim' into the "
                 "'supporting_evidence' list.\n\n"
                 "Example citation structure:\n"
                 "{\n"
-                '  "text": "At station Paris-South, PM10 is 30.0 ug/m3.",\n'
+                '  "text": "Seismic activity correlated with sea surface temperature anomalies.",\n'
+                '  "claim_type": "cross_domain_pattern",\n'
                 '  "supporting_evidence": [\n'
                 "    {\n"
                 '      "evidence_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",\n'
-                '      "source": "OpenAQ API (Station: Paris-South)",\n'
-                '      "claim": "At station Paris-South, PM10 is 30.0 ug/m3.",\n'
+                '      "source": "USGS Seismic API",\n'
+                '      "claim": "Earthquake of mag 6.0.",\n'
                 '      "confidence": 0.95\n'
                 "    }\n"
                 "  ],\n"
@@ -119,6 +129,10 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
                             "type": "object",
                             "properties": {
                                 "text": {"type": "string"},
+                                "claim_type": {
+                                    "type": "string",
+                                    "enum": ["single_domain", "cross_domain_pattern"],
+                                },
                                 "supporting_evidence": {
                                     "type": "array",
                                     "items": {
@@ -142,6 +156,7 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
                             },
                             "required": [
                                 "text",
+                                "claim_type",
                                 "supporting_evidence",
                                 "confidence",
                             ],
@@ -169,6 +184,7 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
             fallback_claims.append(
                 SynthesizedClaim(
                     text=ev.claim,
+                    claim_type="single_domain",
                     supporting_evidence=[ev],
                     confidence=ev.confidence,
                     uncertainty_bounds=ev.uncertainty_bounds,
@@ -227,15 +243,45 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
         if uncertainty_bounds is None:
             uncertainty_bounds = (claim_uncertainty.lower_bound, claim_uncertainty.upper_bound)
 
-        valid_claims.append(
-            SynthesizedClaim(
-                text=raw_claim["text"],
-                supporting_evidence=verified_ev,
-                uncertainty=claim_uncertainty,
-                uncertainty_bounds=uncertainty_bounds,
-                assumptions=assumptions,
-            )
+        raw_claim_type = raw_claim.get("claim_type", "single_domain")
+        if raw_claim_type not in ("single_domain", "cross_domain_pattern"):
+            raw_claim_type = "single_domain"
+
+        candidate_claim = SynthesizedClaim(
+            text=raw_claim["text"],
+            claim_type=raw_claim_type,
+            supporting_evidence=verified_ev,
+            uncertainty=claim_uncertainty,
+            uncertainty_bounds=uncertainty_bounds,
+            assumptions=assumptions,
         )
+
+        cited_domains = mapper.get_cited_domains(candidate_claim)
+
+        if candidate_claim.claim_type == "cross_domain_pattern":
+            if len(cited_domains) < settings.min_cross_domain_evidence:
+                _log.warning(
+                    "synthesis.cross_domain_claim_rejected",
+                    text=candidate_claim.text,
+                    distinct_domains=list(cited_domains),
+                    distinct_count=len(cited_domains),
+                    required=settings.min_cross_domain_evidence,
+                    reason="Insufficient distinct domain citations for cross_domain_pattern claim.",
+                )
+                cross_domain_rejection_count += 1
+                # Reject invalid cross_domain_pattern claim per roadmap specification
+                continue
+            else:
+                _log.info(
+                    "synthesis.cross_domain_claim_accepted",
+                    text=candidate_claim.text,
+                    distinct_domains=list(cited_domains),
+                    distinct_count=len(cited_domains),
+                )
+                cross_domain_accepted_count += 1
+                cross_domain_domains_per_claim.append(len(cited_domains))
+
+        valid_claims.append(candidate_claim)
 
     # If all claims were invalid/dropped, fallback to the standard unable-to-gather claim
     if not valid_claims:
@@ -252,6 +298,9 @@ async def synthesize(evidence: list[AgentOutput]) -> SynthesisOutput:
         "synthesis.completed",
         claim_count=len(valid_claims),
         gap_count=len(evidence_gaps),
+        cross_domain_accepted=cross_domain_accepted_count,
+        cross_domain_rejected=cross_domain_rejection_count,
+        cross_domain_domains_per_claim=cross_domain_domains_per_claim,
         duration_ms=duration_ms,
     )
 
