@@ -9,6 +9,7 @@ import re
 from datetime import UTC, datetime
 
 from config.settings import get_settings
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
 from orchestrator.schemas.uncertainty import UncertaintyEstimate
 from tools.air_quality_openaq.client import OpenAQClient
@@ -17,7 +18,7 @@ from tools.air_quality_openaq.client import OpenAQClient
 def _extract_city(query: str) -> str:
     """Fallback simple city parser for Milestone 2 query texts."""
     match = re.search(
-        r"\b(Paris|Beijing|London|Delhi|Madrid|Tokyo)\b",
+        r"\b(Paris|London|Delhi|Madrid|Beijing|Tokyo|New York)\b",
         query,
         re.IGNORECASE,
     )
@@ -26,7 +27,7 @@ def _extract_city(query: str) -> str:
     return "Paris"  # default fallback
 
 
-async def run(agent_input: AgentInput) -> AgentOutput:
+async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Query OpenAQ and format measurements as evidence items."""
     city = agent_input.region_hint or _extract_city(agent_input.query)
 

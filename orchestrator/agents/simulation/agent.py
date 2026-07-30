@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from logging_config import get_logger
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
 from orchestrator.schemas.uncertainty import UncertaintyEstimate
 from simulation_engine import run_simulation
@@ -88,7 +89,9 @@ def _extract_parameters(query: str, prior_outputs: list[AgentOutput] | None) -> 
 
 
 async def run(
-    agent_input: AgentInput, prior_outputs: list[AgentOutput] | None = None
+    agent_input: AgentInput,
+    prior_outputs: list[AgentOutput] | None = None,
+    bus: CollaborationBus | None = None,
 ) -> AgentOutput:
     """Execute the simulation model matching the query's hazard type."""
     query = agent_input.query

@@ -6,6 +6,7 @@ import re
 from datetime import UTC, datetime
 
 from config.settings import get_settings
+from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
 from orchestrator.schemas.uncertainty import SourceType, UncertaintyEstimate
 from tools.geocoding import geocode_location
@@ -23,7 +24,7 @@ def _extract_location(query: str) -> str:
     return query
 
 
-async def run(agent_input: AgentInput) -> AgentOutput:
+async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Fetch active fire counts from NASA FIRMS API."""
     location = agent_input.region_hint or _extract_location(agent_input.query)
     evidence_list: list[Evidence] = []
