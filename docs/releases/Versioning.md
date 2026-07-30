@@ -4,8 +4,8 @@ This document details the versioning strategy, tag evolution, and milestone rele
 
 ## Release Map
 
-| Git Tag | Development Milestone | Status |
-| ------- | --------------------- | ------ |
+| Git Tag / Version | Scope | Status |
+|---|---|---|
 | Pre-tag | Phase 1 | Complete |
 | v0.2.0  | Phase 2 | Complete |
 | v0.3.0  | Phase 3 | Complete |
@@ -14,7 +14,8 @@ This document details the versioning strategy, tag evolution, and milestone rele
 | v4.2.0  | Community Health | Complete |
 | v4.3.0  | Contributor Experience | Complete |
 | v4.4.0  | Open Source Release Polish | Complete (Final Readiness) |
-v5.0.0 | Phase 5 Milestones 1–2 | Complete
+| v5.0.0  | Phase 5 Milestones 1–2 (Evaluation & Repository Integrity) | Complete |
+| v5.1.0  | Phase 5 Complete (Planetary Intelligence) | Complete |
 
 ---
 
@@ -47,10 +48,15 @@ GaiaOS follows a milestone-oriented release strategy inspired by Semantic Versio
 - **v4.3.0** — Contributor Experience
 - **v4.4.0** — Open Source Release Polish (Final Open Source Readiness Release)
 
+### The v5.x Planetary Intelligence Series
+
+- **v5.0.0** — Phase 5 Milestones 1–2 (Evaluation & Repository Integrity)
+- **v5.1.0** — Phase 5 Complete (Planetary Intelligence)
+
 ---
 
 ## Future Releases
 
-- **v5.0.0** — Phase 5 (Planetary Intelligence Scale & Production System)
+- **v6.0.0** — Phase 6 (Agent Plugin Architecture & Dynamic Extensions)
 
 *(Refer to the project roadmap for current scope.)*
