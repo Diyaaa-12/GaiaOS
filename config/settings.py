@@ -60,6 +60,11 @@ class Settings(BaseSettings):
         validation_alias="ENABLE_AGENT_COLLABORATION",
         description="Feature flag for Phase 5 Milestone 4 Multi-Agent Collaboration Protocol.",
     )
+    min_cross_domain_evidence: int = Field(
+        default=2,
+        validation_alias="MIN_CROSS_DOMAIN_EVIDENCE",
+        description="Minimum distinct domain sources required for a cross_domain_pattern claim.",
+    )
     usgs_api_url: str = Field(
         default="https://earthquake.usgs.gov/fdsnws/event/1/query",
         validation_alias="USGS_API_URL",

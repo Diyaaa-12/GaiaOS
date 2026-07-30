@@ -33,6 +33,10 @@ class SynthesizedClaim(BaseModel):
     """A synthesized claim backed by mapped evidence citations."""
 
     text: str = Field(description="The text of the claim.")
+    claim_type: Literal["single_domain", "cross_domain_pattern"] = Field(
+        default="single_domain",
+        description="Category of claim: single_domain or cross_domain_pattern.",
+    )
     supporting_evidence: list[Evidence] = Field(
         default_factory=list,
         description="List of supporting evidence objects cited for this claim.",
