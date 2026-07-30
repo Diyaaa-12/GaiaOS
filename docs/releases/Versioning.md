@@ -15,7 +15,7 @@ This document details the versioning strategy, tag evolution, and milestone rele
 | v4.3.0  | Contributor Experience | Complete |
 | v4.4.0  | Open Source Release Polish | Complete (Final Readiness) |
 | v5.0.0  | Phase 5 Milestones 1–2 (Evaluation & Repository Integrity) | Complete |
-| v5.1.0  | Phase 5 Complete (Planetary Intelligence) | Complete |
+| v5.1.0  | Phase 5 Milestones 3–5 (Uncertainty, Multi-Agent Collaboration & Cross-Domain Synthesis) | Complete |
 
 ---
 
@@ -51,7 +51,7 @@ GaiaOS follows a milestone-oriented release strategy inspired by Semantic Versio
 ### The v5.x Planetary Intelligence Series
 
 - **v5.0.0** — Phase 5 Milestones 1–2 (Evaluation & Repository Integrity)
-- **v5.1.0** — Phase 5 Complete (Planetary Intelligence)
+- **v5.1.0** — Phase 5 Milestones 3–5 (Uncertainty, Multi-Agent Collaboration & Cross-Domain Synthesis)
 
 ---
 
