@@ -9,13 +9,13 @@ This document details the versioning strategy, tag evolution, and milestone rele
 | Pre-tag | Phase 1 | Complete |
 | v0.2.0  | Phase 2 | Complete |
 | v0.3.0  | Phase 3 | Complete |
-| v4.0.0  | Phase 4 | Complete |
-| v4.1.0  | Repository Governance | Complete |
-| v4.2.0  | Community Health | Complete |
-| v4.3.0  | Contributor Experience | Complete |
-| v4.4.0  | Open Source Release Polish | Complete (Final Readiness) |
-| v5.0.0  | Phase 5 Milestones 1–2 (Evaluation & Repository Integrity) | Complete |
-| v5.1.0  | Phase 5 Milestones 3–5 (Uncertainty, Multi-Agent Collaboration & Cross-Domain Synthesis) | Complete |
+| v0.4.0  | Phase 4 Complete | Complete |
+| v0.4.1  | Repository Governance | Complete |
+| v0.4.2  | Community Health | Complete |
+| v0.4.3  | Contributor Experience | Complete |
+| v0.4.4  | Open Source Release Polish | Complete (Final Readiness) |
+| v0.5.0  | Phase 5 Milestones 1–2 (Evaluation & Repository Integrity) | Complete |
+| v0.5.1  | Phase 5 Milestones 3–5 (Uncertainty, Multi-Agent Collaboration & Cross-Domain Synthesis) | Complete |
 
 ---
 
@@ -24,39 +24,32 @@ This document details the versioning strategy, tag evolution, and milestone rele
 - **v0.2.0** — Phase 2: Multi-Agent Reasoning Core, LangGraph Integration & Literature RAG
 - **v0.3.0** — Phase 3: Durable Execution, JWT/API Key Auth & Evaluation Suite
 
-During the early development lifecycle, GaiaOS used project version tags (`v0.2.0`, `v0.3.0`) to identify major engineering milestones (Phase 2 and Phase 3).
-
-Beginning with Phase 4, the project adopted a structured milestone-oriented release strategy to support long-term maintenance, governance, and public open-source development.
-
-The historical tags are intentionally preserved to maintain an accurate engineering history.
-
 ---
 
 ## Release Strategy
 
-GaiaOS follows a milestone-oriented release strategy inspired by Semantic Versioning:
+GaiaOS follows Semantic Versioning (`v0.X.Y`):
 
-- **Major versions** (`v4.0.0`, `v5.0.0`) represent significant project milestones.
-- **Minor versions** (`v4.1.0`, `v4.2.0`) represent engineering releases within a milestone series.
-- **Patch versions** (`v4.1.1`) are reserved for maintenance releases, hotfixes, and bug fixes.
+- **MINOR versions** (`v0.4.0`, `v0.5.0`) represent major phase completions.
+- **PATCH versions** (`v0.4.1`, `v0.5.1`) represent milestone releases within a phase series.
 
-### The v4.x Open Source Readiness Series
+### The v0.4.x Open Source Readiness Series
 
-- **v4.0.0** — Phase 4 Complete
-- **v4.1.0** — Repository Governance
-- **v4.2.0** — Community Health
-- **v4.3.0** — Contributor Experience
-- **v4.4.0** — Open Source Release Polish (Final Open Source Readiness Release)
+- **v0.4.0** — Phase 4 Complete
+- **v0.4.1** — Repository Governance
+- **v0.4.2** — Community Health
+- **v0.4.3** — Contributor Experience
+- **v0.4.4** — Open Source Release Polish
 
-### The v5.x Planetary Intelligence Series
+### The v0.5.x Planetary Intelligence Series
 
-- **v5.0.0** — Phase 5 Milestones 1–2 (Evaluation & Repository Integrity)
-- **v5.1.0** — Phase 5 Milestones 3–5 (Uncertainty, Multi-Agent Collaboration & Cross-Domain Synthesis)
+- **v0.5.0** — Phase 5 Milestones 1–2 (Evaluation & Repository Integrity)
+- **v0.5.1** — Phase 5 Milestones 3–5 (Uncertainty, Multi-Agent Collaboration & Cross-Domain Synthesis)
 
 ---
 
 ## Future Releases
 
-- **v6.0.0** — Phase 6 (Agent Plugin Architecture & Dynamic Extensions)
+- **v0.6.0** — Phase 6 (Agent Plugin Architecture & Dynamic Extensions)
 
 *(Refer to the project roadmap for current scope.)*
