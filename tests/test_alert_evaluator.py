@@ -126,6 +126,12 @@ class TestAlertEvaluatorIntegration:
 
         monkeypatch.setattr(WebhookNotificationChannel, "notify", mock_notify)
 
+        # 0. Clean DB tables for test isolation
+        await db_session.execute(text("DELETE FROM alert_incidents"))
+        await db_session.execute(text("DELETE FROM alert_rules"))
+        await db_session.execute(text("DELETE FROM metrics"))
+        await db_session.commit()
+
         # 1. Upsert rule requiring 2 consecutive cycles
         await AlertRepository.upsert_alert_rule(
             session=db_session,

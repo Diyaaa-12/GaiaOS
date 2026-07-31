@@ -13,11 +13,60 @@ import asyncio
 import inspect
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import get_type_hints
+from typing import Any, get_type_hints
 
 from orchestrator.agents.registry import AgentRegistry, agent_registry, register_agents
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput
+
+
+def validate_runner_contract(runner: Callable[..., Any], domain: str = "plugin") -> list[str]:
+    """Validate a single agent runner callable's signature against the AgentInput contract."""
+    errors: list[str] = []
+    if not (asyncio.iscoroutinefunction(runner) or inspect.iscoroutinefunction(runner)):
+        errors.append(
+            f"Agent '{domain}' runner callable is not an async coroutine function. "
+            "Expected 'async def run(agent_input: AgentInput, bus: CollaborationBus | None = None)'"
+        )
+        return errors
+
+    sig = inspect.signature(runner)
+    params = list(sig.parameters.values())
+
+    if len(params) < 1:
+        errors.append(
+            f"Agent '{domain}' runner takes {len(params)} parameters. "
+            "Expected at least 1 parameter of type AgentInput."
+        )
+        return errors
+
+    param_0 = params[0]
+    type_hints = get_type_hints(runner) if hasattr(runner, "__annotations__") else {}
+    param_type = type_hints.get(param_0.name, param_0.annotation)
+
+    if (
+        param_type is not inspect.Parameter.empty
+        and param_type is not AgentInput
+        and not (isinstance(param_type, type) and issubclass(param_type, AgentInput))
+    ):
+        errors.append(
+            f"Agent '{domain}' first parameter '{param_0.name}' has type {param_type!r}. "
+            "Expected type AgentInput."
+        )
+
+    return_type = type_hints.get("return", sig.return_annotation)
+    if (
+        return_type is not inspect.Signature.empty
+        and return_type is not AgentOutput
+        and not (isinstance(return_type, type) and issubclass(return_type, AgentOutput))
+    ):
+        errors.append(
+            f"Agent '{domain}' return annotation is {return_type!r}. "
+            "Expected return type AgentOutput."
+        )
+
+    return errors
 
 
 def validate_agent_contracts(
@@ -49,47 +98,8 @@ def validate_agent_contracts(
             errors.append(f"Failed to retrieve runner for domain '{domain}': {exc}")
             continue
 
-        if not (asyncio.iscoroutinefunction(runner) or inspect.iscoroutinefunction(runner)):
-            errors.append(
-                f"Agent '{domain}' runner callable is not an async coroutine function. "
-                "Expected 'async def run(agent_input: AgentInput) -> AgentOutput'."
-            )
-            continue
-
-        sig = inspect.signature(runner)
-        params = list(sig.parameters.values())
-
-        if len(params) < 1:
-            errors.append(
-                f"Agent '{domain}' runner takes {len(params)} parameters. "
-                "Expected at least 1 parameter of type AgentInput."
-            )
-            continue
-
-        param_0 = params[0]
-        type_hints = get_type_hints(runner) if hasattr(runner, "__annotations__") else {}
-        param_type = type_hints.get(param_0.name, param_0.annotation)
-
-        if (
-            param_type is not inspect.Parameter.empty
-            and param_type is not AgentInput
-            and not (isinstance(param_type, type) and issubclass(param_type, AgentInput))
-        ):
-            errors.append(
-                f"Agent '{domain}' first parameter '{param_0.name}' has type {param_type!r}. "
-                "Expected type AgentInput."
-            )
-
-        return_type = type_hints.get("return", sig.return_annotation)
-        if (
-            return_type is not inspect.Signature.empty
-            and return_type is not AgentOutput
-            and not (isinstance(return_type, type) and issubclass(return_type, AgentOutput))
-        ):
-            errors.append(
-                f"Agent '{domain}' return annotation is {return_type!r}. "
-                "Expected return type AgentOutput."
-            )
+        runner_errors = validate_runner_contract(runner, domain)
+        errors.extend(runner_errors)
 
     # 2. Validate evaluation benchmark dataset coverage
     q_file = questions_path or (Path.cwd() / "eval" / "benchmarks" / "questions.json")

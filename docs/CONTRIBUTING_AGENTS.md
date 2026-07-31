@@ -6,11 +6,14 @@ This guide provides step-by-step instructions for adding a new environmental or 
 
 ## 1. Architectural Principles
 
+- **First-Party vs. Plugin Agents**:
+  - **First-Party Agents** (this guide): Core agents maintained in the `orchestrator/agents/` repository tree via Pull Request.
+  - **Plugin Agents**: Independently distributed Python packages (`pip install`) discovered dynamically via entry points. For developing external plugins, see [PLUGIN_DEVELOPMENT.md](file:///c:/Users/DIYA/OneDrive/Documents/Projects/GaiaOS/docs/PLUGIN_DEVELOPMENT.md).
 - **Standard I/O Contract**: All domain agents implement a single entry point:
   ```python
-  async def run(agent_input: AgentInput) -> AgentOutput: ...
+  async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput: ...
   ```
-- **Explicit Registry**: Agents are imported and registered in `orchestrator/agents/registry.py`. GaiaOS intentionally avoids dynamic plugin loading, reflection, or magic auto-discovery to keep agent dependencies explicit and maintainable.
+- **Explicit Registry**: First-party agents are statically registered in `orchestrator/agents/registry.py`. Dynamic plugin agents are discovered at worker startup via package entry points.
 - **Zero Runtime Redesign**: Adding an agent requires zero changes to the orchestrator graph or runtime core.
 
 ---

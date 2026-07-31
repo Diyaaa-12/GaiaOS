@@ -4,6 +4,8 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from orchestrator.__version__ import GAIAOS_VERSION
+
 
 class Settings(BaseSettings):
     """Typed application settings loaded from environment variables."""
@@ -36,7 +38,7 @@ class Settings(BaseSettings):
         description="Optional API key for OpenAQ measurements provider.",
     )
     orchestrator_version: str = Field(
-        default="1.0.0-dev",
+        default=GAIAOS_VERSION,
         validation_alias="ORCHESTRATOR_VERSION",
         description="Active codebase version identifier.",
     )
@@ -64,6 +66,19 @@ class Settings(BaseSettings):
         default=2,
         validation_alias="MIN_CROSS_DOMAIN_EVIDENCE",
         description="Minimum distinct domain sources required for a cross_domain_pattern claim.",
+    )
+    plugins_enabled: bool = Field(
+        default=True,
+        validation_alias="PLUGINS_ENABLED",
+        description="Feature flag to enable dynamic discovery of agent plugins at worker startup.",
+    )
+    strict_plugin_validation: bool = Field(
+        default=False,
+        validation_alias="STRICT_PLUGIN_VALIDATION",
+        description=(
+            "If True, any plugin validation error aborts worker boot; "
+            "if False, disables faulty plugin with loud error."
+        ),
     )
     usgs_api_url: str = Field(
         default="https://earthquake.usgs.gov/fdsnws/event/1/query",
