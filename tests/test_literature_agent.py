@@ -10,6 +10,7 @@ import pytest
 
 from db.repository import LiteratureRepository
 from orchestrator.agents.literature_rag.agent import run as run_literature
+from orchestrator.agents.literature_rag.embedding import MockEmbeddingProvider
 from orchestrator.agents.registry import agent_registry
 from orchestrator.agents.supervisor.classifier import classify_query_complexity
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
@@ -50,20 +51,29 @@ class TestLiteratureAgent:
             MagicMock(spec=Evidence, claim="Found proof", source="doc1", confidence=0.8)
         ]
 
-        # Mock the repository search method and session local
-        with patch("orchestrator.agents.literature_rag.agent.AsyncSessionLocal", MagicMock()):
-            with patch.object(
+        # Mock the repository search method, embedding provider, and session local
+        with (
+            patch(
+                "orchestrator.agents.literature_rag.agent.get_embedding_provider",
+                return_value=MockEmbeddingProvider(),
+            ),
+            patch(
+                "orchestrator.agents.literature_rag.agent.AsyncSessionLocal",
+                MagicMock(return_value=AsyncMock()),
+            ),
+            patch.object(
                 LiteratureRepository, "hybrid_search", new_callable=AsyncMock
-            ) as mock_search:
-                mock_search.return_value = mock_evidence
+            ) as mock_search,
+        ):
+            mock_search.return_value = mock_evidence
 
-                output = await run_literature(agent_input)
+            output = await run_literature(agent_input)
 
-                assert isinstance(output, AgentOutput)
-                assert output.agent_name == "literature"
-                assert len(output.evidence) == 1
-                assert output.evidence[0].claim == "Found proof"
-                assert not output.errors
+            assert isinstance(output, AgentOutput)
+            assert output.agent_name == "literature"
+            assert len(output.evidence) == 1
+            assert output.evidence[0].claim == "Found proof"
+            assert not output.errors
 
     @pytest.mark.asyncio
     async def test_agent_embedding_failure_handling(self) -> None:
@@ -77,7 +87,10 @@ class TestLiteratureAgent:
         # Set environment variable to simulate embedding failure in MockEmbeddingProvider
         os.environ["SIMULATE_EMBEDDING_FAILURE"] = "true"
         try:
-            with patch("orchestrator.agents.literature_rag.agent.AsyncSessionLocal", MagicMock()):
+            with patch(
+                "orchestrator.agents.literature_rag.agent.AsyncSessionLocal",
+                MagicMock(return_value=AsyncMock()),
+            ):
                 output = await run_literature(agent_input)
 
                 assert isinstance(output, AgentOutput)
@@ -97,15 +110,25 @@ class TestLiteratureAgent:
             region_hint=None,
         )
 
-        with patch("orchestrator.agents.literature_rag.agent.AsyncSessionLocal", MagicMock()):
-            with patch.object(
+        with (
+            patch(
+                "orchestrator.agents.literature_rag.agent.get_embedding_provider",
+                return_value=MockEmbeddingProvider(),
+            ),
+            patch(
+                "orchestrator.agents.literature_rag.agent.AsyncSessionLocal",
+                MagicMock(return_value=AsyncMock()),
+            ),
+            patch.object(
                 LiteratureRepository, "hybrid_search", new_callable=AsyncMock
-            ) as mock_search:
-                mock_search.return_value = []
+            ) as mock_search,
+        ):
+            mock_search.return_value = []
 
-                output = await run_literature(agent_input)
+            output = await run_literature(agent_input)
 
-                assert isinstance(output, AgentOutput)
-                assert output.agent_name == "literature"
-                assert not output.evidence
-                assert not output.errors
+            assert isinstance(output, AgentOutput)
+            assert output.agent_name == "literature"
+            assert not output.evidence
+            assert not output.errors
+

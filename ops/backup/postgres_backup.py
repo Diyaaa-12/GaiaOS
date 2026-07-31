@@ -88,22 +88,25 @@ async def run_postgres_backup(
     temp_dir.mkdir(parents=True, exist_ok=True)
     temp_dump_path = temp_dir / f"{backup_id}.sql"
 
-    session_factory = get_session_factory()
+    record = BackupRecord(
+        backup_id=backup_id,
+        created_at=datetime.now(UTC),
+        status=BackupStatus.PENDING,
+        storage_location=str(settings.backup_storage_path),
+    )
 
-    # 1. Record state PENDING -> RUNNING
-    async with session_factory() as session:
-        record = BackupRecord(
-            backup_id=backup_id,
-            created_at=datetime.now(UTC),
-            status=BackupStatus.PENDING,
-            storage_location=str(settings.backup_storage_path),
-        )
-        session.add(record)
-        await session.commit()
-        await session.refresh(record)
+    # 1. Record state PENDING -> RUNNING (if DB is accessible)
+    try:
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            session.add(record)
+            await session.commit()
+            await session.refresh(record)
 
-        record.status = BackupStatus.RUNNING
-        await session.commit()
+            record.status = BackupStatus.RUNNING
+            await session.commit()
+    except Exception as db_exc:
+        _log.warning("backup.db_record_init_skipped", error=str(db_exc))
 
     _log.info("backup.started", backup_id=backup_id)
 
@@ -138,22 +141,48 @@ async def run_postgres_backup(
         completed_at = datetime.now(UTC)
 
         # 6. Mark BackupRecord as SUCCESS
-        async with session_factory() as session:
-            stmt = select(BackupRecord).where(BackupRecord.backup_id == backup_id)
-            res = await session.execute(stmt)
-            rec = res.scalar_one()
-
-            rec.status = BackupStatus.SUCCESS
-            rec.completed_at = completed_at
-            rec.size_bytes = size_bytes
-            rec.checksum = checksum
-            rec.storage_location = storage_location
-            rec.postgres_version = verification_metadata.get("postgres_version", "PostgreSQL")
-            rec.duration_ms = duration_ms
-            rec.verification_metadata = verification_metadata
-            await session.commit()
-            await session.refresh(rec)
-            final_record = rec
+        final_record = record
+        try:
+            session_factory = get_session_factory()
+            async with session_factory() as session:
+                stmt = select(BackupRecord).where(BackupRecord.backup_id == backup_id)
+                res = await session.execute(stmt)
+                rec = res.scalar_one_or_none()
+                if rec:
+                    rec.status = BackupStatus.SUCCESS
+                    rec.completed_at = completed_at
+                    rec.size_bytes = size_bytes
+                    rec.checksum = checksum
+                    rec.storage_location = storage_location
+                    rec.postgres_version = verification_metadata.get(
+                        "postgres_version", "PostgreSQL"
+                    )
+                    rec.duration_ms = duration_ms
+                    rec.verification_metadata = verification_metadata
+                    await session.commit()
+                    await session.refresh(rec)
+                    final_record = rec
+                else:
+                    record.status = BackupStatus.SUCCESS
+                    record.completed_at = completed_at
+                    record.size_bytes = size_bytes
+                    record.checksum = checksum
+                    record.storage_location = storage_location
+                    record.postgres_version = verification_metadata.get(
+                        "postgres_version", "PostgreSQL"
+                    )
+                    record.duration_ms = duration_ms
+                    record.verification_metadata = verification_metadata
+        except Exception as db_exc:
+            _log.warning("backup.db_record_update_skipped", error=str(db_exc))
+            record.status = BackupStatus.SUCCESS
+            record.completed_at = completed_at
+            record.size_bytes = size_bytes
+            record.checksum = checksum
+            record.storage_location = storage_location
+            record.postgres_version = verification_metadata.get("postgres_version", "PostgreSQL")
+            record.duration_ms = duration_ms
+            record.verification_metadata = verification_metadata
 
         _log.info(
             "backup.completed",
@@ -170,17 +199,23 @@ async def run_postgres_backup(
             success=True,
         )
         emit(event)
-        async with session_factory() as session:
-            await persist_metric(session, event)
-            await session.commit()
+        try:
+            async with session_factory() as session:
+                await persist_metric(session, event)
+                await session.commit()
+        except Exception as db_exc:
+            _log.warning("backup.persist_metric_skipped", error=str(db_exc))
 
         # 8. Retention cleanup
-        async with session_factory() as session:
-            await cleanup_expired_backups(
-                storage=storage_backend,
-                session=session,
-                retention_days=settings.backup_retention_days,
-            )
+        try:
+            async with session_factory() as session:
+                await cleanup_expired_backups(
+                    storage=storage_backend,
+                    session=session,
+                    retention_days=settings.backup_retention_days,
+                )
+        except Exception as db_exc:
+            _log.warning("backup.retention_cleanup_skipped", error=str(db_exc))
 
         return final_record
 

@@ -36,6 +36,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -44,11 +45,16 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from config.settings import get_settings
+from logging_config import get_logger
+
+_log = get_logger(__name__)
 
 # Module-level singletons — initialised by init_engine(), disposed by
 # dispose_engine().  Both are called from app.main's lifespan handler.
 engine: AsyncEngine | None = None
+read_engine: AsyncEngine | None = None
 AsyncSessionLocal: async_sessionmaker[AsyncSession] | None = None
+AsyncReadSessionLocal: async_sessionmaker[AsyncSession] | None = None
 
 
 def init_engine() -> None:
@@ -60,7 +66,7 @@ def init_engine() -> None:
 
     Raises ``RuntimeError`` if ``DATABASE_URL`` is not configured.
     """
-    global engine, AsyncSessionLocal
+    global engine, read_engine, AsyncSessionLocal, AsyncReadSessionLocal
 
     settings = get_settings()
     if settings.database_url is None:
@@ -74,28 +80,37 @@ def init_engine() -> None:
         # Replace stale connections transparently.
         pool_pre_ping=True,
         # Pool sizing: 5 connections idle + 10 overflow = 15 max concurrent.
-        # These are conservative defaults appropriate for a single-instance
-        # dev/staging deployment; tune via env vars in later milestones.
         pool_size=5,
         max_overflow=10,
-        # SQL query logging is now controlled by the stdlib logging bridge
-        # configured in logging_config.setup.configure_logging().
-        # Set LOG_LEVEL=DEBUG to see all queries; higher levels suppress them.
-        # echo=False prevents SQLAlchemy from bypassing the logging bridge
-        # with its own raw stdout writes.
         echo=False,
     )
 
     AsyncSessionLocal = async_sessionmaker(
         bind=engine,
         class_=AsyncSession,
-        # expire_on_commit=False prevents SQLAlchemy from expiring all
-        # attributes after a commit, which would cause lazy-load attempts
-        # on detached instances in response serialisation.
         expire_on_commit=False,
         autocommit=False,
         autoflush=False,
     )
+
+    if settings.read_replica_database_url and settings.read_asyncpg_url:
+        read_engine = create_async_engine(
+            settings.read_asyncpg_url,
+            pool_pre_ping=True,
+            pool_size=5,
+            max_overflow=10,
+            echo=False,
+        )
+        AsyncReadSessionLocal = async_sessionmaker(
+            bind=read_engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+            autocommit=False,
+            autoflush=False,
+        )
+    else:
+        read_engine = None
+        AsyncReadSessionLocal = AsyncSessionLocal
 
 
 async def dispose_engine() -> None:
@@ -104,35 +119,22 @@ async def dispose_engine() -> None:
     Must be called during application shutdown (lifespan).
     Safe to call even if ``init_engine()`` was never called.
 
-    Nulls both ``engine`` and ``AsyncSessionLocal`` so any post-shutdown
-    access to ``get_db_session`` raises a clear ``RuntimeError`` rather
-    than attempting to use a factory whose underlying engine is gone.
+    Nulls ``engine``, ``read_engine``, ``AsyncSessionLocal``, and
+    ``AsyncReadSessionLocal`` so post-shutdown session calls raise RuntimeError.
     """
-    global engine, AsyncSessionLocal
+    global engine, read_engine, AsyncSessionLocal, AsyncReadSessionLocal
+    if read_engine is not None and read_engine is not engine:
+        await read_engine.dispose()
+        read_engine = None
     if engine is not None:
         await engine.dispose()
         engine = None
     AsyncSessionLocal = None
+    AsyncReadSessionLocal = None
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Yield a database session and guarantee cleanup.
-
-    Intended for use as a FastAPI dependency via ``app.dependencies``.
-    Callers are responsible for calling ``session.commit()`` or
-    ``session.rollback()`` explicitly; this generator only guarantees
-    the session is closed.
-
-    Raises ``RuntimeError`` if the session factory has not been initialised
-    (i.e. ``init_engine()`` was never called).
-
-    Example::
-
-        @router.get("/example")
-        async def example(db: DbSessionDep) -> ...:
-            result = await db.execute(select(MyModel))
-            ...
-    """
+    """Yield a database session and guarantee cleanup."""
     if AsyncSessionLocal is None:
         raise RuntimeError(
             "Database session factory is not initialised.  "
@@ -143,15 +145,46 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-async def verify_extensions(session: AsyncSession) -> dict[str, bool]:
-    """Check that PostGIS and pgvector are installed in the database.
+async def get_read_session() -> AsyncGenerator[AsyncSession, None]:
+    """Yield a read-replica database session with primary fallback upon acquisition failure.
 
-    Queries ``pg_extension`` — a read-only catalog view available to any
-    database user.  Does NOT attempt to create extensions.
+    Fallback Scope:
+        The OperationalError fallback applies strictly during session acquisition and
+        connection pool checkout (when entering factory()). Once a session is yielded to
+        the caller, subsequent query execution errors within the caller's block are not
+        retried or caught by this provider.
 
-    Returns a dict mapping extension name to a boolean indicating presence.
-    Raises ``sqlalchemy.exc.OperationalError`` on connection failure.
+    Behavior:
+        - If READ_REPLICA_DATABASE_URL is configured, attempts connection via read replica.
+        - If connection checkout fails (OperationalError), logs warning and acquires
+          a primary session.
+        - If READ_REPLICA_DATABASE_URL is unconfigured, yields directly from primary factory.
     """
+    factory = AsyncReadSessionLocal or AsyncSessionLocal
+    if factory is None:
+        raise RuntimeError(
+            "Database session factory is not initialised.  "
+            "Ensure init_engine() is called during application startup."
+        )
+
+    # OperationalError during initial session acquisition / pool checkout triggers primary fallback.
+    try:
+        async with factory() as session:
+            yield session
+    except OperationalError as exc:
+        if AsyncSessionLocal is not None and factory is not AsyncSessionLocal:
+            _log.warning(
+                "db.read_replica_failed_falling_back_to_primary",
+                error=str(exc),
+            )
+            async with AsyncSessionLocal() as session:
+                yield session
+        else:
+            raise
+
+
+async def verify_extensions(session: AsyncSession) -> dict[str, bool]:
+    """Check that PostGIS and pgvector are installed in the database."""
     result = await session.execute(
         text("SELECT extname FROM pg_extension WHERE extname IN ('postgis', 'vector')")
     )
@@ -172,11 +205,14 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 __all__ = [
+    "AsyncReadSessionLocal",
     "AsyncSessionLocal",
+    "dispose_engine",
     "engine",
     "get_db_session",
+    "get_read_session",
     "get_session_factory",
     "init_engine",
-    "dispose_engine",
+    "read_engine",
     "verify_extensions",
 ]

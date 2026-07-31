@@ -192,15 +192,21 @@ async def _run_suite(
 
 
 async def fetch_latest_baseline_suite_result(
+    session: AsyncSession | None = None,
+    current_version: str | None = None,
+) -> BenchmarkSuiteResult | None:
+    """Fetch the most recent prior benchmark suite run from DB for baseline comparison."""
+    if session is None:
+        async for sess in db_session.get_read_session():
+            return await _fetch_baseline_by_version(sess, current_version)
+        return None
+    return await _fetch_baseline_by_version(session, current_version)
+
+
+async def _fetch_baseline_by_version(
     session: AsyncSession,
     current_version: str | None = None,
 ) -> BenchmarkSuiteResult | None:
-    """Fetch the most recent prior benchmark suite run from DB for baseline comparison.
-
-    If current_version is provided, attempts to find the latest run with a version
-    distinct from current_version. Falls back to the latest recorded run if no
-    distinct version exists.
-    """
     stmt_versions = select(EvalBenchmarkRun.orchestrator_version).order_by(
         EvalBenchmarkRun.run_at.desc()
     )

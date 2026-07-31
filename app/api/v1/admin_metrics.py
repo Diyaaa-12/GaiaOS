@@ -18,7 +18,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from app.dependencies import DbSessionDep
+from app.dependencies import DbReadSessionDep
 from auth.dependencies import RequireRole
 from auth.roles import Role
 from metrics.aggregation import GroupBy, MetricRollup, aggregate_metrics
@@ -73,7 +73,7 @@ class MetricsResponse(BaseModel):
     ),
 )
 async def get_admin_metrics(
-    session: DbSessionDep,
+    session: DbReadSessionDep,
     window: Literal["1d", "7d", "30d", "90d"] = "7d",
     group_by: GroupBy = GroupBy.COMPLEXITY_TIER,
     _admin: object = Depends(RequireRole(Role.ADMIN)),

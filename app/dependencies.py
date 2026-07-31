@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config.settings import Settings
 from config.settings import get_settings as _get_settings
 from db.session import get_db_session as _get_db_session
+from db.session import get_read_session as _get_read_session
 
 
 def get_settings() -> Settings:
@@ -42,6 +43,12 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+async def get_read_session() -> AsyncGenerator[AsyncSession, None]:
+    """Yield an async read-replica database session with primary fallback."""
+    async for session in _get_read_session():
+        yield session
+
+
 # ---------------------------------------------------------------------------
 # Convenience type aliases
 # Routes annotate parameters with these instead of the verbose Depends form.
@@ -52,6 +59,9 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 # Injected async DB session — scoped to the current request.
 DbSessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+# Injected async read-replica DB session — scoped to the current request.
+DbReadSessionDep = Annotated[AsyncSession, Depends(get_read_session)]
 
 
 # ---------------------------------------------------------------------------

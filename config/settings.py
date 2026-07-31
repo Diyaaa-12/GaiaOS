@@ -27,6 +27,11 @@ class Settings(BaseSettings):
         validation_alias="DATABASE_URL",
         description="PostgreSQL connection URL (optional in dev; required for staging/prod).",
     )
+    read_replica_database_url: str | None = Field(
+        default=None,
+        validation_alias="READ_REPLICA_DATABASE_URL",
+        description="Optional PostgreSQL connection URL for read-replica queries.",
+    )
     redis_url: str | None = Field(
         default=None,
         validation_alias="REDIS_URL",
@@ -427,6 +432,24 @@ class Settings(BaseSettings):
 
         raise RuntimeError(
             f"DATABASE_URL must start with postgresql:// or postgres://; got: {url!r}"
+        )
+
+    @property
+    def read_asyncpg_url(self) -> str | None:
+        """Return the read-replica database URL rewritten with the asyncpg driver."""
+        if not self.read_replica_database_url:
+            return None
+
+        url = self.read_replica_database_url
+        for prefix in ("postgresql://", "postgres://"):
+            if url.startswith(prefix):
+                return "postgresql+asyncpg://" + url[len(prefix) :]
+
+        if url.startswith("postgresql+asyncpg://"):
+            return url
+
+        raise RuntimeError(
+            f"READ_REPLICA_DATABASE_URL must start with postgresql:// or postgres://; got: {url!r}"
         )
 
 

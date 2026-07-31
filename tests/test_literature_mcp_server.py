@@ -10,6 +10,7 @@ import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from orchestrator.agents.literature_rag.embedding import MockEmbeddingProvider
 from orchestrator.schemas.agent_io import Evidence
 
 
@@ -60,31 +61,50 @@ class TestLiteratureMCPServer:
             )
         ]
 
-        with patch("mcp_servers.literature_search.server.AsyncSessionLocal", MagicMock()):
-            with patch(
+        with (
+            patch(
+                "mcp_servers.literature_search.server.get_embedding_provider",
+                return_value=MockEmbeddingProvider(),
+            ),
+            patch(
+                "mcp_servers.literature_search.server.AsyncSessionLocal",
+                MagicMock(return_value=AsyncMock()),
+            ),
+            patch(
                 "db.repository.LiteratureRepository.hybrid_search", new_callable=AsyncMock
-            ) as mock_hybrid:
-                mock_hybrid.return_value = mock_evidence
+            ) as mock_hybrid,
+        ):
+            mock_hybrid.return_value = mock_evidence
 
-                result = await hybrid_search(query="earthquakes")
+            result = await hybrid_search(query="earthquakes")
 
-                assert "Claim: Seismic activity is increasing." in result
-                assert "Confidence: 0.8876" in result
-                assert "Doc ID: test_doc | Chunk ID: 1" in result
-                assert "Title: Fault Line Studies" in result
-                assert "URL: http://earthquake.org" in result
+            assert "Claim: Seismic activity is increasing." in result
+            assert "Confidence: 0.8876" in result
+            assert "Doc ID: test_doc | Chunk ID: 1" in result
+            assert "Title: Fault Line Studies" in result
+            assert "URL: http://earthquake.org" in result
 
     @pytest.mark.asyncio
     async def test_mcp_server_tool_execution_empty_results(self) -> None:
         """Directly invokes the hybrid_search tool handler with empty database results."""
         from mcp_servers.literature_search.server import hybrid_search
 
-        with patch("mcp_servers.literature_search.server.AsyncSessionLocal", MagicMock()):
-            with patch(
+        with (
+            patch(
+                "mcp_servers.literature_search.server.get_embedding_provider",
+                return_value=MockEmbeddingProvider(),
+            ),
+            patch(
+                "mcp_servers.literature_search.server.AsyncSessionLocal",
+                MagicMock(return_value=AsyncMock()),
+            ),
+            patch(
                 "db.repository.LiteratureRepository.hybrid_search", new_callable=AsyncMock
-            ) as mock_hybrid:
-                mock_hybrid.return_value = []
+            ) as mock_hybrid,
+        ):
+            mock_hybrid.return_value = []
 
-                result = await hybrid_search(query="unmatched query")
+            result = await hybrid_search(query="unmatched query")
 
-                assert "No matching literature documents found." in result
+            assert "No matching literature documents found." in result
+

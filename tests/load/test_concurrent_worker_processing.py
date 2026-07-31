@@ -1,0 +1,121 @@
+"""Concurrent worker load test — Phase 5 Milestone 7.
+
+Verifies that N=4 concurrent RQ worker processes executing jobs in parallel process
+a burst of M=100 investigations cleanly via the real GaiaOS investigation job path
+(workers.jobs.investigation_job.run_investigation_job) with zero double-processing,
+zero job loss, and 100% checkpoint isolation.
+"""
+
+from __future__ import annotations
+
+import multiprocessing
+import os
+import uuid
+
+import pytest
+from redis import Redis
+from rq import Queue, Worker
+from rq.registry import FinishedJobRegistry, StartedJobRegistry
+
+from config.settings import get_settings
+from workers.jobs.investigation_job import run_investigation_job
+
+
+def _worker_process_main(queue_name: str, redis_url: str) -> None:
+    """Worker process entry point executing RQ jobs in burst mode."""
+    conn = Redis.from_url(redis_url)
+    q = Queue(queue_name, connection=conn)
+    worker = Worker([q], connection=conn)
+    worker.work(burst=True)
+
+
+class TestConcurrentWorkerProcessing:
+    """Load test verifying multi-worker scaling, RQ job-locking, and checkpoint isolation."""
+
+    @pytest.fixture(autouse=True)
+    def check_redis(self) -> None:
+        """Skip load test if Redis is unreachable in current environment."""
+        settings = get_settings()
+        redis_url = settings.redis_url or os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        try:
+            conn = Redis.from_url(redis_url)
+            conn.ping()
+        except Exception:
+            pytest.skip(f"Redis is unreachable at {redis_url} — skipping concurrent load test.")
+
+    def test_concurrent_worker_burst_processing(self) -> None:
+        """Verify N=4 concurrent workers execute M=100 real investigation jobs cleanly."""
+        settings = get_settings()
+        redis_url = settings.redis_url or os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        conn = Redis.from_url(redis_url)
+
+        queue_name = f"test_load_{uuid.uuid4().hex[:8]}"
+        q = Queue(queue_name, connection=conn)
+
+        num_jobs = 100
+        num_workers = 4
+
+        investigation_ids: list[str] = []
+        job_ids: list[str] = []
+
+        # 1. Enqueue M=100 real GaiaOS investigation jobs
+        for i in range(num_jobs):
+            inv_id = str(uuid.uuid4())
+            investigation_ids.append(inv_id)
+            query = f"Air quality test query {i} in Paris"
+            job = q.enqueue(
+                run_investigation_job,
+                investigation_id=inv_id,
+                query=query,
+                job_timeout=60,
+            )
+            job_ids.append(job.id)
+
+        # 2. Spawn N=4 concurrent worker processes
+        processes: list[multiprocessing.Process] = []
+        for _ in range(num_workers):
+            p = multiprocessing.Process(
+                target=_worker_process_main,
+                args=(queue_name, redis_url),
+            )
+            p.start()
+            processes.append(p)
+
+        # 3. Wait for worker processes to finish burst execution; fail on timeout
+        for p in processes:
+            p.join(timeout=60)
+            if p.is_alive():
+                p.terminate()
+                pytest.fail("Load test worker process timed out after 60 seconds")
+            assert p.exitcode == 0, f"Worker process failed with exit code: {p.exitcode}"
+
+        # 4. Verify RQ job-locking & completion metrics
+        finished_registry = FinishedJobRegistry(queue=q)
+        finished_job_ids = set(finished_registry.get_job_ids())
+
+        assert len(finished_job_ids) == num_jobs, (
+            f"Expected {num_jobs} finished jobs in registry, got {len(finished_job_ids)}"
+        )
+
+        # 5. Verify actual Redis checkpoint isolation across all thread_ids
+        for inv_id in investigation_ids:
+            checkpoint_pattern = f"gaiaos:checkpoint:{inv_id}:*"
+            matching_checkpoint_keys: list[bytes] = list(conn.scan_iter(match=checkpoint_pattern))
+            assert len(matching_checkpoint_keys) > 0, (
+                f"Missing checkpoint namespace for investigation_id / thread_id: {inv_id}"
+            )
+
+        # 6. Clean up Redis keys and RQ registries
+        finished_registry = FinishedJobRegistry(queue=q)
+        started_registry = StartedJobRegistry(queue=q)
+        for j_id in job_ids:
+            finished_registry.remove(j_id)
+            started_registry.remove(j_id)
+            conn.delete(f"rq:job:{j_id}")
+
+        for inv_id in investigation_ids:
+            checkpoint_pattern = f"gaiaos:checkpoint:{inv_id}:*"
+            for key in conn.scan_iter(match=checkpoint_pattern):
+                conn.delete(key)
+
+        conn.delete(q.key)

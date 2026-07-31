@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -84,7 +85,7 @@ async def db_session() -> AsyncSession:  # type: ignore[misc]
     single test's event loop, which is the correct approach for asyncio
     tests in Python 3.12+.
 
-    Skips the test if ``DATABASE_URL`` is not set, with a clear message.
+    Skips the test if ``DATABASE_URL`` is not set or if PostgreSQL is unreachable.
     """
     current_settings = get_settings()
     if not current_settings.database_url:
@@ -96,8 +97,6 @@ async def db_session() -> AsyncSession:  # type: ignore[misc]
     # Use a local settings object to get the async URL property based on the environment.
     async_url = current_settings.asyncpg_url
     # NullPool: no connection is retained after the session closes.
-    # This prevents "bound to a different event loop" errors because no
-    # asyncpg connection object outlives the test's event loop.
     engine = create_async_engine(async_url, poolclass=NullPool)
     factory = async_sessionmaker(
         bind=engine,
@@ -106,8 +105,15 @@ async def db_session() -> AsyncSession:  # type: ignore[misc]
         autocommit=False,
         autoflush=False,
     )
-    async with factory() as session:
-        yield session
+    try:
+        async with factory() as session:
+            await session.execute(text("SELECT 1"))
+            yield session
+    except Exception as exc:
+        await engine.dispose()
+        pytest.skip(
+            f"Database server is unreachable at {async_url} ({exc}) — skipping database test."
+        )
 
     await engine.dispose()
 
@@ -125,7 +131,7 @@ async def app():  # type: ignore[misc]
     engine lifecycle.  The lifespan calls ``init_engine()`` and runs the
     startup DB extension checks against the real database.
 
-    Skips the test if ``DATABASE_URL`` is not set.
+    Skips the test if ``DATABASE_URL`` is not set or if services are unreachable.
     """
     current_settings = get_settings()
     if not current_settings.database_url:
@@ -136,11 +142,13 @@ async def app():  # type: ignore[misc]
 
     application = create_app()
 
-    # Drive the lifespan manually so startup/shutdown hooks run exactly as in
-    # production.  The lifespan calls init_engine() (creates the pool) on
-    # startup and dispose_engine() (closes the pool) on teardown.
-    async with application.router.lifespan_context(application):
-        yield application
+    try:
+        async with application.router.lifespan_context(application):
+            yield application
+    except Exception as exc:
+        pytest.skip(
+            f"Database or Redis service is unreachable ({exc}) — skipping application test."
+        )
 
 
 @pytest.fixture
