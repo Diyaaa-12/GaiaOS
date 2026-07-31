@@ -1184,7 +1184,7 @@
   "info": {
     "description": "An Agentic Planetary Risk Intelligence Platform. Phase 1 — foundational API skeleton.",
     "title": "GaiaOS",
-    "version": "0.1.0"
+    "version": "0.5.1"
   },
   "openapi": "3.1.0",
   "paths": {

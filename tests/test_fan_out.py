@@ -134,3 +134,73 @@ class TestFanOutCoordinator:
         for res in results:
             assert len(res.evidence) == 0
             assert len(res.errors) == 1
+
+    async def test_single_param_runner_compatibility(self) -> None:
+        """Verify plugin runner with signature (agent_input) works without bus."""
+
+        async def runner_single_param(agent_input: AgentInput) -> AgentOutput:
+            return AgentOutput(
+                agent_name="plugin_single",
+                evidence=[Evidence(source="plugin_single", claim="plugin claim", confidence=0.9)],
+            )
+
+        agent_registry.register("test_single", runner_single_param)
+        investigation_id = uuid.uuid4()
+
+        results = await FanOutCoordinator.run(
+            domains=["test_single"],
+            investigation_id=investigation_id,
+            query="Single param plugin query",
+        )
+        assert len(results) == 1
+        assert results[0].agent_name == "plugin_single"
+        assert len(results[0].evidence) == 1
+        assert results[0].evidence[0].claim == "plugin claim"
+
+    async def test_route_by_complexity_domain_agnostic(self) -> None:
+        """Verify route_by_complexity handles registered single domains dynamically."""
+        from typing import cast
+
+        from orchestrator.graph.builder import route_by_complexity
+        from orchestrator.graph.state import TaskGraphState
+        from orchestrator.schemas.complexity import ComplexityTier
+
+        # 1. Trivial query matching air_quality -> returns fan_out
+        state_aq = cast(
+            TaskGraphState,
+            {
+                "complexity_tier": ComplexityTier.TRIVIAL,
+                "matched_domains": ["air_quality"],
+            },
+        )
+        assert route_by_complexity(state_aq) == "fan_out"
+
+        # 2. Trivial query matching seismic (registered domain) -> returns fan_out
+        state_seismic = cast(
+            TaskGraphState,
+            {
+                "complexity_tier": ComplexityTier.TRIVIAL,
+                "matched_domains": ["seismic"],
+            },
+        )
+        assert route_by_complexity(state_seismic) == "fan_out"
+
+        # 3. Trivial query matching custom registered test domain -> returns fan_out
+        state_custom = cast(
+            TaskGraphState,
+            {
+                "complexity_tier": ComplexityTier.TRIVIAL,
+                "matched_domains": ["test_fast"],
+            },
+        )
+        assert route_by_complexity(state_custom) == "fan_out"
+
+        # 4. Multi-domain query -> returns fan_out
+        state_multi = cast(
+            TaskGraphState,
+            {
+                "complexity_tier": ComplexityTier.TRIVIAL,
+                "matched_domains": ["air_quality", "seismic"],
+            },
+        )
+        assert route_by_complexity(state_multi) == "fan_out"

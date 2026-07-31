@@ -84,11 +84,7 @@ async def supervisor_node(state: TaskGraphState) -> dict[str, Any]:
 
 
 def route_by_complexity(state: TaskGraphState) -> str:
-    """Route conditional edge based on complexity tier."""
-    tier = state.get("complexity_tier")
-    matched = state.get("matched_domains", [])
-    if tier == ComplexityTier.TRIVIAL and matched == ["air_quality"]:
-        return "air_quality"
+    """Route conditional edge based on complexity tier to fan_out coordinator."""
     return "fan_out"
 
 
@@ -335,12 +331,7 @@ async def finalize_node(state: TaskGraphState) -> dict[str, Any]:
     else:
         tier_val = ComplexityTier.TRIVIAL.value
 
-    nodes_executed = ["supervisor"]
-    matched = state.get("matched_domains", [])
-    if state.get("complexity_tier") == ComplexityTier.TRIVIAL and matched == ["air_quality"]:
-        nodes_executed.append("air_quality")
-    else:
-        nodes_executed.append("fan_out")
+    nodes_executed = ["supervisor", "fan_out"]
     if state.get("needs_simulation", False):
         nodes_executed.append("simulation")
     nodes_executed.extend(["synthesis", "critic"])

@@ -5,6 +5,26 @@ description = "An Agentic Planetary Risk Intelligence Platform"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { text = "Apache-2.0" }
+dependencies = [
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.3,<3",
+    "fastapi>=0.111,<1",
+    "uvicorn[standard]>=0.29,<1",
+    "sqlalchemy[asyncio]>=2.0,<3",
+    "asyncpg>=0.29,<1",
+    "pgvector>=0.3,<1",
+    "alembic>=1.13,<2",
+    "structlog>=24.1,<26",
+    "redis>=5.0,<6",
+    "langgraph>=1.0.0,<2.0.0",
+    "mcp>=1.2.0,<2",
+    "PyJWT>=2.8.0,<3",
+    "argon2-cffi>=23.1.0,<24",
+    "email-validator>=2.0,<3",
+    "rq>=1.16",
+    "rq-scheduler>=0.14.0",
+    "geoalchemy2>=0.14,<1",
+]
 
 [build-system]
 requires = ["setuptools>=68.0"]

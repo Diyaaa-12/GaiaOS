@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import time
 from datetime import UTC
 from typing import Any
@@ -211,8 +212,17 @@ class FanOutCoordinator:
         await _safe_publish(start_evt)
 
         try:
-            # Single execution path passing agent_input and optional bus
-            output = await asyncio.wait_for(runner(agent_input, bus=bus), timeout=timeout)
+            # Dynamic execution supporting both (agent_input) and (agent_input, bus=None)
+            try:
+                sig = inspect.signature(runner)
+                accepts_bus = "bus" in sig.parameters or any(
+                    p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+                )
+            except (ValueError, TypeError):
+                accepts_bus = True
+
+            coro = runner(agent_input, bus=bus) if accepts_bus else runner(agent_input)
+            output = await asyncio.wait_for(coro, timeout=timeout)
             duration_ms = int((time.perf_counter() - start_time) * 1000)
 
             _log.info(

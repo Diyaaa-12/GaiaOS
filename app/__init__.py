@@ -1,7 +1,3 @@
-"""GaiaOS application package.
+from orchestrator.__version__ import __version__
 
-``__version__`` is the single source of truth for the application version.
-Import it here rather than hardcoding the string in individual modules.
-"""
-
-__version__: str = "0.1.0"
+__all__ = ["__version__"]
