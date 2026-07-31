@@ -131,4 +131,3 @@ class TestLiteratureAgent:
             assert output.agent_name == "literature"
             assert not output.evidence
             assert not output.errors
-

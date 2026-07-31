@@ -356,18 +356,21 @@ async def finalize_node(state: TaskGraphState) -> dict[str, Any]:
     }
 
     if db_session.AsyncSessionLocal is None:
-        raise RuntimeError("Database session factory is not initialised.")
-
-    async with db_session.AsyncSessionLocal() as session:
-        await InvestigationRepository.update_investigation_status(
-            session=session,
-            investigation_id=state["investigation_id"],
-            status="complete",
-            complexity_tier=tier_val,
-            answer=final_answer,
-            confidence=avg_confidence,
-            execution_trace=trace,
+        _log.warning(
+            "graph.node.finalize.db_uninitialized_skipped",
+            investigation_id=str(state["investigation_id"]),
         )
+    else:
+        async with db_session.AsyncSessionLocal() as session:
+            await InvestigationRepository.update_investigation_status(
+                session=session,
+                investigation_id=state["investigation_id"],
+                status="complete",
+                complexity_tier=tier_val,
+                answer=final_answer,
+                confidence=avg_confidence,
+                execution_trace=trace,
+            )
 
     await _safe_publish_event(
         state["investigation_id"],

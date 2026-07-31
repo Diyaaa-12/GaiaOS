@@ -107,4 +107,3 @@ class TestLiteratureMCPServer:
             result = await hybrid_search(query="unmatched query")
 
             assert "No matching literature documents found." in result
-
