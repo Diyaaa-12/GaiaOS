@@ -31,11 +31,21 @@ def _worker_process_main(queue_name: str, redis_url: str) -> None:
         q = Queue(queue_name, connection=conn)
         worker = SimpleWorker([q], connection=conn)
         worker.work(burst=True)
-    except Exception:
-        traceback.print_exc()
+    except Exception as exc:
+        print(
+            "\n================ WORKER PROCESS EXCEPTION ================",
+            file=sys.stderr,
+            flush=True,
+        )
+        traceback.print_exc(file=sys.stderr)
+        print(
+            "==========================================================\n",
+            file=sys.stderr,
+            flush=True,
+        )
         sys.stdout.flush()
         sys.stderr.flush()
-        raise
+        raise exc
 
 
 class TestConcurrentWorkerProcessing:
