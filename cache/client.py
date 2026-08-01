@@ -6,6 +6,7 @@ the PostgreSQL database connection layer in ``db.session``.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -20,8 +21,9 @@ if TYPE_CHECKING:
 
 _log = get_logger(__name__)
 
-# Module-level singleton instance, initialised by init_redis() and disposed by dispose_redis()
+# Module-level singleton instance and its owning event loop
 redis_client: Redis | None = None
+_redis_loop: asyncio.AbstractEventLoop | None = None
 
 
 async def init_redis(settings: Settings) -> None:
@@ -33,7 +35,7 @@ async def init_redis(settings: Settings) -> None:
     Raises ``RuntimeError`` if ``REDIS_URL`` is not configured or if the
     Redis server is unreachable.
     """
-    global redis_client
+    global redis_client, _redis_loop
 
     if settings.redis_url is None:
         raise RuntimeError(
@@ -60,6 +62,7 @@ async def init_redis(settings: Settings) -> None:
         raise RuntimeError(f"Failed to connect to Redis at {settings.redis_url}: {exc}") from exc
 
     redis_client = client
+    _redis_loop = asyncio.get_running_loop()
     _log.info("redis.client.ready")
 
 
@@ -69,19 +72,36 @@ async def dispose_redis() -> None:
     Must be called during application shutdown (lifespan hook).
     Safe to call even if ``init_redis()`` was never called.
     """
-    global redis_client
+    global redis_client, _redis_loop
     if redis_client is not None:
-        await redis_client.aclose()
+        try:
+            await redis_client.aclose()
+        except Exception:
+            pass
         redis_client = None
+        _redis_loop = None
         _log.info("redis.client.disposed")
 
 
 async def get_redis() -> Redis:
-    """Return the active Redis client instance.
+    """Return the active Redis client instance bound to the current running event loop.
 
     Intended for use as a dependency provider.
+    Re-initialises the client if the running event loop changes (e.g. between RQ jobs).
     Raises ``RuntimeError`` if the client has not been initialised.
     """
+    global redis_client, _redis_loop
+
+    current_loop = asyncio.get_running_loop()
+    if redis_client is not None and _redis_loop is not current_loop:
+        _log.info("redis.client.loop_mismatch_recreating")
+        await dispose_redis()
+        from config.settings import get_settings
+
+        settings = get_settings()
+        if settings.redis_url:
+            await init_redis(settings)
+
     if redis_client is None:
         raise RuntimeError(
             "Redis client is not initialised.  "
