@@ -27,122 +27,129 @@ async def _async_run_investigation(investigation_id: uuid.UUID, query: str | Non
     """Async execution wrapper for running an investigation graph."""
     settings = get_settings()
     configure_logging(settings)
-    if settings.database_url and db_session.AsyncSessionLocal is None:
+
+    if settings.database_url:
+        await db_session.dispose_engine()
         db_session.init_engine()
+
     try:
-        redis_client = await get_redis()
-    except RuntimeError:
-        if settings.redis_url:
-            await init_redis(settings)
+        try:
             redis_client = await get_redis()
-        else:
-            raise
+        except RuntimeError:
+            if settings.redis_url:
+                await init_redis(settings)
+                redis_client = await get_redis()
+            else:
+                raise
 
-    job = get_current_job()
-    enqueued_at = job.enqueued_at if job else None
-    if enqueued_at and enqueued_at.tzinfo is None:
-        enqueued_at = enqueued_at.replace(tzinfo=UTC)
+        job = get_current_job()
+        enqueued_at = job.enqueued_at if job else None
+        if enqueued_at and enqueued_at.tzinfo is None:
+            enqueued_at = enqueued_at.replace(tzinfo=UTC)
 
-    emit(
-        JobStarted(
-            investigation_id=str(investigation_id),
-            enqueued_at=enqueued_at,
+        emit(
+            JobStarted(
+                investigation_id=str(investigation_id),
+                enqueued_at=enqueued_at,
+            )
         )
-    )
 
-    checkpointer = RedisCheckpointSaver(redis_client)
-    graph = build_graph(checkpointer)
+        checkpointer = RedisCheckpointSaver(redis_client)
+        graph = build_graph(checkpointer)
 
-    # Retrieve investigation query if not explicitly passed
-    if not query:
-        if db_session.AsyncSessionLocal is None:
-            raise RuntimeError("Database session factory is not initialised.")
-        async with db_session.AsyncSessionLocal() as session:
-            inv = await InvestigationRepository.get_investigation(session, investigation_id)
-            if not inv:
-                raise ValueError(f"Investigation {investigation_id} not found in database.")
-            query = inv.query_text
-
-    state: dict[str, Any] = {
-        "investigation_id": investigation_id,
-        "query": query,
-        "complexity_tier": None,
-        "agent_outputs": [],
-        "final_answer": None,
-    }
-    config: Any = {"configurable": {"thread_id": str(investigation_id)}}
-
-    start_time = time.monotonic()
-    try:
-        final_state = await graph.ainvoke(state, config=config)
-        duration = round(time.monotonic() - start_time, 3)
-
-        # Extract complexity_tier from the graph's final state so it can be
-        # stored as the metrics group_key for group_by=complexity_tier aggregation.
-        complexity_tier: str | None = None
-        if isinstance(final_state, dict):
-            tier_val = final_state.get("complexity_tier")
-            if tier_val is not None:
-                complexity_tier = str(tier_val)
-
-        _log.info(
-            "investigation.job.success",
-            investigation_id=str(investigation_id),
-            job_id=job.id if job else None,
-            duration=duration,
-            complexity_tier=complexity_tier,
-        )
-        completed_event = JobCompleted(
-            investigation_id=str(investigation_id),
-            status="complete",
-            duration_seconds=duration,
-            complexity_tier=complexity_tier,
-        )
-        emit(completed_event)
-        if db_session.AsyncSessionLocal is not None:
+        # Retrieve investigation query if not explicitly passed
+        if not query:
+            if db_session.AsyncSessionLocal is None:
+                raise RuntimeError("Database session factory is not initialised.")
             async with db_session.AsyncSessionLocal() as session:
-                await persist_metric(session, completed_event)
-                await session.commit()
+                inv = await InvestigationRepository.get_investigation(session, investigation_id)
+                if not inv:
+                    raise ValueError(f"Investigation {investigation_id} not found in database.")
+                query = inv.query_text
 
-    except Exception as exc:
-        duration = round(time.monotonic() - start_time, 3)
-        retries_left = job.retries_left if (job and job.retries_left is not None) else 0
-        is_terminal_failure = retries_left <= 0
-        error_code = "job_retries_exhausted" if is_terminal_failure else "job_attempt_failed"
-        attempt_number = max(1, 3 - retries_left) if job else 1
+        state: dict[str, Any] = {
+            "investigation_id": investigation_id,
+            "query": query,
+            "complexity_tier": None,
+            "agent_outputs": [],
+            "final_answer": None,
+        }
+        config: Any = {"configurable": {"thread_id": str(investigation_id)}}
 
-        _log.error(
-            "investigation.job.failed",
-            investigation_id=str(investigation_id),
-            job_id=job.id if job else None,
-            duration=duration,
-            error=str(exc),
-            is_terminal_failure=is_terminal_failure,
-            retries_left=retries_left,
-        )
+        start_time = time.monotonic()
+        try:
+            final_state = await graph.ainvoke(state, config=config)
+            duration = round(time.monotonic() - start_time, 3)
 
-        failed_event = JobFailed(
-            investigation_id=str(investigation_id),
-            error_code=error_code,
-            error_message=str(exc),
-            attempt_number=attempt_number,
-        )
-        emit(failed_event)
+            # Extract complexity_tier from the graph's final state so it can be
+            # stored as the metrics group_key for group_by=complexity_tier aggregation.
+            complexity_tier: str | None = None
+            if isinstance(final_state, dict):
+                tier_val = final_state.get("complexity_tier")
+                if tier_val is not None:
+                    complexity_tier = str(tier_val)
 
-        if is_terminal_failure and db_session.AsyncSessionLocal is not None:
-            async with db_session.AsyncSessionLocal() as session:
-                await InvestigationRepository.update_investigation_status(
-                    session=session,
-                    investigation_id=investigation_id,
-                    status="failed",
-                    answer=None,
-                    execution_trace={"error": str(exc), "error_code": error_code},
-                )
-            async with db_session.AsyncSessionLocal() as session:
-                await persist_metric(session, failed_event)
-                await session.commit()
+            _log.info(
+                "investigation.job.success",
+                investigation_id=str(investigation_id),
+                job_id=job.id if job else None,
+                duration=duration,
+                complexity_tier=complexity_tier,
+            )
+            completed_event = JobCompleted(
+                investigation_id=str(investigation_id),
+                status="complete",
+                duration_seconds=duration,
+                complexity_tier=complexity_tier,
+            )
+            emit(completed_event)
+            if db_session.AsyncSessionLocal is not None:
+                async with db_session.AsyncSessionLocal() as session:
+                    await persist_metric(session, completed_event)
+                    await session.commit()
 
-        raise exc
+        except Exception as exc:
+            duration = round(time.monotonic() - start_time, 3)
+            retries_left = job.retries_left if (job and job.retries_left is not None) else 0
+            is_terminal_failure = retries_left <= 0
+            error_code = "job_retries_exhausted" if is_terminal_failure else "job_attempt_failed"
+            attempt_number = max(1, 3 - retries_left) if job else 1
+
+            _log.error(
+                "investigation.job.failed",
+                investigation_id=str(investigation_id),
+                job_id=job.id if job else None,
+                duration=duration,
+                error=str(exc),
+                is_terminal_failure=is_terminal_failure,
+                retries_left=retries_left,
+            )
+
+            failed_event = JobFailed(
+                investigation_id=str(investigation_id),
+                error_code=error_code,
+                error_message=str(exc),
+                attempt_number=attempt_number,
+            )
+            emit(failed_event)
+
+            if is_terminal_failure and db_session.AsyncSessionLocal is not None:
+                async with db_session.AsyncSessionLocal() as session:
+                    await InvestigationRepository.update_investigation_status(
+                        session=session,
+                        investigation_id=investigation_id,
+                        status="failed",
+                        answer=None,
+                        execution_trace={"error": str(exc), "error_code": error_code},
+                    )
+                async with db_session.AsyncSessionLocal() as session:
+                    await persist_metric(session, failed_event)
+                    await session.commit()
+
+            raise exc
+    finally:
+        if settings.database_url:
+            await db_session.dispose_engine()
 
 
 def run_investigation_job(investigation_id: str | uuid.UUID, query: str | None = None) -> None:
