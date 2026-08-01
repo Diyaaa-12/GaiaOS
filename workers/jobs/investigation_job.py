@@ -106,7 +106,7 @@ async def _async_run_investigation(investigation_id: uuid.UUID, query: str | Non
 
     except Exception as exc:
         duration = round(time.monotonic() - start_time, 3)
-        retries_left = getattr(job, "retries_left", 0) if job else 0
+        retries_left = job.retries_left if (job and job.retries_left is not None) else 0
         is_terminal_failure = retries_left <= 0
         error_code = "job_retries_exhausted" if is_terminal_failure else "job_attempt_failed"
         attempt_number = max(1, 3 - retries_left) if job else 1
