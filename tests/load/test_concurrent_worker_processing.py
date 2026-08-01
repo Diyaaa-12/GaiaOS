@@ -35,7 +35,7 @@ def _worker_process_main(queue_name: str, redis_url: str) -> None:
         traceback.print_exc()
         sys.stdout.flush()
         sys.stderr.flush()
-        sys.exit(1)
+        raise
 
 
 class TestConcurrentWorkerProcessing:
@@ -94,18 +94,32 @@ class TestConcurrentWorkerProcessing:
             processes.append(p)
 
         # 3. Wait for worker processes to finish burst execution; fail on timeout
-        for p in processes:
-            p.join(timeout=60)
+        print("Workers joined")
+
+        for i, p in enumerate(processes):
+            print(f"Worker {i}: exitcode={p.exitcode}")
+
             if p.is_alive():
                 p.terminate()
                 pytest.fail("Load test worker process timed out after 60 seconds")
-            assert p.exitcode == 0, f"Worker process failed with exit code: {p.exitcode}"
+
+            if p.exitcode != 0:
+                pytest.fail(f"Worker {i} exited with code {p.exitcode}")
 
         # 4. Verify RQ job-locking & completion metrics
+        print("Before FinishedJobRegistry")
         finished_registry = FinishedJobRegistry(queue=q)
+        print("After FinishedJobRegistry")
+        print("Before FailedJobRegistry")
         failed_registry = FailedJobRegistry(queue=q)
+        print("After FailedJobRegistry")
+        print("Before finished_job_ids")
         finished_job_ids = set(finished_registry.get_job_ids())
+        print("After finished_job_ids")
+
+        print("Before failed_job_ids")
         failed_job_ids = set(failed_registry.get_job_ids())
+        print("After failed_job_ids")
 
         failed_tracebacks: list[str] = []
         if failed_job_ids:
