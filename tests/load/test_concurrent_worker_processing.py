@@ -115,9 +115,12 @@ class TestConcurrentWorkerProcessing:
                 try:
                     j = Job.fetch(f_id, connection=conn)
                     if j.exc_info:
+                        print(f"\n--- FAILED JOB DIAGNOSTICS FOR JOB {f_id} ---", flush=True)
+                        print(j.exc_info, flush=True)
+                        print("---------------------------------------------\n", flush=True)
                         failed_tracebacks.append(f"Job {f_id} failed traceback:\n{j.exc_info}")
-                except Exception:
-                    pass
+                except Exception as fetch_err:
+                    print(f"Error fetching failed job {f_id}: {fetch_err}", flush=True)
 
         failed_details = "\n\n".join(failed_tracebacks) if failed_tracebacks else ""
 
