@@ -22,11 +22,16 @@ from workers.jobs.investigation_job import run_investigation_job
 
 
 def _worker_process_main(queue_name: str, redis_url: str) -> None:
-    """Worker process entry point executing RQ jobs in burst mode."""
-    conn = Redis.from_url(redis_url)
-    q = Queue(queue_name, connection=conn)
-    worker = Worker([q], connection=conn)
-    worker.work(burst=True)
+    import traceback
+
+    try:
+        conn = Redis.from_url(redis_url)
+        q = Queue(queue_name, connection=conn)
+        worker = Worker([q], connection=conn)
+        worker.work(burst=True)
+    except Exception:
+        traceback.print_exc()
+        raise
 
 
 class TestConcurrentWorkerProcessing:
