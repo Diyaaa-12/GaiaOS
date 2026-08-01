@@ -22,6 +22,8 @@ from workers.jobs.investigation_job import run_investigation_job
 
 
 def _worker_process_main(queue_name: str, redis_url: str) -> None:
+    """Worker process entry point executing RQ jobs in burst mode."""
+    import sys
     import traceback
 
     try:
@@ -31,7 +33,9 @@ def _worker_process_main(queue_name: str, redis_url: str) -> None:
         worker.work(burst=True)
     except Exception:
         traceback.print_exc()
-        raise
+        sys.stdout.flush()
+        sys.stderr.flush()
+        sys.exit(1)
 
 
 class TestConcurrentWorkerProcessing:
@@ -50,6 +54,9 @@ class TestConcurrentWorkerProcessing:
 
     def test_concurrent_worker_burst_processing(self) -> None:
         """Verify N=4 concurrent workers execute M=100 real investigation jobs cleanly."""
+        from rq.job import Job
+        from rq.registry import FailedJobRegistry
+
         settings = get_settings()
         redis_url = settings.redis_url or os.environ.get("REDIS_URL", "redis://localhost:6379/0")
         conn = Redis.from_url(redis_url)
@@ -96,10 +103,25 @@ class TestConcurrentWorkerProcessing:
 
         # 4. Verify RQ job-locking & completion metrics
         finished_registry = FinishedJobRegistry(queue=q)
+        failed_registry = FailedJobRegistry(queue=q)
         finished_job_ids = set(finished_registry.get_job_ids())
+        failed_job_ids = set(failed_registry.get_job_ids())
+
+        failed_tracebacks: list[str] = []
+        if failed_job_ids:
+            for f_id in failed_job_ids:
+                try:
+                    j = Job.fetch(f_id, connection=conn)
+                    if j.exc_info:
+                        failed_tracebacks.append(f"Job {f_id} failed traceback:\n{j.exc_info}")
+                except Exception:
+                    pass
+
+        failed_details = "\n\n".join(failed_tracebacks) if failed_tracebacks else ""
 
         assert len(finished_job_ids) == num_jobs, (
-            f"Expected {num_jobs} finished jobs in registry, got {len(finished_job_ids)}"
+            f"Expected {num_jobs} finished jobs in registry, got {len(finished_job_ids)}. "
+            f"Failed jobs count: {len(failed_job_ids)}.\n{failed_details}"
         )
 
         # 5. Verify actual Redis checkpoint isolation across all thread_ids
@@ -113,9 +135,11 @@ class TestConcurrentWorkerProcessing:
         # 6. Clean up Redis keys and RQ registries
         finished_registry = FinishedJobRegistry(queue=q)
         started_registry = StartedJobRegistry(queue=q)
+        failed_registry = FailedJobRegistry(queue=q)
         for j_id in job_ids:
             finished_registry.remove(j_id)
             started_registry.remove(j_id)
+            failed_registry.remove(j_id)
             conn.delete(f"rq:job:{j_id}")
 
         for inv_id in investigation_ids:
