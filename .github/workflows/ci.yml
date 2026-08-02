@@ -74,7 +74,7 @@ jobs:
           # slow/unreachable from GitHub Actions runners. That backlog previously pushed
           # the smoke job's completion past the smoke test's poll window. Flushing here
           # guarantees the worker starts with an empty queue.
-          redis-cli -h 127.0.0.1 -p 6379 FLUSHALL
+          docker compose exec -T redis redis-cli FLUSHALL
         
       - name: Build and verify container images (app, worker, scheduler)
         run: |
