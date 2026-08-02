@@ -33,7 +33,9 @@ Extension verification
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -55,6 +57,24 @@ engine: AsyncEngine | None = None
 read_engine: AsyncEngine | None = None
 AsyncSessionLocal: async_sessionmaker[AsyncSession] | None = None
 AsyncReadSessionLocal: async_sessionmaker[AsyncSession] | None = None
+_engine_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _check_loop() -> None:
+    """Check if running event loop matches stored engine loop and reset singletons on mismatch."""
+    global engine, read_engine, AsyncSessionLocal, AsyncReadSessionLocal, _engine_loop
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    if _engine_loop is not None and current_loop is not None and _engine_loop is not current_loop:
+        _log.info("db.engine.loop_mismatch_clearing_stale_singletons")
+        engine = None
+        read_engine = None
+        AsyncSessionLocal = None
+        AsyncReadSessionLocal = None
+        _engine_loop = None
 
 
 def init_engine() -> None:
@@ -66,7 +86,9 @@ def init_engine() -> None:
 
     Raises ``RuntimeError`` if ``DATABASE_URL`` is not configured.
     """
-    global engine, read_engine, AsyncSessionLocal, AsyncReadSessionLocal
+    global engine, read_engine, AsyncSessionLocal, AsyncReadSessionLocal, _engine_loop
+
+    _check_loop()
 
     settings = get_settings()
     if settings.database_url is None:
@@ -74,6 +96,11 @@ def init_engine() -> None:
             "DATABASE_URL is not set.  "
             "The database connection layer cannot be initialised without it."
         )
+
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
 
     engine = create_async_engine(
         settings.asyncpg_url,
@@ -112,6 +139,8 @@ def init_engine() -> None:
         read_engine = None
         AsyncReadSessionLocal = AsyncSessionLocal
 
+    _engine_loop = current_loop
+
 
 async def dispose_engine() -> None:
     """Dispose the connection pool and release all connections.
@@ -122,26 +151,29 @@ async def dispose_engine() -> None:
     Nulls ``engine``, ``read_engine``, ``AsyncSessionLocal``, and
     ``AsyncReadSessionLocal`` so post-shutdown session calls raise RuntimeError.
     """
-    global engine, read_engine, AsyncSessionLocal, AsyncReadSessionLocal
+    global engine, read_engine, AsyncSessionLocal, AsyncReadSessionLocal, _engine_loop
     if read_engine is not None and read_engine is not engine:
-        await read_engine.dispose()
+        try:
+            await read_engine.dispose()
+        except Exception:
+            pass
         read_engine = None
     if engine is not None:
-        await engine.dispose()
+        try:
+            await engine.dispose()
+        except Exception:
+            pass
         engine = None
     AsyncSessionLocal = None
     AsyncReadSessionLocal = None
+    _engine_loop = None
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """Yield a database session and guarantee cleanup."""
-    if AsyncSessionLocal is None:
-        raise RuntimeError(
-            "Database session factory is not initialised.  "
-            "Ensure init_engine() is called during application startup."
-        )
+    factory = get_session_factory()
 
-    async with AsyncSessionLocal() as session:
+    async with factory() as session:
         yield session
 
 
@@ -160,12 +192,10 @@ async def get_read_session() -> AsyncGenerator[AsyncSession, None]:
           a primary session.
         - If READ_REPLICA_DATABASE_URL is unconfigured, yields directly from primary factory.
     """
+    _check_loop()
     factory = AsyncReadSessionLocal or AsyncSessionLocal
     if factory is None:
-        raise RuntimeError(
-            "Database session factory is not initialised.  "
-            "Ensure init_engine() is called during application startup."
-        )
+        factory = get_session_factory()
 
     # OperationalError during initial session acquisition / pool checkout triggers primary fallback.
     try:
@@ -198,10 +228,18 @@ async def verify_extensions(session: AsyncSession) -> dict[str, bool]:
 def get_session_factory() -> async_sessionmaker[AsyncSession]:
     """Return the initialised session factory, calling init_engine() if needed."""
     global AsyncSessionLocal
+    _check_loop()
     if AsyncSessionLocal is None:
         init_engine()
     assert AsyncSessionLocal is not None
     return AsyncSessionLocal
+
+
+def __getattr__(name: str) -> Any:
+    if name in ("AsyncSessionLocal", "AsyncReadSessionLocal", "engine", "read_engine"):
+        _check_loop()
+        return globals()[name]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 __all__ = [

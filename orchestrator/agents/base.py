@@ -31,4 +31,5 @@ class BaseDomainAgent:
         self, agent_input: AgentInput, bus: CollaborationBus | None = None
     ) -> AgentOutput:
         """Execute domain agent logic. Subclasses must implement."""
+        print("\n[DIAGNOSTIC TRACE] BaseDomainAgent.run CALLED", flush=True)
         raise NotImplementedError

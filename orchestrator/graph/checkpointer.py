@@ -98,6 +98,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
 
     # --- Synchronous placeholders to satisfy abstract interface ---
     def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+        print("\n[DIAGNOSTIC TRACE] RedisCheckpointSaver.get_tuple CALLED", flush=True)
         raise NotImplementedError("Use async aget_tuple instead.")
 
     def list(
@@ -108,6 +109,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         before: RunnableConfig | None = None,
         limit: int | None = None,
     ) -> Iterator[CheckpointTuple]:
+        print("\n[DIAGNOSTIC TRACE] RedisCheckpointSaver.list CALLED", flush=True)
         raise NotImplementedError("Use async alist instead.")
 
     def put(
@@ -117,6 +119,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         metadata: CheckpointMetadata,
         new_versions: Any,
     ) -> RunnableConfig:
+        print("\n[DIAGNOSTIC TRACE] RedisCheckpointSaver.put CALLED", flush=True)
         raise NotImplementedError("Use async aput instead.")
 
     def put_writes(
@@ -126,6 +129,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver):
         task_id: str,
         task_path: str = "",
     ) -> None:
+        print("\n[DIAGNOSTIC TRACE] RedisCheckpointSaver.put_writes CALLED", flush=True)
         raise NotImplementedError("Use async aput_writes instead.")
 
     # --- Asynchronous contract implementation ---
