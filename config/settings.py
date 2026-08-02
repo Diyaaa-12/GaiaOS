@@ -179,7 +179,30 @@ class Settings(BaseSettings):
     backup_storage_path: str = Field(
         default="./backups",
         validation_alias="BACKUP_STORAGE_PATH",
-        description="Local storage directory for database backup files.",
+        description="Local or S3-compatible directory path for database backup files.",
+    )
+    # ---------------------------------------------------------------------------
+    # Public Research API & Dataset Publishing settings (Phase 5 Milestone 9)
+    # ---------------------------------------------------------------------------
+    public_research_api_enabled: bool = Field(
+        default=True,
+        validation_alias="PUBLIC_RESEARCH_API_ENABLED",
+        description="Feature flag enabling read-only public research API endpoints.",
+    )
+    dataset_export_enabled: bool = Field(
+        default=True,
+        validation_alias="DATASET_EXPORT_ENABLED",
+        description="Feature flag enabling monthly public dataset export background job.",
+    )
+    dataset_export_dir: str = Field(
+        default="./data/exports",
+        validation_alias="DATASET_EXPORT_DIR",
+        description="Directory path for versioned public dataset export archives.",
+    )
+    research_api_rate_limit: str = Field(
+        default="60/minute",
+        validation_alias="RESEARCH_API_RATE_LIMIT",
+        description="Rate limit string for public research API endpoints.",
     )
     # ---------------------------------------------------------------------------
     # Gateway settings (Milestone 7)

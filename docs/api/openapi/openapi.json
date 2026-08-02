@@ -489,9 +489,95 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HazardEventResponse": {
+        "description": "Public hazard event schema.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "event_date": {
+            "format": "date-time",
+            "title": "Event Date",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "region_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Label"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          }
+        },
+        "required": [
+          "id",
+          "event_type",
+          "region_label",
+          "event_date",
+          "details",
+          "source",
+          "external_id",
+          "created_at"
+        ],
+        "title": "HazardEventResponse",
+        "type": "object"
+      },
       "InvestigationCreateRequest": {
         "description": "Payload to create a new investigation query.",
         "properties": {
+          "consent_public_research": {
+            "default": false,
+            "description": "Explicit opt-in consent to include anonymized investigation query text in public research dataset (ADR-504).",
+            "title": "Consent Public Research",
+            "type": "boolean"
+          },
           "query": {
             "maxLength": 2000,
             "minLength": 3,
@@ -855,6 +941,104 @@
           "redis"
         ],
         "title": "ReadinessResponse",
+        "type": "object"
+      },
+      "ResearchInvestigationResponse": {
+        "description": "Anonymized investigation schema returned to public research consumers.",
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "complexity_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Complexity Tier"
+          },
+          "confidence_summary": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Summary"
+          },
+          "consent_public_research": {
+            "title": "Consent Public Research",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "domains_involved": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domains Involved",
+            "type": "array"
+          },
+          "execution_trace": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Trace"
+          },
+          "investigation_id": {
+            "format": "uuid",
+            "title": "Investigation Id",
+            "type": "string"
+          },
+          "query_category": {
+            "title": "Query Category",
+            "type": "string"
+          },
+          "query_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query Text"
+          }
+        },
+        "required": [
+          "investigation_id",
+          "query_category",
+          "domains_involved",
+          "complexity_tier",
+          "confidence_summary",
+          "consent_public_research",
+          "created_at"
+        ],
+        "title": "ResearchInvestigationResponse",
         "type": "object"
       },
       "ResendVerificationRequest": {
@@ -2229,6 +2413,223 @@
         "summary": "Liveness ping",
         "tags": [
           "v1"
+        ]
+      }
+    },
+    "/api/v1/research/hazard-events": {
+      "get": {
+        "description": "Returns historical hazard events from public data sources (USGS, NOAA, FIRMS).",
+        "operationId": "list_public_hazard_events_api_v1_research_hazard_events_get",
+        "parameters": [
+          {
+            "description": "Filter by event type (e.g., earthquake)",
+            "in": "query",
+            "name": "event_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by event type (e.g., earthquake)",
+              "title": "Event Type"
+            }
+          },
+          {
+            "description": "Filter by source (e.g., USGS)",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by source (e.g., USGS)",
+              "title": "Source"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HazardEventResponse"
+                  },
+                  "title": "Response List Public Hazard Events Api V1 Research Hazard Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Public research API disabled"
+          }
+        },
+        "summary": "List public hazard events",
+        "tags": [
+          "v1",
+          "Public Research"
+        ]
+      }
+    },
+    "/api/v1/research/investigations": {
+      "get": {
+        "description": "Returns aggregated, anonymized investigation findings. User identity (user_id) is strictly omitted (ADR-504). Raw query text is included ONLY if the submitter provided explicit consent.",
+        "operationId": "list_public_research_investigations_api_v1_research_investigations_get",
+        "parameters": [
+          {
+            "description": "Filter by domain (e.g., seismic)",
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by domain (e.g., seismic)",
+              "title": "Domain"
+            }
+          },
+          {
+            "description": "Filter investigations since timestamp",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter investigations since timestamp",
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ResearchInvestigationResponse"
+                  },
+                  "title": "Response List Public Research Investigations Api V1 Research Investigations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Public research API disabled"
+          }
+        },
+        "summary": "List anonymized public research findings",
+        "tags": [
+          "v1",
+          "Public Research"
         ]
       }
     }

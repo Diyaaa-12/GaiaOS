@@ -34,6 +34,13 @@ class InvestigationCreateRequest(BaseModel):
     """Payload to create a new investigation query."""
 
     query: str = Field(min_length=3, max_length=2000)
+    consent_public_research: bool = Field(
+        default=False,
+        description=(
+            "Explicit opt-in consent to include anonymized investigation query text "
+            "in public research dataset (ADR-504)."
+        ),
+    )
 
 
 class InvestigationCreateResponse(BaseModel):
@@ -159,11 +166,12 @@ async def create_investigation(
     user = getattr(request.state, "user", None)
     user_id = user.id if user else None
 
-    # 3. Persist placeholder investigation in DB with user_id
+    # 3. Persist placeholder investigation in DB with user_id and consent flag
     investigation = await InvestigationRepository.create_investigation(
         session=db_session,
         query=payload.query,
         user_id=user_id,
+        consent_public_research=payload.consent_public_research,
     )
 
     # 4. Schedule execution via RQ worker queue or background tasks

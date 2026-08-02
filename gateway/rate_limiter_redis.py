@@ -126,6 +126,8 @@ class RedisRateLimiter:
         path = request.url.path
         if path == "/api/v1/auth/request-reset":
             return "password_reset"
+        if path.startswith("/api/v1/research"):
+            return "research_api"
         if path.startswith("/api/v1/investigations"):
             return "submit_investigation" if request.method == "POST" else "investigations"
         if path.startswith("/api/v1/auth"):
@@ -175,6 +177,14 @@ class RedisRateLimiter:
             refill_rate = settings.password_reset_rate_limit_requests / float(
                 max(1, settings.password_reset_rate_limit_window_seconds)
             )
+        elif scope == "research_api":
+            rpm_str = getattr(settings, "research_api_rate_limit", "60/minute")
+            try:
+                rpm = int(rpm_str.split("/")[0])
+            except Exception:
+                rpm = 60
+            capacity = max(1, rpm)
+            refill_rate = rpm / 60.0
         else:
             refill_rate = requests_per_minute / 60.0
             capacity = max(1, burst)

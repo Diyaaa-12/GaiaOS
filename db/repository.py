@@ -249,12 +249,14 @@ class InvestigationRepository:
         session: AsyncSession,
         query: str,
         user_id: uuid.UUID | None = None,
+        consent_public_research: bool = False,
     ) -> Investigation:
         """Create a new investigation in the 'planning' status."""
         investigation = Investigation(
             query_text=query,
             user_id=user_id,
             status="planning",
+            consent_public_research=consent_public_research,
         )
         session.add(investigation)
         try:
@@ -264,6 +266,28 @@ class InvestigationRepository:
             raise exc
         await session.refresh(investigation)
         return investigation
+
+    @staticmethod
+    async def list_research_investigations(
+        session: AsyncSession,
+        domain: str | None = None,
+        since: datetime | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Investigation]:
+        """Fetch completed investigations for public research export/API."""
+        stmt = select(Investigation).where(Investigation.status == "complete")
+        if since:
+            stmt = stmt.where(Investigation.created_at >= since)
+        if domain:
+            # Matches domain in execution_trace or complexity_tier
+            stmt = stmt.where(
+                Investigation.execution_trace.op("->>")("domains").ilike(f"%{domain}%")
+                | Investigation.complexity_tier.ilike(f"%{domain}%")
+            )
+        stmt = stmt.order_by(Investigation.created_at.desc()).limit(limit).offset(offset)
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
 
     @staticmethod
     async def update_investigation_status(
