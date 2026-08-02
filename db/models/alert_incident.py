@@ -56,6 +56,11 @@ class AlertIncident(Base):
         index=True,
         nullable=False,
     )
+    slo_name: Mapped[str | None] = mapped_column(
+        String(255),
+        index=True,
+        nullable=True,
+    )
     severity: Mapped[str] = mapped_column(
         String(20),
         nullable=False,

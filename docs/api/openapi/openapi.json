@@ -54,6 +54,17 @@
             "title": "Severity",
             "type": "string"
           },
+          "slo_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slo Name"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -189,6 +200,17 @@
             "title": "Severity",
             "type": "string"
           },
+          "slo_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slo Name"
+          },
           "threshold": {
             "title": "Threshold",
             "type": "number"
@@ -198,7 +220,8 @@
             "enum": [
               "15m",
               "1h",
-              "1d"
+              "1d",
+              "30d"
             ],
             "title": "Window",
             "type": "string"

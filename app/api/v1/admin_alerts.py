@@ -60,6 +60,7 @@ class AlertIncidentResponse(BaseModel):
     id: uuid.UUID
     rule_id: uuid.UUID | None
     rule_name: str
+    slo_name: str | None = None
     severity: str
     status: str
     last_value: float

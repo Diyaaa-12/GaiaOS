@@ -10,8 +10,11 @@ from pydantic import BaseModel, Field, field_validator
 SUPPORTED_METRICS: set[str] = {
     "investigation.p95_latency_ms",
     "investigation.job_failure_rate",
+    "investigation.job_success_rate",
     "job_failure_rate",
     "investigation.avg_cost_estimate",
+    "calibration_ece",
+    "citation_fallback_rate",
 }
 
 
@@ -22,10 +25,11 @@ class AlertRuleSchema(BaseModel):
     metric: str = Field(..., min_length=1, max_length=255)
     threshold: float
     comparison: Literal["gt", "lt"] = "gt"
-    window: Literal["15m", "1h", "1d"] = "15m"
+    window: Literal["15m", "1h", "1d", "30d"] = "15m"
     severity: Literal["warning", "critical"] = "warning"
     consecutive_cycles: int = Field(default=1, ge=1)
     is_enabled: bool = True
+    slo_name: str | None = None
 
     @field_validator("metric")
     @classmethod
@@ -37,7 +41,7 @@ class AlertRuleSchema(BaseModel):
 
 
 class AlertFiring(BaseModel):
-    """Container representing an active threshold violation (firing alert)."""
+    """Container representing an active threshold violation or SLO burn rate firing."""
 
     rule_name: str
     metric: str
@@ -45,6 +49,7 @@ class AlertFiring(BaseModel):
     threshold: float
     comparison: str
     severity: str
+    slo_name: str | None = None
     fired_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

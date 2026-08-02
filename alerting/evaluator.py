@@ -1,7 +1,7 @@
-"""Alerting evaluator engine — Phase 4 Milestone 3.
+"""Alerting evaluator engine — Phase 4 Milestone 3 & Phase 5 Milestone 8.
 
-Evaluates configured AlertRules against metrics rollups from PostgreSQL.
-Optimised to group rule evaluations by sliding time window to minimise DB queries.
+Evaluates configured AlertRules and SLO definitions against metrics rollups from PostgreSQL.
+Optimised to group evaluations by sliding time window to minimise DB queries.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alerting.rules import SUPPORTED_METRICS, AlertFiring
+from alerting.slo import BurnRateResult, SLODefinition, evaluate_slo_burn_rate
 from logging_config import get_logger
 
 if TYPE_CHECKING:
@@ -25,6 +26,7 @@ _WINDOW_INTERVAL: dict[str, timedelta] = {
     "15m": timedelta(minutes=15),
     "1h": timedelta(hours=1),
     "1d": timedelta(days=1),
+    "30d": timedelta(days=30),
 }
 
 _SQL_WINDOW_SNAPSHOT = text("""
@@ -34,6 +36,30 @@ _SQL_WINDOW_SNAPSHOT = text("""
         AVG(cost_estimate)                                         AS avg_cost_estimate
     FROM metrics
     WHERE ts > now() - CAST(:interval AS INTERVAL)
+""")
+
+_SQL_METRICS_LATENCY = text("""
+    SELECT duration_ms FROM metrics
+    WHERE ts > now() - CAST(:interval AS INTERVAL) AND duration_ms IS NOT NULL
+""")
+
+_SQL_METRICS_SUCCESS = text("""
+    SELECT CASE WHEN success THEN 1.0 ELSE 0.0 END FROM metrics
+    WHERE ts > now() - CAST(:interval AS INTERVAL)
+""")
+
+_SQL_EVAL_ECE = text("""
+    SELECT CAST(metrics->>'calibration_ece' AS FLOAT)
+    FROM eval_benchmark_runs
+    WHERE run_at > now() - CAST(:interval AS INTERVAL)
+      AND metrics IS NOT NULL AND metrics->>'calibration_ece' IS NOT NULL
+""")
+
+_SQL_EVAL_FALLBACK = text("""
+    SELECT CAST(metrics->>'citation_fallback_rate' AS FLOAT)
+    FROM eval_benchmark_runs
+    WHERE run_at > now() - CAST(:interval AS INTERVAL)
+      AND metrics IS NOT NULL AND metrics->>'citation_fallback_rate' IS NOT NULL
 """)
 
 
@@ -71,25 +97,45 @@ async def _fetch_window_metrics_snapshot(session: AsyncSession, window: str) -> 
     return snapshot
 
 
+async def _fetch_slo_actuals(session: AsyncSession, slo: SLODefinition) -> list[float]:
+    """Fetch metric actuals time series for a given SLO definition."""
+    interval = _WINDOW_INTERVAL.get(slo.window, timedelta(days=30))
+    try:
+        if slo.metric in ("investigation.p95_latency_ms", "p95_latency"):
+            res = await session.execute(_SQL_METRICS_LATENCY, {"interval": interval})
+            return [float(r[0]) for r in res.fetchall() if r[0] is not None]
+        elif slo.metric in ("investigation.job_success_rate", "job_success_rate"):
+            res = await session.execute(_SQL_METRICS_SUCCESS, {"interval": interval})
+            return [float(r[0]) for r in res.fetchall() if r[0] is not None]
+        elif slo.metric == "calibration_ece":
+            res = await session.execute(_SQL_EVAL_ECE, {"interval": interval})
+            return [float(r[0]) for r in res.fetchall() if r[0] is not None]
+        elif slo.metric == "citation_fallback_rate":
+            res = await session.execute(_SQL_EVAL_FALLBACK, {"interval": interval})
+            return [float(r[0]) for r in res.fetchall() if r[0] is not None]
+    except Exception as exc:
+        _log.warning(
+            "alerting.evaluator.fetch_slo_actuals_failed",
+            slo_name=slo.name,
+            metric=slo.metric,
+            error=str(exc),
+        )
+    return []
+
+
 async def evaluate_rules(
     session: AsyncSession,
     rules: list[AlertRule],
 ) -> list[AlertFiring]:
-    """Evaluate active alert rules against metrics data grouped by sliding window.
-
-    Optimisation: Groups rules by window so only 1 SQL query is executed per window,
-    rather than 1 SQL query per rule.
-    """
+    """Evaluate active alert rules against metrics data grouped by sliding window."""
     firings: list[AlertFiring] = []
     now = datetime.now(UTC)
 
-    # 1. Group active rules by window
     rules_by_window: dict[str, list[AlertRule]] = defaultdict(list)
     for rule in rules:
         if rule.is_enabled:
             rules_by_window[rule.window].append(rule)
 
-    # 2. Evaluate each window group against a single snapshot query
     for window, window_rules in rules_by_window.items():
         try:
             snapshot = await _fetch_window_metrics_snapshot(session, window)
@@ -125,4 +171,51 @@ async def evaluate_rules(
     return firings
 
 
-__all__ = ["evaluate_rules"]
+async def evaluate_slos(
+    session: AsyncSession,
+    slos: list[SLODefinition],
+) -> tuple[list[AlertFiring], dict[str, BurnRateResult]]:
+    """Evaluate list of SLODefinitions against historical DB actuals.
+
+    Returns
+    -------
+    tuple[list[AlertFiring], dict[str, BurnRateResult]]
+        - AlertFirings for any SLO whose burn rate violates burn threshold
+        - Dictionary mapping slo.name to its BurnRateResult (for metrics/telemetry)
+    """
+    firings: list[AlertFiring] = []
+    burn_results: dict[str, BurnRateResult] = {}
+    now = datetime.now(UTC)
+
+    for slo in slos:
+        actuals = await _fetch_slo_actuals(session, slo)
+        res = evaluate_slo_burn_rate(slo, actuals)
+        burn_results[slo.name] = res
+
+        if res.insufficient_data:
+            _log.info(
+                "alerting.evaluator.slo_insufficient_data",
+                slo_name=slo.name,
+                metric=slo.metric,
+                window=slo.window,
+            )
+            continue
+
+        if res.alert_severity:
+            firings.append(
+                AlertFiring(
+                    rule_name=slo.name,
+                    metric=slo.metric,
+                    current_value=res.current_burn_rate,
+                    threshold=slo.error_budget_burn_alert_threshold,
+                    comparison="gt",
+                    severity=res.alert_severity,
+                    slo_name=slo.name,
+                    fired_at=now,
+                )
+            )
+
+    return firings, burn_results
+
+
+__all__ = ["evaluate_rules", "evaluate_slos"]

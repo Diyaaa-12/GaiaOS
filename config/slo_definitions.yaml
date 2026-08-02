@@ -1,0 +1,36 @@
+slos:
+  - name: investigation_p95_latency
+    target: 0.95
+    window: 30d
+    error_budget_burn_alert_threshold: 10.0
+    metric: investigation.p95_latency_ms
+    threshold: 10000.0
+    comparison: gt
+    description: 95% of investigations completed within 10,000ms latency budget over 30d window.
+
+  - name: job_success_rate
+    target: 0.99
+    window: 30d
+    error_budget_burn_alert_threshold: 10.0
+    metric: investigation.job_success_rate
+    threshold: 0.99
+    comparison: lt
+    description: 99% of background worker jobs complete successfully over 30d window.
+
+  - name: calibration_ece
+    target: 0.95
+    window: 30d
+    error_budget_burn_alert_threshold: 10.0
+    metric: calibration_ece
+    threshold: 0.05
+    comparison: gt
+    description: 95% of benchmark runs achieve Expected Calibration Error <= 0.05 over 30d window.
+
+  - name: citation_fallback_rate
+    target: 0.95
+    window: 30d
+    error_budget_burn_alert_threshold: 10.0
+    metric: citation_fallback_rate
+    threshold: 0.05
+    comparison: gt
+    description: Citation fallback rate remains below 5% for 95% of queries over 30d window.

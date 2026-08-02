@@ -611,11 +611,13 @@ class AlertRepository:
         last_value: float,
         threshold: float,
         consecutive_violations: int = 1,
+        slo_name: str | None = None,
     ) -> AlertIncident:
         """Record a new firing alert incident."""
         incident = AlertIncident(
             rule_id=rule_id,
             rule_name=rule_name,
+            slo_name=slo_name,
             severity=severity,
             status="firing",
             last_value=last_value,

@@ -1,4 +1,4 @@
-"""Background worker job for alert rule evaluation and notification — Phase 4 Milestone 3."""
+"""Background worker job for alert rule & SLO evaluation — Phase 4 M3 & Phase 5 M8."""
 
 from __future__ import annotations
 
@@ -7,8 +7,9 @@ import time
 from typing import Any
 
 from alerting.channels.webhook import WebhookNotificationChannel
-from alerting.evaluator import evaluate_rules
+from alerting.evaluator import evaluate_rules, evaluate_slos
 from alerting.rules import DEFAULT_ALERT_RULES, AlertResolution
+from alerting.slo import load_slo_definitions
 from config.settings import get_settings
 from db.repository import AlertRepository
 from db.session import AsyncSessionLocal, init_engine
@@ -21,9 +22,9 @@ async def _async_run_alert_evaluation() -> None:
     """Asynchronous alert evaluation workflow.
 
     1. Idempotent default rule seeding on first run if table is empty.
-    2. Query active AlertRules from database.
-    3. Evaluate rules against metrics rollups.
-    4. Reconcile firings/resolutions against open AlertIncidents.
+    2. Query active AlertRules from database & load SLO definitions from YAML.
+    3. Evaluate rules and SLO burn rates against metrics rollups & eval benchmark data.
+    4. Reconcile firings/resolutions against open AlertIncidents (tagged with slo_name).
     5. Dispatch Webhook notifications and emit telemetry metrics.
     """
     settings = get_settings()
@@ -66,59 +67,63 @@ async def _async_run_alert_evaluation() -> None:
             all_rules = await AlertRepository.list_alert_rules(session)
 
         active_rules = [r for r in all_rules if r.is_enabled]
-        _log.info("alerting.job.evaluating", rules_count=len(active_rules))
+        slos = load_slo_definitions()
+        _log.info("alerting.job.evaluating", rules_count=len(active_rules), slos_count=len(slos))
 
-        # 2. Evaluate active rules against metrics
-        firings = await evaluate_rules(session, active_rules)
-        firing_rule_names = {f.rule_name: f for f in firings}
+        # 2. Evaluate active rules and SLO burn rates
+        rule_firings = await evaluate_rules(session, active_rules)
+        slo_firings, slo_burn_results = await evaluate_slos(session, slos)
+
+        # Emit telemetry metrics for SLOs
+        for slo_name, result in slo_burn_results.items():
+            _log.info(
+                "metrics.slo_status",
+                slo_name=slo_name,
+                slo_burn_rate=result.current_burn_rate,
+                slo_budget_remaining_pct=result.budget_remaining_pct,
+                insufficient_data=result.insufficient_data,
+            )
+
+        all_firings = rule_firings + slo_firings
+        firing_names = {f.rule_name: f for f in all_firings}
 
         notifier = WebhookNotificationChannel(webhook_url=settings.alert_webhook_url)
 
         # 3. Process firings (new vs ongoing)
-        for rule in active_rules:
-            if rule.name in firing_rule_names:
-                firing = firing_rule_names[rule.name]
-                open_incident = await AlertRepository.get_open_incident_by_rule_name(
-                    session, rule.name
-                )
+        for firing in all_firings:
+            open_incident = await AlertRepository.get_open_incident_by_rule_name(
+                session, firing.rule_name
+            )
 
-                if not open_incident:
-                    # New firing incident
-                    inc = await AlertRepository.create_incident(
-                        session=session,
-                        rule_id=rule.id,
-                        rule_name=rule.name,
-                        severity=rule.severity,
-                        last_value=firing.current_value,
-                        threshold=rule.threshold,
-                        consecutive_violations=1,
-                    )
-                    if inc.consecutive_violations >= rule.consecutive_cycles:
-                        success = await notifier.notify(firing)
-                        if success:
-                            notifications_sent += 1
-                        else:
-                            notification_failures += 1
+            if not open_incident:
+                await AlertRepository.create_incident(
+                    session=session,
+                    rule_id=None,
+                    rule_name=firing.rule_name,
+                    severity=firing.severity,
+                    last_value=firing.current_value,
+                    threshold=firing.threshold,
+                    consecutive_violations=1,
+                    slo_name=firing.slo_name,
+                )
+                success = await notifier.notify(firing)
+                if success:
+                    notifications_sent += 1
                 else:
-                    # Ongoing firing incident
-                    new_violations = open_incident.consecutive_violations + 1
-                    await AlertRepository.update_incident_last_value(
-                        session=session,
-                        incident_id=open_incident.id,
-                        last_value=firing.current_value,
-                        consecutive_violations=new_violations,
-                    )
-                    if new_violations == rule.consecutive_cycles:
-                        success = await notifier.notify(firing)
-                        if success:
-                            notifications_sent += 1
-                        else:
-                            notification_failures += 1
+                    notification_failures += 1
+            else:
+                new_violations = open_incident.consecutive_violations + 1
+                await AlertRepository.update_incident_last_value(
+                    session=session,
+                    incident_id=open_incident.id,
+                    last_value=firing.current_value,
+                    consecutive_violations=new_violations,
+                )
 
         # 4. Resolve cleared incidents
         open_incidents = await AlertRepository.list_incidents(session, status="firing")
         for incident in open_incidents:
-            if incident.rule_name not in firing_rule_names:
+            if incident.rule_name not in firing_names:
                 resolved_inc = await AlertRepository.resolve_incident(session, incident.id)
                 if resolved_inc:
                     resolution = AlertResolution(
@@ -136,7 +141,7 @@ async def _async_run_alert_evaluation() -> None:
     _log.info(
         "alerting.job.completed",
         duration_ms=duration_ms,
-        firings_count=len(firings),
+        firings_count=len(all_firings),
         notifications_sent=notifications_sent,
         notification_failures=notification_failures,
     )

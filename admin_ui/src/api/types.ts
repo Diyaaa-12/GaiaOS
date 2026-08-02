@@ -48,6 +48,7 @@ export interface AlertIncidentResponse {
   id: string;
   rule_id: string | null;
   rule_name: string;
+  slo_name?: string | null;
   severity: string;
   status: 'firing' | 'resolved';
   last_value: number;

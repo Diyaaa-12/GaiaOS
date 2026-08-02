@@ -74,7 +74,8 @@ export function Alerts() {
               <thead>
                 <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
                   <th style={{ padding: '0.6rem' }}>Status</th>
-                  <th style={{ padding: '0.6rem' }}>Rule</th>
+                  <th style={{ padding: '0.6rem' }}>Rule / SLO</th>
+                  <th style={{ padding: '0.6rem' }}>SLO Tag</th>
                   <th style={{ padding: '0.6rem' }}>Severity</th>
                   <th style={{ padding: '0.6rem' }}>Last Value</th>
                   <th style={{ padding: '0.6rem' }}>Threshold</th>
@@ -90,6 +91,9 @@ export function Alerts() {
                       <StatusBadge status={inc.status} />
                     </td>
                     <td style={{ padding: '0.6rem', fontWeight: 500 }}>{inc.rule_name}</td>
+                    <td style={{ padding: '0.6rem', color: inc.slo_name ? '#0369a1' : '#94a3b8' }}>
+                      {inc.slo_name ?? '—'}
+                    </td>
                     <td style={{ padding: '0.6rem', textTransform: 'capitalize' }}>{inc.severity}</td>
                     <td style={{ padding: '0.6rem' }}>{inc.last_value.toFixed(3)}</td>
                     <td style={{ padding: '0.6rem' }}>{inc.threshold.toFixed(3)}</td>
