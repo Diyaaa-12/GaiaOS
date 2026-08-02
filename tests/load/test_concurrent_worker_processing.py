@@ -15,7 +15,7 @@ import uuid
 import pytest
 from redis import Redis
 from rq import Queue, SimpleWorker
-from rq.registry import FinishedJobRegistry, StartedJobRegistry
+from rq.registry import FinishedJobRegistry
 
 from config.settings import get_settings
 from workers.jobs.investigation_job import run_investigation_job
@@ -147,14 +147,10 @@ class TestConcurrentWorkerProcessing:
                 f"Missing checkpoint namespace for investigation_id / thread_id: {inv_id}"
             )
 
-        # 6. Clean up Redis keys and RQ registries
+       # 6. Clean up Redis keys and RQ registries
         finished_registry = FinishedJobRegistry(queue=q)
-        started_registry = StartedJobRegistry(queue=q)
-        failed_registry = FailedJobRegistry(queue=q)
         for j_id in job_ids:
             finished_registry.remove(j_id)
-            started_registry.remove(j_id)
-            failed_registry.remove(j_id)
             conn.delete(f"rq:job:{j_id}")
 
         for inv_id in investigation_ids:
