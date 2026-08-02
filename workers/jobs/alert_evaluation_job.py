@@ -84,13 +84,52 @@ async def _async_run_alert_evaluation() -> None:
                 insufficient_data=result.insufficient_data,
             )
 
-        all_firings = rule_firings + slo_firings
-        firing_names = {f.rule_name: f for f in all_firings}
+        rule_firing_names = {f.rule_name: f for f in rule_firings}
+        all_firing_names = {f.rule_name: f for f in (rule_firings + slo_firings)}
 
         notifier = WebhookNotificationChannel(webhook_url=settings.alert_webhook_url)
 
-        # 3. Process firings (new vs ongoing)
-        for firing in all_firings:
+        # 3a. Process threshold-based AlertRule firings (preserving Phase 4 flapping suppression)
+        for rule in active_rules:
+            if rule.name in rule_firing_names:
+                firing = rule_firing_names[rule.name]
+                open_incident = await AlertRepository.get_open_incident_by_rule_name(
+                    session, rule.name
+                )
+
+                if not open_incident:
+                    inc = await AlertRepository.create_incident(
+                        session=session,
+                        rule_id=rule.id,
+                        rule_name=rule.name,
+                        severity=rule.severity,
+                        last_value=firing.current_value,
+                        threshold=rule.threshold,
+                        consecutive_violations=1,
+                    )
+                    if inc.consecutive_violations >= rule.consecutive_cycles:
+                        success = await notifier.notify(firing)
+                        if success:
+                            notifications_sent += 1
+                        else:
+                            notification_failures += 1
+                else:
+                    new_violations = open_incident.consecutive_violations + 1
+                    await AlertRepository.update_incident_last_value(
+                        session=session,
+                        incident_id=open_incident.id,
+                        last_value=firing.current_value,
+                        consecutive_violations=new_violations,
+                    )
+                    if new_violations == rule.consecutive_cycles:
+                        success = await notifier.notify(firing)
+                        if success:
+                            notifications_sent += 1
+                        else:
+                            notification_failures += 1
+
+        # 3b. Process SLO burn rate firings (additive)
+        for firing in slo_firings:
             open_incident = await AlertRepository.get_open_incident_by_rule_name(
                 session, firing.rule_name
             )
@@ -123,7 +162,7 @@ async def _async_run_alert_evaluation() -> None:
         # 4. Resolve cleared incidents
         open_incidents = await AlertRepository.list_incidents(session, status="firing")
         for incident in open_incidents:
-            if incident.rule_name not in firing_names:
+            if incident.rule_name not in all_firing_names:
                 resolved_inc = await AlertRepository.resolve_incident(session, incident.id)
                 if resolved_inc:
                     resolution = AlertResolution(
@@ -141,7 +180,7 @@ async def _async_run_alert_evaluation() -> None:
     _log.info(
         "alerting.job.completed",
         duration_ms=duration_ms,
-        firings_count=len(all_firings),
+        firings_count=len(all_firing_names),
         notifications_sent=notifications_sent,
         notification_failures=notification_failures,
     )
