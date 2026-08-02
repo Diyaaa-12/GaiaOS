@@ -65,6 +65,17 @@ jobs:
             exit 1
           fi
 
+      - name: Flush stale RQ jobs left over from the Pytest run
+        run: |
+          # tests/ enqueues real RQ jobs onto the shared Redis instance (127.0.0.1:6379)
+          # used by "Run Pytest" above. Any jobs left un-consumed in the "default" queue
+          # get dequeued by the worker container ahead of the smoke-test job below,
+          # each burning ~10s on external API calls (geocoding/tide lookups) that are
+          # slow/unreachable from GitHub Actions runners. That backlog previously pushed
+          # the smoke job's completion past the smoke test's poll window. Flushing here
+          # guarantees the worker starts with an empty queue.
+          redis-cli -h 127.0.0.1 -p 6379 FLUSHALL
+        
       - name: Build and verify container images (app, worker, scheduler)
         run: |
           docker compose up -d --build --wait app worker scheduler

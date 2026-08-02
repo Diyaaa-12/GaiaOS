@@ -125,7 +125,7 @@ def run_live_smoke_verification(
 
 if __name__ == "__main__":
     url = os.getenv("SMOKE_BASE_URL", "http://localhost:8000")
-    success = run_live_smoke_verification(base_url=url, timeout_seconds=30)
+    success = run_live_smoke_verification(base_url=url, timeout_seconds=60)
     if not success:
         sys.exit(1)
     sys.exit(0)
