@@ -15,9 +15,11 @@ The central navigation index for all GaiaOS system architecture, contributor gui
 - **[Phase 2 Deep Dives](phase2/agent_contract.md)** — Architectural specs for reasoning agents, adaptive planner, causal chains, eval harness, and RAG strategy.
 - **[Phase 3 Deep Dives](phase3/authentication.md)** — Specs for authentication, rate limiting, hazard ingestion, task queues, and replan loops.
 - **[Phase 4 Deep Dives](phase4/admin_dashboard.md)** — Specs for admin UI dashboard, alerting, citation integrity, geocoding, and worker scaling.
+- **[Phase 5 Deep Dives](phase5/slos.md)** — Specs for SLO burn-rate alerting and [Async Resource Lifecycle](phase5/async_resource_lifecycle.md).
 
 ## API Documentation
 - **[OpenAPI Specification](api/openapi/openapi.json)** — Machine-readable OpenAPI 3.1.0 JSON specification.
+- **[Public Research API](research-api/README.md)** — Specification for public research endpoints and dataset export archives (ADR-504).
 - **[API Changelog](api/CHANGELOG.md)** — Historical changelog of API endpoints and version contracts.
 
 ## Contributor Guides
@@ -36,6 +38,7 @@ The central navigation index for all GaiaOS system architecture, contributor gui
 - **[Phase 2 Roadmap](Roadmap_Phase2.md)** — Multi-Agent Reasoning Core, LangGraph, Literature RAG.
 - **[Phase 3 Roadmap](Roadmap_Phase3.md)** — Auth, Rate Limiting, RQ Workers, SSE Stream, Eval Suite.
 - **[Phase 4 Roadmap](Roadmap_Phase4.md)** — CI Integrity, Admin Dashboard, Alerting, Citation Mapping, Geocoding, Worker Scaling.
+- **[Phase 5 Roadmap](Roadmap_Phase5.md)** — Evaluation, Plugins, Read Replica Scaling, SLOs, Public Research API.
 
 ## Audits
 - **[Engineering Audit Index](../Audit_Index.md)** — Master index tracking all engineering audit reports and status matrix.
@@ -43,6 +46,7 @@ The central navigation index for all GaiaOS system architecture, contributor gui
 - **[Phase 2 Final Audit](audits/GaiaOS_Phase2_Final_Audit.md)**
 - **[Phase 3 Final Audit](audits/GaiaOS_Phase3_Final_Audit.md)**
 - **[Phase 4 Final Audit](audits/GaiaOS_Phase4_Final_Audit.md)**
+- **[Phase 5 Final Audit](audits/GaiaOS_Phase5_Final_Audit.md)**
 
 ## Governance & Community
 - **[Support Guidelines](../SUPPORT.md)** — Community support channels, issue triage taxonomy, and maintainer SLA.

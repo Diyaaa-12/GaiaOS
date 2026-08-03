@@ -9,7 +9,7 @@ An Agentic Planetary Risk Intelligence Platform.
 
 ## Status
 
-Phase 1, Phase 2, Phase 3, Phase 4, and v4.x Open Source Readiness Series (v4.1.0, v4.2.0, v4.3.0) — Complete
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and the v0.5.x Planetary Intelligence Series — Complete
 
 | Milestone | Scope / Deliverable | Status |
 |-----------|---------------------|--------|
@@ -17,14 +17,17 @@ Phase 1, Phase 2, Phase 3, Phase 4, and v4.x Open Source Readiness Series (v4.1.
 | **Phase 2** | Multi-Agent Reasoning Core, LangGraph, Literature RAG, Scorer | Complete |
 | **Phase 3 — Milestones 1–10** | JWT/API Key Auth, Redis Rate Limiting, RQ Workers, SSE Stream, Eval Suite, Replan Loop, PostGIS, Ingestion, Metrics | Complete |
 | **Phase 4 — Milestones 1–10** | CI Integrity, Auth Review, Monitoring/Alerting, Citation IDs, Geocoding, Disaster Recovery, Worker Scaling, Agent Contribution Framework, Admin UI, OpenAPI Publishing | Complete |
-| **v4.1.0** | Repository Governance, Security Policy, Apache 2.0 License, Issue/PR Templates | Complete |
-| **v4.2.0** | Community Health, Contributor Experience, Support Guidelines & Issue Triage Taxonomy | Complete |
-| **v4.3.0** | Contributor Experience: Onboarding UX, Architecture Navigation, Contributor Guides, Developer Tooling & Local CI Parity | Complete |
+| **v0.4.1–v0.4.4** | Open Source Readiness Series (Governance, Security Policy, Issue/PR Templates, Contributor Onboarding) | Complete |
+| **v0.5.0** | Phase 5 Milestones 1–2 (Evaluation & Repository Integrity) | Complete |
+| **v0.5.1** | Phase 5 Milestones 3–5 (Uncertainty Quantification, Multi-Agent Collaboration & Cross-Domain Synthesis) | Complete |
+| **v0.5.2** | Phase 5 Milestone 6 (Agent Plugin Architecture & Dynamic Extensions) | Complete |
+| **v0.5.3** | Phase 5 Milestones 7–8 (Read Replica Scaling & SLO Burn-Rate Alerting) | Complete |
+| **v0.5.4** | Phase 5 Capstone (Public Research API & Dataset Publishing) | Complete |
 
 Detailed architectural specifications, documentation hub, and milestone scope documents are linked below:
 - **Documentation Hub**: [`docs/README.md`](docs/README.md)
 - **Architecture**: [`docs/Architecture.md`](docs/Architecture.md)
-- **Roadmaps**: [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md), [`docs/Roadmap_Phase2.md`](docs/Roadmap_Phase2.md), [`docs/Roadmap_Phase3.md`](docs/Roadmap_Phase3.md), [`docs/Roadmap_Phase4.md`](docs/Roadmap_Phase4.md)
+- **Roadmaps**: [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md), [`docs/Roadmap_Phase2.md`](docs/Roadmap_Phase2.md), [`docs/Roadmap_Phase3.md`](docs/Roadmap_Phase3.md), [`docs/Roadmap_Phase4.md`](docs/Roadmap_Phase4.md), [`docs/Roadmap_Phase5.md`](docs/Roadmap_Phase5.md)
 - **Versioning Strategy**: [`docs/releases/Versioning.md`](docs/releases/Versioning.md)
 
 ## Core Architecture

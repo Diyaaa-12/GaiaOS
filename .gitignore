@@ -37,6 +37,7 @@ Thumbs.db
 
 # Backups and temporary dump files
 backups/
+data/exports/
 
 # Node / Frontend
 node_modules/
