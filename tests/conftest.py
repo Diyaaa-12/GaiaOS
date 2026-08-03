@@ -43,8 +43,11 @@ Postgres service on localhost (see README § Local Testing):
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+from redis.asyncio import from_url
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -163,3 +166,31 @@ async def client(app) -> AsyncClient:  # type: ignore[misc]
         base_url="http://testserver",
     ) as ac:
         yield ac
+
+
+@pytest.fixture(autouse=True)
+async def clear_redis_keys() -> AsyncIterator[None]:  # type: ignore[misc]
+    """Clear gaiaos:circuit:* and gaiaos:cache:* keys in Redis before each test."""
+
+    async def _clean() -> None:
+        settings = get_settings()
+        if settings.redis_url:
+            try:
+                r = from_url(settings.redis_url, decode_responses=True)
+                circuit_keys = await r.keys("gaiaos:circuit:*")
+                cache_keys = await r.keys("gaiaos:cache:*")
+                all_keys = circuit_keys + cache_keys
+                if all_keys:
+                    await r.delete(*all_keys)
+                await r.aclose()
+            except Exception:
+                pass
+
+    await _clean()
+    try:
+        yield
+    finally:
+        await _clean()
+
+
+
