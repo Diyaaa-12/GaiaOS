@@ -28,7 +28,12 @@ def _extract_event_type(query: str) -> str:
         return "wildfire_satellite"
     if "atmospheric anomaly" in query_lower or "era5" in query_lower or "reanalysis" in query_lower:
         return "atmospheric_anomaly"
-    if "unrest" in query_lower or "gdelt" in query_lower or "civil" in query_lower or "socio" in query_lower:
+    if (
+        "unrest" in query_lower
+        or "gdelt" in query_lower
+        or "civil" in query_lower
+        or "socio" in query_lower
+    ):
         return "civil_unrest_hazard_adjacent"
     if "earthquake" in query_lower or "seismic" in query_lower:
         return "earthquake"

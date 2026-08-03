@@ -11,6 +11,7 @@ import respx
 from ingestion.scheduled.hazard_event_sources.era5_atmospheric import fetch_recent_era5_events
 from tools.era5.client import ERA5Client
 
+
 class _InMemoryRedis:
     def __init__(self) -> None:
         self._store: dict[str, str] = {}
@@ -25,7 +26,7 @@ class _InMemoryRedis:
 @pytest.mark.asyncio
 @respx.mock
 async def test_era5_client_and_adapter_mapping(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify ERA5 client fetches atmospheric baselines and adapter maps to HazardEventRecord with details attribution."""
+    """Verify ERA5 client fetches atmospheric baselines and adapter maps to HazardEventRecord."""
     fake_redis = _InMemoryRedis()
     monkeypatch.setattr("resilience.degraded_mode.get_redis", AsyncMock(return_value=fake_redis))
     monkeypatch.setattr("resilience.circuit_breaker.get_redis", AsyncMock(return_value=fake_redis))

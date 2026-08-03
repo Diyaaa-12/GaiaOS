@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -10,6 +10,7 @@ import respx
 
 from ingestion.scheduled.hazard_event_sources.gdelt_events import fetch_recent_gdelt_events
 from tools.gdelt.client import GDELTClient
+
 
 class _InMemoryRedis:
     def __init__(self) -> None:
@@ -25,7 +26,7 @@ class _InMemoryRedis:
 @pytest.mark.asyncio
 @respx.mock
 async def test_gdelt_client_and_adapter_mapping(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify GDELT client fetches articles and adapter maps to HazardEventRecord with details attribution."""
+    """Verify GDELT client fetches articles and adapter maps to HazardEventRecord."""
     fake_redis = _InMemoryRedis()
     monkeypatch.setattr("resilience.degraded_mode.get_redis", AsyncMock(return_value=fake_redis))
     monkeypatch.setattr("resilience.circuit_breaker.get_redis", AsyncMock(return_value=fake_redis))
@@ -68,7 +69,7 @@ async def test_gdelt_client_and_adapter_mapping(monkeypatch: pytest.MonkeyPatch)
 @pytest.mark.asyncio
 @respx.mock
 async def test_gdelt_cursor_monotonicity_and_deduplication(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify GDELT ingestion adapter filters out old events to maintain cursor monotonicity and generates deterministic IDs."""
+    """Verify GDELT ingestion adapter filters out old events for cursor monotonicity."""
     fake_redis = _InMemoryRedis()
     monkeypatch.setattr("resilience.degraded_mode.get_redis", AsyncMock(return_value=fake_redis))
     monkeypatch.setattr("resilience.circuit_breaker.get_redis", AsyncMock(return_value=fake_redis))

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 from ingestion.scheduled.schemas import HazardEventRecord
 from logging_config import get_logger

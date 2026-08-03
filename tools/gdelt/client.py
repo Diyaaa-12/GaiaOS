@@ -6,14 +6,14 @@ from typing import Any
 
 from config.settings import get_settings
 from logging_config import get_logger
-from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
+from resilience.degraded_mode import TTL_BY_SOURCE, ResilientResult, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
 
 
 class GDELTClient:
-    """Async client to fetch socio-political and environmental hazard news events from GDELT DOC 2.0 API."""
+    """Async client to fetch socio-political and environmental hazard news events from GDELT."""
 
     def __init__(self, base_url: str | None = None) -> None:
         settings = get_settings()

@@ -189,15 +189,16 @@ class TestCIGateIntegration:
     async def test_sync_benchmark_questions_database(self, db_session: AsyncSession) -> None:
         """sync_benchmark_questions populates 18 domain questions non-destructively."""
         await db_session.execute(delete(EvalBenchmarkRun))
+        await db_session.commit()
         await db_session.execute(delete(EvalBenchmarkQuestion))
         await db_session.commit()
 
         synced_count = await sync_benchmark_questions(db_session, overwrite=False)
-        assert synced_count == 18
+        assert synced_count == 22
 
         stmt = select(EvalBenchmarkQuestion)
         questions = (await db_session.execute(stmt)).scalars().all()
-        assert len(questions) == 18
+        assert len(questions) == 22
 
         # Verify project-specific namespace
         paris_id = get_deterministic_question_id("air_quality_paris_pm25")
@@ -211,6 +212,7 @@ class TestCIGateIntegration:
     async def test_run_ci_gate_flow(self, db_session: AsyncSession) -> None:
         """run_ci_gate syncs questions, runs suite, and checks regression against baseline."""
         await db_session.execute(delete(EvalBenchmarkRun))
+        await db_session.commit()
         await db_session.execute(delete(EvalBenchmarkQuestion))
         await db_session.commit()
 
@@ -224,4 +226,4 @@ class TestCIGateIntegration:
         assert "first run" in report1.summary.lower()
 
         db_runs = (await db_session.execute(select(EvalBenchmarkRun))).scalars().all()
-        assert len(db_runs) == 18
+        assert len(db_runs) == 22

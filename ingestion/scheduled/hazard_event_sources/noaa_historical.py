@@ -36,7 +36,8 @@ async def fetch_recent_noaa_events(
 
     for station_id, meta in stations_to_process.items():
         try:
-            temp_data = await client.get_water_temperature(station_id=station_id, date="latest")
+            temp_res = await client.get_water_temperature(station_id=station_id, date="latest")
+            temp_data = temp_res.value or {}
             obs_list = temp_data.get("data", [])
             if isinstance(obs_list, list):
                 for obs in obs_list:

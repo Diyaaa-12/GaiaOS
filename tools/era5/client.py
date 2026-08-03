@@ -7,7 +7,7 @@ from typing import Any
 
 from config.settings import get_settings
 from logging_config import get_logger
-from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
+from resilience.degraded_mode import TTL_BY_SOURCE, ResilientResult, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
@@ -47,7 +47,9 @@ class ERA5Client:
             "daily": "temperature_2m_mean,wind_speed_10m_max,precipitation_sum",
         }
 
-        cache_key = f"baseline:{round(lat, 2)}:{round(lon, 2)}:{start_date.isoformat()}:{end_date.isoformat()}"
+        s_iso = start_date.isoformat()
+        e_iso = end_date.isoformat()
+        cache_key = f"baseline:{round(lat, 2)}:{round(lon, 2)}:{s_iso}:{e_iso}"
 
         async def _fetch() -> dict[str, Any]:
             client = await get_shared_client()

@@ -9,7 +9,7 @@ Dependency direction: ``resilience/ → cache/, config/``
 Imported by: every ``tools/*`` client.
 """
 
-from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
+from resilience.degraded_mode import TTL_BY_SOURCE, ResilientResult, resilient_call
 
 __all__ = [
     "resilient_call",

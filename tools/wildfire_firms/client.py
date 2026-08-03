@@ -8,7 +8,7 @@ from typing import Any
 
 from config.settings import get_settings
 from logging_config import get_logger
-from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
+from resilience.degraded_mode import TTL_BY_SOURCE, ResilientResult, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
@@ -44,7 +44,9 @@ class FIRMSWildfireClient:
             return ResilientResult(value=[], degraded=False, source_status="live")
 
         url = f"{self.base_url}/{self.api_key}/MODIS_NRT/{min_x},{min_y},{max_x},{max_y}/{days}"
-        cache_key = f"active_fires:{round(min_x, 2)}:{round(min_y, 2)}:{round(max_x, 2)}:{round(max_y, 2)}:{days}"
+        min_pt = f"{round(min_x, 2)}:{round(min_y, 2)}"
+        max_pt = f"{round(max_x, 2)}:{round(max_y, 2)}"
+        cache_key = f"active_fires:{min_pt}:{max_pt}:{days}"
 
         async def _fetch() -> list[dict[str, Any]]:
             client = await get_shared_client()

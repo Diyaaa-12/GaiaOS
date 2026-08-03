@@ -11,7 +11,9 @@ from sqlalchemy import text
 
 import db.session as db_session
 from config.settings import get_settings
-from ingestion.scheduled.hazard_event_sources.copernicus_wildfire import fetch_recent_copernicus_events
+from ingestion.scheduled.hazard_event_sources.copernicus_wildfire import (
+    fetch_recent_copernicus_events,
+)
 from ingestion.scheduled.hazard_event_sources.era5_atmospheric import fetch_recent_era5_events
 from ingestion.scheduled.hazard_event_sources.gdelt_events import fetch_recent_gdelt_events
 from ingestion.scheduled.hazard_event_sources.noaa_historical import fetch_recent_noaa_events

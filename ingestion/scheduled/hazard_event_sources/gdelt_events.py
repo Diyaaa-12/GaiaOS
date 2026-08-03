@@ -13,7 +13,7 @@ _log = get_logger(__name__)
 
 
 def _parse_gdelt_date(seendate: str | None) -> datetime:
-    """Parse GDELT seendate format e.g. '20260724T120000Z' or '20260724120000' to timezone-aware UTC datetime."""
+    """Parse GDELT seendate e.g. '20260724T120000Z' or '20260724120000' to UTC datetime."""
     if not seendate:
         return datetime.now(UTC)
     s = str(seendate).replace("Z", "").replace("T", "")

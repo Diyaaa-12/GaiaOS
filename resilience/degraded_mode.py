@@ -37,7 +37,7 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Generic, Literal, TypeVar
+from typing import Literal, TypeVar
 
 import httpx
 from tenacity import RetryError
@@ -78,7 +78,7 @@ _DEFAULT_TTL: int = 600
 # Result container
 # ---------------------------------------------------------------------------
 @dataclass
-class ResilientResult(Generic[T]):
+class ResilientResult[T]:
     """Typed result from ``resilient_call``.
 
     Attributes:
@@ -95,7 +95,7 @@ class ResilientResult(Generic[T]):
 # ---------------------------------------------------------------------------
 # Core function
 # ---------------------------------------------------------------------------
-async def resilient_call(
+async def resilient_call[T](
     source: str,
     fn: Callable[[], Awaitable[T]],
     cache_key: str,

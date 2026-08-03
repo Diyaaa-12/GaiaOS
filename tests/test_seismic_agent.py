@@ -22,7 +22,11 @@ class TestSeismicAgent:
         )
         # Mock NOAA stations (called by resolve_nearest_station via geocode_location)
         respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
-            json={"stations": [{"id": "9759110", "name": "Tokyo Bay", "lat": 35.65, "lng": 139.75}]},
+            json={
+                "stations": [
+                    {"id": "9759110", "name": "Tokyo Bay", "lat": 35.65, "lng": 139.75}
+                ]
+            },
             status_code=200,
         )
         # Mock USGS earthquake query endpoint

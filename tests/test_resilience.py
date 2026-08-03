@@ -17,7 +17,7 @@ Regression   (12)    — confirms existing agent tests still compile and import 
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
@@ -56,9 +56,10 @@ def _make_redis() -> _InMemoryRedis:
 @pytest.mark.asyncio
 async def test_retry_policy_max_attempts(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify that the tenacity policy retries exactly MAX_ATTEMPTS times."""
-    from resilience.retry_policy import MAX_ATTEMPTS
-    import resilience.retry_policy as rp
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_none
+
+    import resilience.retry_policy as rp
+    from resilience.retry_policy import MAX_ATTEMPTS
 
     # Replace the module-level retry policy with a no-wait version for speed
     no_wait_policy = retry(
@@ -128,8 +129,8 @@ async def test_circuit_breaker_half_open_after_timeout(monkeypatch: pytest.Monke
     """Circuit transitions to half-open when the timeout window has elapsed."""
     from datetime import UTC, datetime, timedelta
 
-    from resilience import circuit_breaker
     from cache.keys import RedisKeyBuilder
+    from resilience import circuit_breaker
 
     fake_redis = _make_redis()
     monkeypatch.setattr("resilience.circuit_breaker.get_redis", AsyncMock(return_value=fake_redis))
@@ -164,8 +165,8 @@ async def test_circuit_breaker_half_open_after_timeout(monkeypatch: pytest.Monke
 @pytest.mark.asyncio
 async def test_circuit_breaker_closed_on_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Record_success from half-open resets to closed."""
-    from resilience import circuit_breaker
     from cache.keys import RedisKeyBuilder
+    from resilience import circuit_breaker
 
     fake_redis = _make_redis()
     monkeypatch.setattr("resilience.circuit_breaker.get_redis", AsyncMock(return_value=fake_redis))
@@ -190,8 +191,8 @@ async def test_circuit_breaker_closed_on_success(monkeypatch: pytest.MonkeyPatch
 @pytest.mark.asyncio
 async def test_circuit_breaker_reopens_on_probe_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """Record_failure from half-open re-opens the circuit."""
-    from resilience import circuit_breaker
     from cache.keys import RedisKeyBuilder
+    from resilience import circuit_breaker
 
     fake_redis = _make_redis()
     monkeypatch.setattr("resilience.circuit_breaker.get_redis", AsyncMock(return_value=fake_redis))
@@ -290,8 +291,9 @@ async def test_resilient_call_cache_fallback(monkeypatch: pytest.MonkeyPatch) ->
         call_count += 1
         raise httpx.NetworkError("down")
 
-    import resilience.retry_policy as rp
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_none
+
+    import resilience.retry_policy as rp
     no_wait = retry(
         stop=stop_after_attempt(rp.MAX_ATTEMPTS),
         wait=wait_none(),
@@ -332,8 +334,9 @@ async def test_resilient_call_unavailable(monkeypatch: pytest.MonkeyPatch) -> No
     async def _always_fail() -> dict:
         raise httpx.NetworkError("down")
 
-    import resilience.retry_policy as rp
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_none
+
+    import resilience.retry_policy as rp
     no_wait = retry(
         stop=stop_after_attempt(rp.MAX_ATTEMPTS),
         wait=wait_none(),
@@ -359,8 +362,9 @@ async def test_resilient_call_skips_live_when_circuit_open(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When the circuit is open, fn is never called."""
-    from cache.keys import RedisKeyBuilder
     from datetime import UTC, datetime
+
+    from cache.keys import RedisKeyBuilder
 
     fake_redis = _make_redis()
     monkeypatch.setattr("resilience.degraded_mode.get_redis", AsyncMock(return_value=fake_redis))
@@ -410,8 +414,9 @@ async def test_resilient_call_skips_live_when_circuit_open(
 @pytest.mark.asyncio
 async def test_noaa_client_cache_fallback_on_503(monkeypatch: pytest.MonkeyPatch) -> None:
     """NOAAOceanClient: all HTTP attempts return 503, cache is served instead."""
-    import respx
     import httpx as _httpx
+    import respx
+
     from cache.keys import RedisKeyBuilder
 
     fake_redis = _make_redis()
@@ -435,10 +440,10 @@ async def test_noaa_client_cache_fallback_on_503(monkeypatch: pytest.MonkeyPatch
     redis_key = RedisKeyBuilder.source_cache_key("noaa", cache_key)
     await fake_redis.set(redis_key, json.dumps(stale))
 
-    from tools.ocean_noaa.client import NOAAOceanClient
+    from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_none
 
     import resilience.retry_policy as rp
-    from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_none
+    from tools.ocean_noaa.client import NOAAOceanClient
     no_wait = retry(
         stop=stop_after_attempt(rp.MAX_ATTEMPTS),
         wait=wait_none(),
@@ -473,8 +478,8 @@ async def test_definition_of_done_deliberate_failure(monkeypatch: pytest.MonkeyP
       - result.degraded is True
       - source_status is "cached" or "unavailable"
     """
-    import respx
     import httpx as _httpx
+    import respx
 
     fake_redis = _make_redis()
     monkeypatch.setattr("resilience.degraded_mode.get_redis", AsyncMock(return_value=fake_redis))
@@ -492,10 +497,10 @@ async def test_definition_of_done_deliberate_failure(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr("resilience.circuit_breaker.get_settings", lambda: mock_settings)
     monkeypatch.setattr("tools.ocean_noaa.client.get_settings", lambda: mock_settings)
 
-    from tools.ocean_noaa.client import NOAAOceanClient
+    from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_none
 
     import resilience.retry_policy as rp
-    from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_none
+    from tools.ocean_noaa.client import NOAAOceanClient
     no_wait = retry(
         stop=stop_after_attempt(rp.MAX_ATTEMPTS),
         wait=wait_none(),
@@ -535,13 +540,22 @@ def test_key_builder_regression() -> None:
     assert RedisKeyBuilder.cache_key("foo") == "gaiaos:cache:foo"
     assert RedisKeyBuilder.checkpoint_key("t1") == "gaiaos:checkpoint:t1"
     assert RedisKeyBuilder.event_channel_key("inv1") == "gaiaos:events:inv1"
-    assert RedisKeyBuilder.rate_limit_key("127.0.0.1", "search") == "gaiaos:ratelimit:127.0.0.1:search"
-    assert RedisKeyBuilder.station_key(35.68, 139.65, "noaa") == "gaiaos:cache:station:noaa:35.68:139.65"
+    assert (
+        RedisKeyBuilder.rate_limit_key("127.0.0.1", "search")
+        == "gaiaos:ratelimit:127.0.0.1:search"
+    )
+    assert (
+        RedisKeyBuilder.station_key(35.68, 139.65, "noaa")
+        == "gaiaos:cache:station:noaa:35.68:139.65"
+    )
 
     # New — circuit and source cache
     assert RedisKeyBuilder.circuit_key("noaa") == "gaiaos:circuit:noaa"
     assert RedisKeyBuilder.circuit_key("usgs") == "gaiaos:circuit:usgs"
-    assert RedisKeyBuilder.source_cache_key("noaa", "temp:8723214") == "gaiaos:cache:noaa:temp:8723214"
+    assert (
+        RedisKeyBuilder.source_cache_key("noaa", "temp:8723214")
+        == "gaiaos:cache:noaa:temp:8723214"
+    )
     assert RedisKeyBuilder.source_cache_key("usgs", "eq:37.5:122.0:100:1.0:7") == (
         "gaiaos:cache:usgs:eq:37.5:122.0:100:1.0:7"
     )

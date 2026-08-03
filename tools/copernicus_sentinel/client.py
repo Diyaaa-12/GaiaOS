@@ -6,7 +6,7 @@ from typing import Any
 
 from config.settings import get_settings
 from logging_config import get_logger
-from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
+from resilience.degraded_mode import TTL_BY_SOURCE, ResilientResult, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
@@ -37,8 +37,9 @@ class CopernicusSentinelClient:
         # Filter query for Sentinel-2 product metadata in OData format
         filter_str = (
             f"Collection/Name eq 'SENTINEL-2' and "
-            f"OData.CSC.Intersects(area=geography'SRID=4326;POLYGON(({min_x} {min_y}, {max_x} {min_y}, "
-            f"{max_x} {max_y}, {min_x} {max_y}, {min_x} {min_y}))')"
+            f"OData.CSC.Intersects(area=geography'SRID=4326;POLYGON(("
+            f"{min_x} {min_y}, {max_x} {min_y}, {max_x} {max_y}, "
+            f"{min_x} {max_y}, {min_x} {min_y}))')"
         )
         params: dict[str, str | int] = {
             "$filter": filter_str,

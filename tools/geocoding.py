@@ -11,7 +11,7 @@ from cache.client import get_redis
 from cache.keys import RedisKeyBuilder
 from config.settings import get_settings
 from logging_config import get_logger
-from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
+from resilience.degraded_mode import TTL_BY_SOURCE, ResilientResult, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)

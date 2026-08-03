@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-import json
 from unittest.mock import AsyncMock
 
 import pytest
 import respx
 
-from ingestion.scheduled.hazard_event_sources.copernicus_wildfire import fetch_recent_copernicus_events
+from ingestion.scheduled.hazard_event_sources.copernicus_wildfire import (
+    fetch_recent_copernicus_events,
+)
 from tools.copernicus_sentinel.client import CopernicusSentinelClient
+
 
 # Inline FakeRedis helper for tests
 class _InMemoryRedis:
@@ -27,7 +29,7 @@ class _InMemoryRedis:
 @pytest.mark.asyncio
 @respx.mock
 async def test_copernicus_client_and_adapter_mapping(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify Copernicus client fetches product metadata and adapter maps to HazardEventRecord with details attribution."""
+    """Verify Copernicus client fetches product metadata and adapter maps to HazardEventRecord."""
     fake_redis = _InMemoryRedis()
     monkeypatch.setattr("resilience.degraded_mode.get_redis", AsyncMock(return_value=fake_redis))
     monkeypatch.setattr("resilience.circuit_breaker.get_redis", AsyncMock(return_value=fake_redis))

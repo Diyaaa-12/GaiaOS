@@ -33,13 +33,14 @@ async def get_recent_earthquakes(
     """Fetch recent earthquakes from USGS matching coordinates, radius and magnitude criteria."""
     client = USGSSeismicClient()
     try:
-        features = await client.get_recent_earthquakes(
+        res = await client.get_recent_earthquakes(
             lat=latitude,
             lon=longitude,
             radius_km=radius_km,
             min_magnitude=min_magnitude,
             days=days,
         )
+        features = res.value or []
         if not features:
             return (
                 f"No recent earthquakes found matching min_magnitude={min_magnitude} "

@@ -29,11 +29,12 @@ async def fetch_recent_usgs_events(
     )
 
     client = USGSSeismicClient()
-    features = await client.get_recent_earthquakes(
+    res = await client.get_recent_earthquakes(
         starttime=start_dt,
         endtime=now,
         min_magnitude=min_magnitude,
     )
+    features = res.value or []
 
     records: list[HazardEventRecord] = []
     for feat in features:
