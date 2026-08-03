@@ -22,6 +22,7 @@ COPY auth/ auth/
 COPY db/ db/
 COPY data/ data/
 COPY cache/ cache/
+COPY resilience/ resilience/
 COPY tools/ tools/
 COPY workers/ workers/
 

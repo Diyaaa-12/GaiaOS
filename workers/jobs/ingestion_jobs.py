@@ -11,6 +11,9 @@ from sqlalchemy import text
 
 import db.session as db_session
 from config.settings import get_settings
+from ingestion.scheduled.hazard_event_sources.copernicus_wildfire import fetch_recent_copernicus_events
+from ingestion.scheduled.hazard_event_sources.era5_atmospheric import fetch_recent_era5_events
+from ingestion.scheduled.hazard_event_sources.gdelt_events import fetch_recent_gdelt_events
 from ingestion.scheduled.hazard_event_sources.noaa_historical import fetch_recent_noaa_events
 from ingestion.scheduled.hazard_event_sources.usgs_historical import fetch_recent_usgs_events
 from ingestion.scheduled.schemas import HazardEventRecord
@@ -34,6 +37,15 @@ async def _async_run_ingestion_job(source: str) -> dict[str, Any]:
     if source_clean == "noaa" and not settings.enable_noaa_ingestion:
         _log.info("ingestion.job.disabled", source=source_clean)
         return {"status": "disabled", "source": source_clean, "records_inserted": 0}
+    if source_clean == "copernicus" and not settings.enable_copernicus_ingestion:
+        _log.info("ingestion.job.disabled", source=source_clean)
+        return {"status": "disabled", "source": source_clean, "records_inserted": 0}
+    if source_clean == "era5" and not settings.enable_era5_ingestion:
+        _log.info("ingestion.job.disabled", source=source_clean)
+        return {"status": "disabled", "source": source_clean, "records_inserted": 0}
+    if source_clean == "gdelt" and not settings.enable_gdelt_ingestion:
+        _log.info("ingestion.job.disabled", source=source_clean)
+        return {"status": "disabled", "source": source_clean, "records_inserted": 0}
 
     if db_session.AsyncSessionLocal is None:
         db_session.init_engine()
@@ -55,8 +67,15 @@ async def _async_run_ingestion_job(source: str) -> dict[str, Any]:
             records = await fetch_recent_usgs_events(since=last_ingested_at)
         elif source_clean == "noaa":
             records = await fetch_recent_noaa_events(since=last_ingested_at)
+        elif source_clean == "copernicus":
+            records = await fetch_recent_copernicus_events(since=last_ingested_at)
+        elif source_clean == "era5":
+            records = await fetch_recent_era5_events(since=last_ingested_at)
+        elif source_clean == "gdelt":
+            records = await fetch_recent_gdelt_events(since=last_ingested_at)
         else:
             raise ValueError(f"Unknown ingestion source: '{source}'")
+
 
         records_fetched = len(records)
         records_inserted = 0

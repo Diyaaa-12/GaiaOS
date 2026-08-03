@@ -65,6 +65,9 @@ TTL_BY_SOURCE: dict[str, int] = {
     "firms": 300,        # 5 min   — Active fire data should be as fresh as possible
     "openaq": 600,       # 10 min  — Air-quality measurements update hourly at most
     "geocoding": 86400,  # 24 h    — Geocoded city coordinates change essentially never
+    "copernicus": 1800,  # 30 min  — Copernicus Sentinel satellite metadata
+    "era5": 3600,        # 1 h     — ERA5 atmospheric reanalysis baseline data
+    "gdelt": 900,        # 15 min  — GDELT socio-political hazard news events
 }
 
 # Default for any source not in the table

@@ -120,6 +120,21 @@ class Settings(BaseSettings):
         validation_alias="ENABLE_NOAA_INGESTION",
         description="Enable automated NOAA ocean event ingestion pipeline.",
     )
+    enable_copernicus_ingestion: bool = Field(
+        default=True,
+        validation_alias="ENABLE_COPERNICUS_INGESTION",
+        description="Enable automated Copernicus Sentinel wildfire metadata ingestion pipeline.",
+    )
+    enable_era5_ingestion: bool = Field(
+        default=True,
+        validation_alias="ENABLE_ERA5_INGESTION",
+        description="Enable automated ERA5 atmospheric reanalysis baseline ingestion pipeline.",
+    )
+    enable_gdelt_ingestion: bool = Field(
+        default=True,
+        validation_alias="ENABLE_GDELT_INGESTION",
+        description="Enable automated GDELT socio-political hazard context ingestion pipeline.",
+    )
     ingestion_poll_interval_hours: int = Field(
         default=1,
         validation_alias="INGESTION_POLL_INTERVAL_HOURS",
@@ -130,6 +145,27 @@ class Settings(BaseSettings):
         validation_alias="FIRMS_API_URL",
         description="NASA FIRMS wildfire CSV API URL.",
     )
+    copernicus_api_url: str = Field(
+        default="https://catalogue.dataspace.copernicus.eu/odata/v1",
+        validation_alias="COPERNICUS_API_URL",
+        description="Copernicus Data Space OData API URL.",
+    )
+    era5_api_url: str = Field(
+        default="https://archive-api.open-meteo.com/v1/archive",
+        validation_alias="ERA5_API_URL",
+        description="ERA5 atmospheric reanalysis API URL (via Open-Meteo archive service).",
+    )
+    gdelt_api_url: str = Field(
+        default="https://api.gdeltproject.org/api/v2/doc/doc",
+        validation_alias="GDELT_API_URL",
+        description="GDELT DOC 2.0 API endpoint URL.",
+    )
+    gdelt_max_records_per_run: int = Field(
+        default=250,
+        validation_alias="GDELT_MAX_RECORDS_PER_RUN",
+        description="Maximum number of GDELT event records ingested per scheduled run.",
+    )
+
     # ---------------------------------------------------------------------------
     # Literature & Embedding settings (Milestone 5)
     # ---------------------------------------------------------------------------

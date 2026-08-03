@@ -217,5 +217,39 @@
     },
     "test_mode": "mocked_source_down",
     "notes": "Phase 6 M1 Definition-of-Done test. Run with NOAA endpoint mocked to return 503 on all attempts. Assert result.degraded=True and no unhandled exception."
+  },
+  {
+    "id": "copernicus_sentinel_wildfire",
+    "question_text": "What satellite-detected wildfire products and land-cover anomalies are reported by Copernicus Sentinel-2 for California?",
+    "expected_domains": ["wildfire"],
+    "expected_complexity": "moderate",
+    "reference_answer": "Copernicus Sentinel-2 satellite metadata ingested for California region reporting active wildfire perimeter products.",
+    "reference_evidence": {
+      "source": "Copernicus Sentinel-2",
+      "event_type": "wildfire_satellite"
+    }
+  },
+  {
+    "id": "era5_atmospheric_baseline",
+    "question_text": "What are the historical ERA5 atmospheric reanalysis baseline temperatures and wind speed maximums in London?",
+    "expected_domains": ["atmosphere"],
+    "expected_complexity": "moderate",
+    "reference_answer": "ERA5 atmospheric reanalysis baseline data for London indicates seasonal mean temperatures and wind speed baselines.",
+    "reference_evidence": {
+      "source": "ECMWF ERA5",
+      "event_type": "atmospheric_anomaly"
+    }
+  },
+  {
+    "id": "gdelt_social_hazard",
+    "question_text": "What open news reports exist for civil unrest and infrastructure disruptions following recent environmental hazards?",
+    "expected_domains": ["causal_chain"],
+    "expected_complexity": "complex",
+    "reference_answer": "GDELT DOC 2.0 news event data reports socio-political hazard context and civil infrastructure disruption reports.",
+    "reference_evidence": {
+      "source": "GDELT Project",
+      "event_type": "civil_unrest_hazard_adjacent"
+    }
   }
 ]
+

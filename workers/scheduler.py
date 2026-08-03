@@ -39,8 +39,9 @@ def main() -> None:
     interval_seconds = settings.ingestion_poll_interval_hours * 3600
     target_func = "workers.jobs.ingestion_jobs.run_ingestion_job"
 
-    # Idempotent scheduling for USGS and NOAA sources
-    for source in ["usgs", "noaa"]:
+    # Idempotent scheduling for ingestion sources (USGS, NOAA, Copernicus, ERA5, GDELT)
+    for source in ["usgs", "noaa", "copernicus", "era5", "gdelt"]:
+
         if is_job_already_scheduled(scheduler, target_func, source):
             _log.info("scheduler.job_exists_skipping", source=source)
         else:

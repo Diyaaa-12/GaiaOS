@@ -24,6 +24,12 @@ def _extract_location(query: str) -> str:
 
 def _extract_event_type(query: str) -> str:
     query_lower = query.lower()
+    if "satellite wildfire" in query_lower or "copernicus" in query_lower:
+        return "wildfire_satellite"
+    if "atmospheric anomaly" in query_lower or "era5" in query_lower or "reanalysis" in query_lower:
+        return "atmospheric_anomaly"
+    if "unrest" in query_lower or "gdelt" in query_lower or "civil" in query_lower or "socio" in query_lower:
+        return "civil_unrest_hazard_adjacent"
     if "earthquake" in query_lower or "seismic" in query_lower:
         return "earthquake"
     if "wildfire" in query_lower or "fire" in query_lower:
@@ -31,6 +37,7 @@ def _extract_event_type(query: str) -> str:
     if "heatwave" in query_lower or "marine heatwave" in query_lower:
         return "marine heatwave"
     return "earthquake"
+
 
 
 async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
