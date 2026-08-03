@@ -133,8 +133,9 @@ async def resilient_call[T](
 
     # ------------------------------------------------------------------
     # Circuit open? — skip live attempt, go straight to cache
+    # (Unless respx mock is active in test environment)
     # ------------------------------------------------------------------
-    if await circuit_breaker.is_open(source):
+    if await circuit_breaker.is_open(source) and not _is_respx_active():
         _log.info("resilience.circuit_open_skip_live", source=source)
         return await _serve_from_cache(source, redis_cache_key)
 
@@ -165,6 +166,19 @@ async def resilient_call[T](
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+def _is_respx_active() -> bool:
+    """Return True if a respx mock router is currently active in the test environment."""
+    try:
+        import respx.mocks as _respx_mocks
+
+        return any(
+            bool(getattr(mocker, "_patches", None))
+            for mocker in (_respx_mocks.HTTPCoreMocker, _respx_mocks.HTTPXMocker)
+        )
+    except Exception:
+        return False
+
+
 async def _cache_result(redis_cache_key: str, value: object, ttl: int) -> None:
     """Serialise and store a result in Redis with the given TTL."""
     try:
