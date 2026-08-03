@@ -158,12 +158,15 @@ async def record_success(source: str) -> None:
     """Reset circuit to closed and clear failure count on a successful probe."""
     state = await _get_state(source)
     previous = state["status"]
-    if previous != CLOSED:
+    failure_count = state.get("failure_count", 0)
+    if previous != CLOSED or failure_count != 0:
         state = {"status": CLOSED, "failure_count": 0, "opened_at": None}
         await _set_state(source, state)
-        _log.info(
-            "circuit_breaker.transition",
-            source=source,
-            previous=previous,
-            current=CLOSED,
-        )
+        if previous != CLOSED:
+            _log.info(
+                "circuit_breaker.transition",
+                source=source,
+                previous=previous,
+                current=CLOSED,
+            )
+
