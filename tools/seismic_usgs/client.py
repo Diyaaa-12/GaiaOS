@@ -7,6 +7,7 @@ from typing import Any
 
 from config.settings import get_settings
 from logging_config import get_logger
+from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
@@ -28,8 +29,13 @@ class USGSSeismicClient:
         days: int = 7,
         starttime: datetime | None = None,
         endtime: datetime | None = None,
-    ) -> list[dict[str, Any]]:
-        """Fetch recent earthquakes from USGS matching criteria."""
+    ) -> ResilientResult[list[dict[str, Any]]]:
+        """Fetch recent earthquakes from USGS matching criteria.
+
+        Returns a ``ResilientResult`` — check ``.degraded`` and ``.source_status``
+        before using ``.value``.  ``.value`` is ``None`` when the source is
+        unavailable and no cached response exists.
+        """
         _log.info(
             "seismic.client.get_recent_earthquakes",
             lat=lat,
@@ -56,11 +62,24 @@ class USGSSeismicClient:
             params["longitude"] = lon
             params["maxradiuskm"] = radius_km
 
-        client = await get_shared_client()
-        resp = await client.get(self.base_url, params=params)
-        if resp.status_code != 200:
-            _log.error("seismic.client.failed", status=resp.status_code, body=resp.text)
-            resp.raise_for_status()
+        # Cache key encodes the query dimensions
+        cache_key = (
+            f"earthquakes:{round(lat or 0, 2)}:{round(lon or 0, 2)}"
+            f":{radius_km}:{min_magnitude}:{days}"
+        )
 
-        data = resp.json()
-        return data.get("features", [])
+        async def _fetch() -> list[dict[str, Any]]:
+            client = await get_shared_client()
+            resp = await client.get(self.base_url, params=params)
+            if resp.status_code != 200:
+                _log.error("seismic.client.failed", status=resp.status_code, body=resp.text)
+                resp.raise_for_status()
+            data = resp.json()
+            return data.get("features", [])
+
+        return await resilient_call(
+            source="usgs",
+            fn=_fetch,
+            cache_key=cache_key,
+            ttl=TTL_BY_SOURCE["usgs"],
+        )

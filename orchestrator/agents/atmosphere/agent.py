@@ -32,8 +32,15 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
     try:
         geo = await geocode_location(location)
         client = WeatherClient()
-        data = await client.get_current_weather(geo["lat"], geo["lon"])
+        result = await client.get_current_weather(geo["lat"], geo["lon"])
 
+        # Propagate degraded flag into errors (informational, non-fatal)
+        if result.degraded:
+            errors.append(
+                f"[degraded:open_meteo] {result.source_status} — serving stale weather data"
+            )
+
+        data = result.value or {}
         current = data.get("current", {})
         if not current:
             errors.append(f"No atmospheric data returned for {location}.")
@@ -41,6 +48,7 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
             temp = current.get("temperature_2m")
             wind = current.get("wind_speed_10m")
             humidity = current.get("relative_humidity_2m")
+            uncertainty_source = "data_sparsity" if result.degraded else "well_supported"
             claim = (
                 f"Current atmospheric conditions in {location}: "
                 f"Temperature is {temp}°C, Wind Speed is {wind} km/h, "
@@ -51,7 +59,8 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
                     source="Open-Meteo Weather API",
                     claim=claim,
                     uncertainty=UncertaintyEstimate.from_point_estimate(
-                        0.95, source="well_supported"
+                        0.95 if not result.degraded else 0.6,
+                        source=uncertainty_source,
                     ),
                     retrieved_at=datetime.now(UTC),
                 )

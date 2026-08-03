@@ -21,6 +21,16 @@ class TestWildfireAgent:
 
         monkeypatch.setattr(get_settings(), "firms_api_key", "mock_key")
 
+        # Mock Open-Meteo geocoding (now called by geocode_location via resilient_call)
+        respx.get("https://geocoding-api.open-meteo.com/v1/search").respond(
+            json={"results": [{"name": "California", "latitude": 36.7783, "longitude": -119.4179}]},
+            status_code=200,
+        )
+        # Mock NOAA stations (called by resolve_nearest_station via geocode_location)
+        respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
+            json={"stations": []},
+            status_code=200,
+        )
         # Mock CSV response from FIRMS API
         csv_data = (
             "latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,instrument,"
@@ -54,6 +64,17 @@ class TestWildfireAgent:
         from config.settings import get_settings
 
         monkeypatch.setattr(get_settings(), "firms_api_key", None)
+
+        # Mock Open-Meteo geocoding (called by geocode_location even when no API key)
+        respx.get("https://geocoding-api.open-meteo.com/v1/search").respond(
+            json={"results": [{"name": "California", "latitude": 36.7783, "longitude": -119.4179}]},
+            status_code=200,
+        )
+        # Mock NOAA stations (called by resolve_nearest_station via geocode_location)
+        respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
+            json={"stations": []},
+            status_code=200,
+        )
 
         inp = AgentInput(
             investigation_id=uuid.uuid4(),

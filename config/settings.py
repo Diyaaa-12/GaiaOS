@@ -335,6 +335,34 @@ class Settings(BaseSettings):
             "False (the default) keeps replanning in passthrough mode for A/B evaluation."
         ),
     )
+    # ---------------------------------------------------------------------------
+    # Resilience Layer settings (Phase 6 Milestone 1)
+    # ---------------------------------------------------------------------------
+    resilience_bypass: bool = Field(
+        default=False,
+        validation_alias="RESILIENCE_BYPASS",
+        description=(
+            "Bypass the resilience layer and revert to bare Phase 5 tool-call behaviour. "
+            "Dev/test only — never enable in staging or prod."
+        ),
+    )
+    circuit_failure_threshold: int = Field(
+        default=5,
+        validation_alias="CIRCUIT_FAILURE_THRESHOLD",
+        description=(
+            "Number of consecutive failures before a source's circuit breaker opens. "
+            "Lower values open faster (more protective); higher values tolerate transient blips."
+        ),
+    )
+    circuit_half_open_timeout_s: int = Field(
+        default=60,
+        validation_alias="CIRCUIT_HALF_OPEN_TIMEOUT_S",
+        description=(
+            "Seconds after circuit opens before a probe attempt is allowed (half-open window). "
+            "After this window the circuit transitions from open to half-open."
+        ),
+    )
+
 
     @property
     def checkpoint_ttl_seconds(self) -> int:

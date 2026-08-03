@@ -54,3 +54,26 @@ class RedisKeyBuilder:
         rounded_lat = round(lat, 2)
         rounded_lon = round(lon, 2)
         return f"gaiaos:cache:station:{network}:{rounded_lat}:{rounded_lon}"
+
+    @staticmethod
+    def circuit_key(source: str) -> str:
+        """Return a namespaced key for per-source circuit-breaker state.
+
+        Stores JSON-serialised state (status, failure_count, opened_at).
+        Shared across all worker replicas via Redis.
+
+        Example: ``gaiaos:circuit:noaa``
+        """
+        return f"gaiaos:circuit:{source}"
+
+    @staticmethod
+    def source_cache_key(source: str, key: str) -> str:
+        """Return a namespaced key for resilience-layer per-source response caching.
+
+        Distinct from the generic ``cache_key`` to make the source dimension explicit
+        and to avoid collisions between tool-client cache entries and other cache uses.
+
+        Example: ``gaiaos:cache:noaa:water_temperature:8723214``
+        """
+        return f"gaiaos:cache:{source}:{key}"
+

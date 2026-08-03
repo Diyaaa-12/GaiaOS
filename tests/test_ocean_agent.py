@@ -15,6 +15,12 @@ class TestOceanAgent:
 
     @respx.mock
     async def test_agent_success(self) -> None:
+        # Mock Open-Meteo geocoding (now called by geocode_location via resilient_call)
+        respx.get("https://geocoding-api.open-meteo.com/v1/search").respond(
+            json={"results": [{"name": "Tokyo", "latitude": 35.6762, "longitude": 139.6503}]},
+            status_code=200,
+        )
+        # Mock NOAA stations metadata (called by resolve_nearest_station via resilient_call)
         respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
             json={
                 "stations": [{"id": "9759110", "name": "Tokyo Bay", "lat": 35.65, "lng": 139.75}]
@@ -44,6 +50,12 @@ class TestOceanAgent:
 
     @respx.mock
     async def test_agent_no_results(self) -> None:
+        # Mock Open-Meteo geocoding
+        respx.get("https://geocoding-api.open-meteo.com/v1/search").respond(
+            json={"results": [{"name": "Paris", "latitude": 48.8566, "longitude": 2.3522}]},
+            status_code=200,
+        )
+        # Mock NOAA stations metadata
         respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
             json={"stations": [{"id": "8518750", "name": "Le Havre", "lat": 49.49, "lng": 0.10}]},
             status_code=200,

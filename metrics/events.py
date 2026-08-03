@@ -92,3 +92,44 @@ class RestoreDrillFailed(MetricEvent):
     duration_ms: float
     error_message: str
     discrepancies: dict[str, Any] = field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 Milestone 1 — Resilience Layer metric events
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CircuitStateChanged(MetricEvent):
+    """Emitted when a source circuit breaker transitions between states.
+
+    Covers all three transitions:
+      closed → open (threshold exceeded)
+      open → half-open (timeout elapsed, probe allowed)
+      half-open → closed (probe success) or half-open → open (probe failure)
+    """
+
+    source: str
+    previous_state: str
+    new_state: str
+
+
+@dataclass
+class CacheHit(MetricEvent):
+    """Emitted when a resilient_call returns a cached response instead of a live one."""
+
+    source: str
+    cache_key: str
+    degraded: bool = True
+
+
+@dataclass
+class DegradedResponseEmitted(MetricEvent):
+    """Emitted when a domain agent receives a degraded (cached or unavailable) result.
+
+    ``source_status`` is one of ``"cached"`` | ``"unavailable"``.
+    """
+
+    source: str
+    source_status: str
+

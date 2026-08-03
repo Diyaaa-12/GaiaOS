@@ -38,7 +38,13 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
             return AgentOutput(agent_name="ocean", evidence=[], errors=errors)
 
         client = NOAAOceanClient()
-        data = await client.get_water_temperature(station_id)
+        result = await client.get_water_temperature(station_id)
+
+        # Propagate degraded flag into errors (informational, non-fatal)
+        if result.degraded:
+            errors.append(f"[degraded:noaa] {result.source_status} — serving stale ocean data")
+
+        data = result.value or {}
 
         if not data or "data" not in data:
             errors.append(
@@ -46,6 +52,7 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
             )
         else:
             measurements = data.get("data", [])
+            uncertainty_source = "data_sparsity" if result.degraded else "well_supported"
             for meas in measurements[:5]:
                 time_str = meas.get("t")
                 temp = meas.get("v")
@@ -58,7 +65,8 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
                         source=f"NOAA Ocean API (Station: {station_id})",
                         claim=claim,
                         uncertainty=UncertaintyEstimate.from_point_estimate(
-                            0.95, source="well_supported"
+                            0.95 if not result.degraded else 0.6,
+                            source=uncertainty_source,
                         ),
                         retrieved_at=datetime.now(UTC),
                     )

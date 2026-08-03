@@ -32,13 +32,19 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
     try:
         geo = await geocode_location(location)
         client = USGSSeismicClient()
-        features = await client.get_recent_earthquakes(
+        result = await client.get_recent_earthquakes(
             lat=geo["lat"],
             lon=geo["lon"],
             radius_km=100.0,
             min_magnitude=1.0,
             days=7,
         )
+
+        # Propagate degraded flag into errors (informational, non-fatal)
+        if result.degraded:
+            errors.append(f"[degraded:usgs] {result.source_status} — serving stale seismic data")
+
+        features = result.value or []
 
         if not features:
             errors.append(f"No recent earthquakes found near {location}.")
@@ -68,13 +74,16 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
             time_epoch = props.get("time", 0) / 1000.0
             dt = datetime.fromtimestamp(time_epoch, UTC)
 
+            # Use data_sparsity when serving cached/stale data
+            uncertainty_source = "data_sparsity" if result.degraded else "well_supported"
             claim = f"Earthquake of magnitude {mag} occurred at '{place}' on {dt.isoformat()}."
             evidence_list.append(
                 Evidence(
                     source="USGS Seismic API",
                     claim=claim,
                     uncertainty=UncertaintyEstimate.from_point_estimate(
-                        0.98, source="well_supported"
+                        0.98 if not result.degraded else 0.7,
+                        source=uncertainty_source,
                     ),
                     retrieved_at=datetime.now(UTC),
                 )

@@ -15,6 +15,16 @@ class TestAtmosphereAgent:
 
     @respx.mock
     async def test_agent_success(self) -> None:
+        # Mock Open-Meteo geocoding (now called by geocode_location via resilient_call)
+        respx.get("https://geocoding-api.open-meteo.com/v1/search").respond(
+            json={"results": [{"name": "London", "latitude": 51.5074, "longitude": -0.1278}]},
+            status_code=200,
+        )
+        # Mock NOAA stations (called by resolve_nearest_station via geocode_location)
+        respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
+            json={"stations": []},
+            status_code=200,
+        )
         respx.get("https://api.open-meteo.com/v1/forecast").respond(
             json={
                 "current": {
@@ -45,6 +55,16 @@ class TestAtmosphereAgent:
 
     @respx.mock
     async def test_agent_no_results(self) -> None:
+        # Mock Open-Meteo geocoding
+        respx.get("https://geocoding-api.open-meteo.com/v1/search").respond(
+            json={"results": [{"name": "London", "latitude": 51.5074, "longitude": -0.1278}]},
+            status_code=200,
+        )
+        # Mock NOAA stations (called by resolve_nearest_station via geocode_location)
+        respx.get("https://api.tidesandcurrents.noaa.gov/mdapi/v1.0/webapi/stations.json").respond(
+            json={"stations": []},
+            status_code=200,
+        )
         respx.get("https://api.open-meteo.com/v1/forecast").respond(
             json={},
             status_code=200,

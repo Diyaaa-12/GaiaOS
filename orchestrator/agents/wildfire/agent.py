@@ -38,7 +38,7 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
         api_key = settings.firms_api_key
 
         client = FIRMSWildfireClient(api_key=api_key)
-        fires = await client.get_active_fires(
+        result = await client.get_active_fires(
             min_x=bbox[0],
             min_y=bbox[1],
             max_x=bbox[2],
@@ -46,6 +46,13 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
             days=1,
         )
 
+        # Propagate degraded flag into errors (informational, non-fatal)
+        if result.degraded:
+            errors.append(
+                f"[degraded:firms] {result.source_status} — serving stale wildfire data"
+            )
+
+        fires = result.value or []
         if not fires:
             if not api_key:
                 errors.append(
@@ -66,9 +73,11 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
                     f"with confidence '{conf}' on {acq_date} {acq_time}."
                 )
                 confidence_score = 0.90 if conf in ("h", "100") else 0.70
-                source_tag: SourceType = (
-                    "well_supported" if confidence_score > 0.8 else "data_sparsity"
-                )
+                if result.degraded:
+                    source_tag: SourceType = "data_sparsity"
+                    confidence_score = min(confidence_score, 0.7)
+                else:
+                    source_tag = "well_supported" if confidence_score > 0.8 else "data_sparsity"
                 evidence_list.append(
                     Evidence(
                         source="NASA FIRMS API",

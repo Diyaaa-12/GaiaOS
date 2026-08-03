@@ -91,6 +91,11 @@ async def test_no_station_in_range_returns_none() -> None:
 @respx.mock
 async def test_ocean_agent_fails_fast_when_station_id_is_none() -> None:
     """Verify OceanAgent fails fast with an explicit gap when station_id is None."""
+    # Mock Open-Meteo geocoding (now called by geocode_location via resilient_call)
+    respx.get("https://geocoding-api.open-meteo.com/v1/search").respond(
+        json={"results": [{"name": "Paris", "latitude": 48.8566, "longitude": 2.3522}]},
+        status_code=200,
+    )
     # Stations API returns empty stations list
     respx.get(NOAA_STATIONS_API_URL).respond(
         json={"stations": []},

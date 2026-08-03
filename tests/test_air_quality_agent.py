@@ -67,6 +67,9 @@ class TestAirQualityAgent:
 
     @respx.mock
     async def test_agent_error_fallback(self) -> None:
+        # Phase 6 M1: 500 from OpenAQ is now handled by the resilience layer.
+        # Result: degraded=True, source_status="unavailable", errors contain "[degraded:openaq]".
+        # This is the correct new contract — a source failure does NOT crash the investigation.
         respx.get("https://api.openaq.org/v2/latest").respond(
             status_code=500,
             text="Internal Server Error",
@@ -80,5 +83,9 @@ class TestAirQualityAgent:
 
         output = await run_air_quality(inp)
         assert len(output.evidence) == 0
-        assert len(output.errors) == 1
-        assert "Failed to query OpenAQ" in output.errors[0]
+        # The error is now a degraded notification, not an exception fallback
+        assert any("[degraded:openaq]" in e for e in output.errors), (
+            "Expected '[degraded:openaq]' in errors after M1 resilience. "
+            f"Got: {output.errors}"
+        )
+

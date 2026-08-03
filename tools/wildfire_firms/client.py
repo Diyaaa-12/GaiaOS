@@ -8,6 +8,7 @@ from typing import Any
 
 from config.settings import get_settings
 from logging_config import get_logger
+from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
@@ -28,23 +29,36 @@ class FIRMSWildfireClient:
         max_x: float,
         max_y: float,
         days: int = 1,
-    ) -> list[dict[str, Any]]:
-        """Fetch active fires in a bounding box from NASA FIRMS."""
+    ) -> ResilientResult[list[dict[str, Any]]]:
+        """Fetch active fires in a bounding box from NASA FIRMS.
+
+        Returns a ``ResilientResult`` — check ``.degraded`` and ``.source_status``
+        before using ``.value``.  Returns an empty-list result (not degraded)
+        when the API key is not configured — that is a configuration gap, not a
+        source failure.
+        """
         _log.info("wildfire.client.get_active_fires", bbox=[min_x, min_y, max_x, max_y])
+
         if not self.api_key:
             _log.warning("wildfire.client.missing_key_fallback")
-            return []
+            return ResilientResult(value=[], degraded=False, source_status="live")
 
-        # URL format: {base_url}/{api_key}/MODIS_NRT/{min_x},{min_y},{max_x},{max_y}/{days}
         url = f"{self.base_url}/{self.api_key}/MODIS_NRT/{min_x},{min_y},{max_x},{max_y}/{days}"
+        cache_key = f"active_fires:{round(min_x, 2)}:{round(min_y, 2)}:{round(max_x, 2)}:{round(max_y, 2)}:{days}"
 
-        client = await get_shared_client()
-        resp = await client.get(url)
-        if resp.status_code != 200:
-            _log.error("wildfire.client.failed", status=resp.status_code, body=resp.text)
-            resp.raise_for_status()
+        async def _fetch() -> list[dict[str, Any]]:
+            client = await get_shared_client()
+            resp = await client.get(url)
+            if resp.status_code != 200:
+                _log.error("wildfire.client.failed", status=resp.status_code, body=resp.text)
+                resp.raise_for_status()
+            f = StringIO(resp.text)
+            reader = csv.DictReader(f)
+            return list(reader)
 
-        csv_data = resp.text
-        f = StringIO(csv_data)
-        reader = csv.DictReader(f)
-        return list(reader)
+        return await resilient_call(
+            source="firms",
+            fn=_fetch,
+            cache_key=cache_key,
+            ttl=TTL_BY_SOURCE["firms"],
+        )

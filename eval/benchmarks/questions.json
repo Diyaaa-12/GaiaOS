@@ -202,5 +202,20 @@
       "status": "unanswerable",
       "reason": "Exceeds Earth environmental domain scope"
     }
+  },
+  {
+    "id": "resilience_degraded_noaa_ocean",
+    "question_text": "What is the current sea surface temperature near Miami when the NOAA API is unavailable?",
+    "expected_domains": ["ocean"],
+    "expected_complexity": "trivial",
+    "reference_answer": "GaiaOS returned cached or unavailable NOAA ocean data with an explicit degraded flag, without failing the investigation.",
+    "reference_evidence": {
+      "source": "NOAA (degraded)",
+      "degraded": true,
+      "source_status_one_of": ["cached", "unavailable"],
+      "errors_contain": "[degraded:noaa]"
+    },
+    "test_mode": "mocked_source_down",
+    "notes": "Phase 6 M1 Definition-of-Done test. Run with NOAA endpoint mocked to return 503 on all attempts. Assert result.degraded=True and no unhandled exception."
   }
 ]

@@ -39,10 +39,19 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
     errors: list[str] = []
 
     try:
-        results = await client.get_latest_measurements(city)
+        result = await client.get_latest_measurements(city)
+
+        # Propagate degraded flag into errors (informational, non-fatal)
+        if result.degraded:
+            errors.append(
+                f"[degraded:openaq] {result.source_status} — serving stale air quality data"
+            )
+
+        results = result.value or []
         if not results:
             errors.append(f"No active OpenAQ stations found for city: {city}")
 
+        uncertainty_source = "data_sparsity" if result.degraded else "well_supported"
         for res in results:
             location = res.get("location", "unknown")
             measurements = res.get("measurements", [])
@@ -61,7 +70,8 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
                         source=f"OpenAQ API (Station: {location})",
                         claim=claim,
                         uncertainty=UncertaintyEstimate.from_point_estimate(
-                            0.95, source="well_supported"
+                            0.95 if not result.degraded else 0.6,
+                            source=uncertainty_source,
                         ),
                         retrieved_at=datetime.now(UTC),
                     )

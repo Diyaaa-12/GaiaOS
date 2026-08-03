@@ -11,6 +11,7 @@ from cache.client import get_redis
 from cache.keys import RedisKeyBuilder
 from config.settings import get_settings
 from logging_config import get_logger
+from resilience.degraded_mode import ResilientResult, TTL_BY_SOURCE, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
@@ -94,8 +95,9 @@ async def resolve_nearest_station(lat: float, lon: float, network: str = "noaa")
     """Dynamically resolve nearest ocean station ID for given coordinates.
 
     Checks Redis cache first using rounded coordinates (~1.11 km spatial resolution).
-    If cache misses, queries the station metadata API and calculates the closest station
-    within MAX_STATION_DISTANCE_KM. Caches successful results for 30 days (2,592,000s).
+    If cache misses, queries the station metadata API (via resilience layer) and
+    calculates the closest station within MAX_STATION_DISTANCE_KM.
+    Caches successful results for 30 days (2,592,000s).
     Returns None if no station is within range or if the station API call fails.
     """
     cache_key = RedisKeyBuilder.station_key(lat, lon, network)
@@ -117,18 +119,30 @@ async def resolve_nearest_station(lat: float, lon: float, network: str = "noaa")
     except Exception as exc:
         _log.warning("station_lookup.cache_unavailable", error=str(exc))
 
-    # 2. Query station metadata API
-    client = await get_shared_client()
-    try:
+    # 2. Query station metadata API via resilience layer
+    station_cache_key = f"stations_metadata:{network}"
+
+    async def _fetch_stations() -> list[dict[str, Any]]:
+        client = await get_shared_client()
         resp = await client.get(NOAA_STATIONS_API_URL)
         if resp.status_code != 200:
             _log.error("station_lookup.failed", status=resp.status_code)
-            return None
+            resp.raise_for_status()
         data = resp.json()
-        stations = data.get("stations", [])
-    except Exception as exc:
-        _log.warning("station_lookup.api_error", error=str(exc))
+        return data.get("stations", [])  # type: ignore[no-any-return]
+
+    result: ResilientResult[list[dict[str, Any]]] = await resilient_call(
+        source="noaa",
+        fn=_fetch_stations,
+        cache_key=station_cache_key,
+        ttl=TTL_BY_SOURCE["noaa"],
+    )
+
+    if result.value is None:
+        _log.warning("station_lookup.api_unavailable", lat=lat, lon=lon, network=network)
         return None
+
+    stations = result.value
 
     # 3. Find nearest station within MAX_STATION_DISTANCE_KM
     nearest_id: str | None = None
@@ -161,17 +175,19 @@ async def resolve_nearest_station(lat: float, lon: float, network: str = "noaa")
 async def geocode_location(location: str) -> dict[str, Any]:
     """Resolve location name to latitude, longitude, bounding box, and dynamic ocean station_id.
 
-    Queries Open-Meteo Geocoding API first, with a local city database fallback.
-    Coordinates are then passed to resolve_nearest_station to dynamically determine
-    the nearest active NOAA ocean station without hardcoded station ID defaults.
+    Queries Open-Meteo Geocoding API (via resilience layer) first, with a local
+    city database fallback.  Coordinates are then passed to resolve_nearest_station
+    to dynamically determine the nearest active NOAA ocean station.
     """
     loc_clean = location.strip().lower()
     geo_data: dict[str, Any] | None = None
 
-    # 1. Try calling Open-Meteo Geocoding API first
+    # 1. Try calling Open-Meteo Geocoding API via resilience layer
     settings = get_settings()
-    try:
-        url = settings.open_meteo_geocoding_url
+    url = settings.open_meteo_geocoding_url
+    geocode_cache_key = f"geocode:{loc_clean}"
+
+    async def _fetch_geocode() -> dict[str, Any] | None:
         client = await get_shared_client()
         resp = await client.get(url, params={"name": location, "count": 1})
         if resp.status_code == 200:
@@ -183,9 +199,21 @@ async def geocode_location(location: str) -> dict[str, Any]:
                 lon = res.get("longitude")
                 bbox = [lon - 0.5, lat - 0.5, lon + 0.5, lat + 0.5]
                 _log.info("geocoding.api_success", location=location, lat=lat, lon=lon)
-                geo_data = {"lat": lat, "lon": lon, "bbox": bbox}
-    except Exception as e:
-        _log.warning("geocoding.api_failed", location=location, error=str(e))
+                return {"lat": lat, "lon": lon, "bbox": bbox}
+        resp.raise_for_status()
+        return None  # unreachable but satisfies type checker
+
+    result: ResilientResult[dict[str, Any] | None] = await resilient_call(
+        source="geocoding",
+        fn=_fetch_geocode,
+        cache_key=geocode_cache_key,
+        ttl=TTL_BY_SOURCE["geocoding"],
+    )
+
+    if result.value is not None:
+        geo_data = result.value
+        if result.degraded:
+            _log.info("geocoding.serving_cached", location=location)
 
     # 2. Local fallback database for common locations
     if geo_data is None:
