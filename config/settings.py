@@ -154,7 +154,7 @@ class Settings(BaseSettings):
         description="Enable automated arXiv literature ingestion pipeline.",
     )
     arxiv_api_url: str = Field(
-        default="http://export.arxiv.org/api/query",
+        default="https://export.arxiv.org/api/query",
         validation_alias="ARXIV_API_URL",
         description="Base URL for the arXiv Query API.",
     )
@@ -162,6 +162,11 @@ class Settings(BaseSettings):
         default=["physics.ao-ph", "physics.geo-ph"],
         validation_alias="ARXIV_CATEGORIES",
         description="List of arXiv categories to poll.",
+    )
+    arxiv_max_results: int = Field(
+        default=50,
+        validation_alias="ARXIV_MAX_RESULTS",
+        description="Maximum number of papers to fetch per arXiv API poll.",
     )
     ingestion_poll_interval_hours: int = Field(
         default=1,

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from config.settings import get_settings
 from ingestion.scheduled.schemas import PaperRecord
 from logging_config import get_logger
-from resilience.degraded_mode import resilient_call
+from resilience.degraded_mode import TTL_BY_SOURCE, resilient_call
 from tools.http_client import get_shared_client
 
 _log = get_logger(__name__)
@@ -29,12 +29,12 @@ async def fetch_new_arxiv_papers(
     query_parts = [f"cat:{cat}" for cat in categories]
     search_query = " OR ".join(query_parts)
 
-    # We fetch the 50 most recent records sorted by last update date
+    # We fetch the most recent records sorted by last update date
     params = {
         "search_query": search_query,
         "sortBy": "lastUpdatedDate",
         "sortOrder": "descending",
-        "max_results": "50",
+        "max_results": str(settings.arxiv_max_results),
     }
 
     cache_key = f"feed:{','.join(sorted(categories))}"
@@ -50,7 +50,7 @@ async def fetch_new_arxiv_papers(
         source="arxiv",
         fn=_fetch_arxiv,
         cache_key=cache_key,
-        ttl=settings.arxiv_categories == ["physics.ao-ph", "physics.geo-ph"] and 86400 or 3600,
+        ttl=TTL_BY_SOURCE["arxiv"],
     )
 
     if not result.value:

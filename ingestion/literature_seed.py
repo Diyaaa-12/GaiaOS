@@ -9,6 +9,7 @@ from config.settings import get_settings
 from db.repository import LiteratureRepository
 from db.session import AsyncSessionLocal, dispose_engine, init_engine
 from orchestrator.agents.literature_rag.embedding import get_embedding_provider
+from workers.jobs.literature_ingestion_job import chunk_text
 
 MOCK_PAPERS = [
     {
@@ -62,21 +63,6 @@ MOCK_PAPERS = [
         ),
     },
 ]
-
-
-def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
-    """Slice text into overlapping character-based chunks."""
-    if chunk_size <= 0:
-        return [text]
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunks.append(text[start:end])
-        start += chunk_size - chunk_overlap
-        if start >= len(text) or chunk_size <= chunk_overlap:
-            break
-    return chunks
 
 
 async def run_seeder() -> None:
