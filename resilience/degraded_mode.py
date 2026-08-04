@@ -69,6 +69,7 @@ TTL_BY_SOURCE: dict[str, int] = {
     "era5": 3600,        # 1 h     — ERA5 atmospheric reanalysis baseline data
     "gdelt": 900,        # 15 min  — GDELT socio-political hazard news events
     "osm": 1209600,      # 14 days — OpenStreetMap administrative boundaries update rarely
+    "arxiv": 86400,      # 24 h    — arXiv literature updates once daily
 }
 
 # Default for any source not in the table

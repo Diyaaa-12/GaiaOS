@@ -148,6 +148,21 @@ class Settings(BaseSettings):
         validation_alias="ENABLE_GDELT_INGESTION",
         description="Enable automated GDELT socio-political hazard context ingestion pipeline.",
     )
+    enable_arxiv_ingestion: bool = Field(
+        default=True,
+        validation_alias="ENABLE_ARXIV_INGESTION",
+        description="Enable automated arXiv literature ingestion pipeline.",
+    )
+    arxiv_api_url: str = Field(
+        default="http://export.arxiv.org/api/query",
+        validation_alias="ARXIV_API_URL",
+        description="Base URL for the arXiv Query API.",
+    )
+    arxiv_categories: list[str] = Field(
+        default=["physics.ao-ph", "physics.geo-ph"],
+        validation_alias="ARXIV_CATEGORIES",
+        description="List of arXiv categories to poll.",
+    )
     ingestion_poll_interval_hours: int = Field(
         default=1,
         validation_alias="INGESTION_POLL_INTERVAL_HOURS",

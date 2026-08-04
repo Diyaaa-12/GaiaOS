@@ -27,6 +27,7 @@ class LiteratureChunk(Base):
         default=uuid.uuid4,
     )
     document_id: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    source_id: Mapped[str | None] = mapped_column(Text, nullable=True, index=True)
     chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(
         Vector(settings.embedding_dimension),

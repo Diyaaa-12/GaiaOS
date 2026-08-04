@@ -54,6 +54,20 @@ def main() -> None:
                 repeat=None,  # Infinite recurrence
             )
 
+    # Idempotent scheduling for arXiv literature ingestion job
+    target_lit_func = "workers.jobs.literature_ingestion_job.run_literature_ingestion_job"
+    if is_job_already_scheduled(scheduler, target_lit_func, "arxiv"):
+        _log.info("scheduler.job_exists_skipping", source="arxiv")
+    else:
+        _log.info("scheduler.registering_job", source="arxiv", interval_seconds=interval_seconds)
+        scheduler.schedule(
+            scheduled_time=datetime.now(UTC) + timedelta(seconds=25),
+            func=target_lit_func,
+            args=["arxiv"],
+            interval=interval_seconds,
+            repeat=None,
+        )
+
     # Idempotent scheduling for alert evaluation job
     target_alert_func = "workers.jobs.alert_evaluation_job.run_alert_evaluation_job"
     alert_interval = settings.alert_evaluation_interval_minutes * 60
