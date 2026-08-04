@@ -40,12 +40,15 @@ async def test_boundary_mode_causal_chain_query(db_session: AsyncSession) -> Non
 
     await db_session.execute(
         text("""
-            INSERT INTO hazard_events (id, event_type, region, region_label, details, created_at)
+            INSERT INTO hazard_events (
+                id, event_type, region, region_label, event_date, details, created_at
+            )
             VALUES (
                 :id,
                 'wildfire',
                 ST_SetSRID(ST_MakePoint(15.0, 15.0), 4326),
                 'Test Region',
+                NOW(),
                 'Wildfire inside boundary',
                 NOW()
             );
@@ -55,12 +58,15 @@ async def test_boundary_mode_causal_chain_query(db_session: AsyncSession) -> Non
 
     await db_session.execute(
         text("""
-            INSERT INTO hazard_events (id, event_type, region, region_label, details, created_at)
+            INSERT INTO hazard_events (
+                id, event_type, region, region_label, event_date, details, created_at
+            )
             VALUES (
                 :id,
                 'earthquake',
                 ST_SetSRID(ST_MakePoint(16.0, 16.0), 4326),
                 'Test Region',
+                NOW(),
                 'Cascading earthquake inside boundary',
                 NOW()
             );

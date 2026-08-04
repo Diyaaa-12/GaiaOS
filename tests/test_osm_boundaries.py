@@ -11,7 +11,19 @@ from tools.osm_boundaries.client import resolve_boundary
 @pytest.mark.asyncio
 async def test_resolve_boundary_success() -> None:
     """Test successful boundary resolution via respx mock Nominatim endpoint."""
-    with respx.mock:
+    import uuid
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_row = (uuid.uuid4(), "relation/7444", "Paris", 8)
+    mock_session = AsyncMock()
+    mock_res = MagicMock()
+    mock_res.fetchone.return_value = mock_row
+    mock_session.execute.return_value = mock_res
+
+    mock_factory = MagicMock()
+    mock_factory.return_value.__aenter__.return_value = mock_session
+
+    with respx.mock, patch("tools.osm_boundaries.client.AsyncSessionLocal", mock_factory):
         respx.get("https://nominatim.openstreetmap.org/reverse").respond(
             json={
                 "osm_type": "relation",
