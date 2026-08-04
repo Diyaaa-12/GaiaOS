@@ -68,6 +68,7 @@ TTL_BY_SOURCE: dict[str, int] = {
     "copernicus": 1800,  # 30 min  — Copernicus Sentinel satellite metadata
     "era5": 3600,        # 1 h     — ERA5 atmospheric reanalysis baseline data
     "gdelt": 900,        # 15 min  — GDELT socio-political hazard news events
+    "osm": 1209600,      # 14 days — OpenStreetMap administrative boundaries update rarely
 }
 
 # Default for any source not in the table

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import uuid
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -182,3 +183,148 @@ class CausalChainRepository:
         )
 
         return evidence_list
+
+    @staticmethod
+    async def find_causal_chain_within_boundary(
+        session: AsyncSession,
+        event_type: str,
+        boundary_id: uuid.UUID,
+        max_depth: int = 4,
+        statement_timeout_ms: int = 2000,
+    ) -> list[Evidence]:
+        """Perform recursive WITH RECURSIVE CTE query matching
+        ST_Within administrative boundary polygon.
+
+        Uses PostGIS ST_Within against administrative_boundaries.geom identified by boundary_id.
+        Bounded by max_depth and protected by a session-level statement timeout.
+        """
+        start_time = time.perf_counter()
+
+        try:
+            timeout_val = int(statement_timeout_ms)
+            await session.execute(text(f"SET LOCAL statement_timeout = {timeout_val};"))
+
+            stmt = text("""
+                WITH RECURSIVE target_boundary AS (
+                    SELECT geom FROM administrative_boundaries WHERE id = :boundary_id
+                ),
+                causal_path AS (
+                    -- Anchor member: Select start event matching event_type within boundary polygon
+                    SELECT
+                        he.id AS event_id,
+                        he.event_type,
+                        he.region_label AS region,
+                        he.details,
+                        ARRAY[he.id] AS path_ids,
+                        ARRAY[he.event_type] AS path_types,
+                        1 AS depth,
+                        ARRAY[]::numeric[] AS edge_confidences
+                    FROM hazard_events he, target_boundary tb
+                    WHERE he.event_type = :event_type
+                      AND he.region IS NOT NULL
+                      AND ST_Within(he.region, tb.geom)
+
+                    UNION ALL
+
+                    -- Recursive member: Traverse relations
+                    SELECT
+                        child.id AS event_id,
+                        child.event_type,
+                        child.region_label AS region,
+                        child.details,
+                        cp.path_ids || child.id AS path_ids,
+                        cp.path_types || child.event_type AS path_types,
+                        cp.depth + 1 AS depth,
+                        cp.edge_confidences || hr.confidence AS edge_confidences
+                    FROM causal_path cp
+                    JOIN hazard_relationships hr ON cp.event_id = hr.parent_id
+                    JOIN hazard_events child ON hr.child_id = child.id
+                    WHERE cp.depth < :max_depth
+                      AND NOT (child.id = ANY(cp.path_ids)) -- Cycle prevention guard
+                )
+                SELECT event_id, event_type, region, details,
+                       path_ids, path_types, depth, edge_confidences
+                FROM causal_path
+                ORDER BY depth ASC;
+            """)
+
+            result = await session.execute(
+                stmt,
+                {
+                    "event_type": event_type,
+                    "boundary_id": boundary_id,
+                    "max_depth": max_depth,
+                },
+            )
+            rows = result.fetchall()
+
+        except Exception as e:
+            query_duration_ms = int((time.perf_counter() - start_time) * 1000)
+            err_msg = str(e).lower()
+            if "57014" in err_msg or "query canceled" in err_msg or "statement timeout" in err_msg:
+                _log.error(
+                    "db.causal_chain_boundary.timeout",
+                    event_type=event_type,
+                    boundary_id=str(boundary_id),
+                    max_depth=max_depth,
+                    duration_ms=query_duration_ms,
+                    error=str(e),
+                )
+                await session.rollback()
+                raise TimeoutError("causal chain boundary query exceeded time budget") from e
+            raise e
+
+        evidence_list = []
+        for row in rows:
+            event_id = row[0]
+            row_region = row[2] or "unspecified region"
+            details = row[3]
+            path_ids = row[4]
+            path_types = row[5]
+            depth = row[6]
+            edge_confidences = [float(c) for c in row[7]] if row[7] is not None else []
+
+            if depth < 2:
+                continue
+
+            confidence = calculate_chain_confidence(edge_confidences)
+            chain_str = " -> ".join(path_types)
+            claim = (
+                f"Historical causal chain in boundary {row_region}: {chain_str}. "
+                f"Initial trigger details: {details or 'N/A'}"
+            )
+
+            extra_metadata = {
+                "visited_event_ids": [str(eid) for eid in path_ids],
+                "event_chain_path": path_types,
+                "depth": depth,
+                "edge_confidences": edge_confidences,
+                "boundary_id": str(boundary_id),
+            }
+
+            evidence_list.append(
+                Evidence(
+                    source="Causal Chain Traversal (Boundary Mode)",
+                    claim=claim,
+                    confidence=confidence,
+                    document_id="causal_chain_boundary",
+                    chunk_id=str(event_id),
+                    title=f"Causal Path: {chain_str}",
+                    source_url="http://db.planetaryrisk.org/causal_chains",
+                    extra_metadata=extra_metadata,
+                )
+            )
+
+        query_duration_ms = int((time.perf_counter() - start_time) * 1000)
+        _log.info(
+            "db.causal_chain_boundary.completed",
+            event_type=event_type,
+            boundary_id=str(boundary_id),
+            max_depth=max_depth,
+            hop_count=len(evidence_list),
+            chain_count=len(evidence_list),
+            query_duration_ms=query_duration_ms,
+        )
+
+        return evidence_list
+

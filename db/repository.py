@@ -529,6 +529,28 @@ async def find_causal_chain(
         )
 
 
+async def find_causal_chain_within_boundary(
+    event_type: str,
+    boundary_id: uuid.UUID,
+    max_depth: int = 4,
+    statement_timeout_ms: int = 2000,
+) -> list[Evidence]:
+    """Exposed stable public interface for boundary-matched causal chain traversal reasoning."""
+    from db.causal_repository import CausalChainRepository
+    from db.session import AsyncSessionLocal
+
+    if AsyncSessionLocal is None:
+        raise RuntimeError("Database session factory is not initialised.")
+
+    async with AsyncSessionLocal() as session:
+        return await CausalChainRepository.find_causal_chain_within_boundary(
+            session=session,
+            event_type=event_type,
+            boundary_id=boundary_id,
+            max_depth=max_depth,
+            statement_timeout_ms=statement_timeout_ms,
+        )
+
 class AlertRepository:
     """Repository helper for AlertRules and AlertIncidents CRUD operations."""
 

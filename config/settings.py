@@ -110,6 +110,19 @@ class Settings(BaseSettings):
         validation_alias="CAUSAL_CHAIN_SEARCH_RADIUS_METERS",
         description="Default search radius in meters for causal chain spatial proximity matching.",
     )
+    enable_boundary_reasoning: bool = Field(
+        default=True,
+        validation_alias="ENABLE_BOUNDARY_REASONING",
+        description=(
+            "Feature flag to enable OpenStreetMap administrative boundary"
+            " matching in causal queries."
+        ),
+    )
+    nominatim_api_url: str = Field(
+        default="https://nominatim.openstreetmap.org",
+        validation_alias="NOMINATIM_API_URL",
+        description="OpenStreetMap Nominatim reverse/forward geocoding base URL.",
+    )
     enable_usgs_ingestion: bool = Field(
         default=True,
         validation_alias="ENABLE_USGS_INGESTION",

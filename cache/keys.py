@@ -77,3 +77,17 @@ class RedisKeyBuilder:
         """
         return f"gaiaos:cache:{source}:{key}"
 
+    @staticmethod
+    def boundary_key(lat: float, lon: float) -> str:
+        """Return a namespaced key for cached administrative boundary lookups.
+
+        Rounding to 3 decimal places (~111 m spatial precision at the equator) accurately
+        differentiates boundaries near municipal/regional borders while allowing cache reuse.
+
+        Example: ``gaiaos:cache:boundary:48.857:2.352``
+        """
+        rounded_lat = round(lat, 3)
+        rounded_lon = round(lon, 3)
+        return f"gaiaos:cache:boundary:{rounded_lat}:{rounded_lon}"
+
+

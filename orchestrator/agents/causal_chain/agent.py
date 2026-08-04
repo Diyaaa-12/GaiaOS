@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import re
+import uuid
 
 from config.settings import get_settings
-from db.repository import find_causal_chain
+from db.repository import find_causal_chain, find_causal_chain_within_boundary
 from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput
 from tools.geocoding import geocode_location
+from tools.osm_boundaries import resolve_boundary
 
 
 def _extract_location(query: str) -> str:
@@ -44,7 +46,6 @@ def _extract_event_type(query: str) -> str:
     return "earthquake"
 
 
-
 async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Run causal chain traversal over historical hazard events."""
     location = agent_input.region_hint or _extract_location(agent_input.query)
@@ -70,8 +71,29 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
             errors=[f"could not resolve region for causal analysis: {str(ge)}"],
         )
 
-    # 2. Query causal chain repository using PostGIS spatial proximity
     settings = get_settings()
+
+    # 2. Try boundary-mode spatial query if boundary reasoning is enabled
+    if settings.enable_boundary_reasoning:
+        try:
+            boundary_info = await resolve_boundary(point[0], point[1])
+            if boundary_info and "id" in boundary_info:
+                boundary_uuid = uuid.UUID(str(boundary_info["id"]))
+                evidence_list = await find_causal_chain_within_boundary(
+                    event_type=event_type,
+                    boundary_id=boundary_uuid,
+                    max_depth=4,
+                )
+                if evidence_list:
+                    return AgentOutput(
+                        agent_name="causal_chain",
+                        evidence=evidence_list,
+                        errors=[],
+                    )
+        except Exception as be:
+            errors.append(f"Boundary mode lookup failed, falling back to radius search: {str(be)}")
+
+    # 3. Fallback to existing radius-mode spatial query
     radius_meters = settings.causal_chain_search_radius_meters
 
     try:
@@ -91,3 +113,4 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
         evidence=evidence_list,
         errors=errors,
     )
+

@@ -6,6 +6,7 @@ Exposes ORM mapped classes:
 - MetricEventRow: Raw metric event rows for observability aggregation (Milestone 9).
 """
 
+from db.models.administrative_boundary import AdministrativeBoundary
 from db.models.alert_incident import AlertIncident
 from db.models.alert_rule import AlertRule
 from db.models.api_key import ApiKey
@@ -19,6 +20,7 @@ from db.models.password_reset_token import PasswordResetToken
 from db.models.user import User
 
 __all__ = [
+    "AdministrativeBoundary",
     "AlertIncident",
     "AlertRule",
     "ApiKey",
