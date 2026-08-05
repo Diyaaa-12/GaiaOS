@@ -13,6 +13,8 @@ class ENSOForecastModel:
         return "ENSOForecastModel"
 
     def run(self, parameters: dict) -> SimulationResult:
+        from simulation_engine.parameter_loader import load_calibrated_parameters
+
         sst_anomaly = parameters.get("sst_anomaly")
         if sst_anomaly is None:
             raise ValueError("Missing required input: sst_anomaly")
@@ -21,17 +23,31 @@ class ENSOForecastModel:
         if not (-4.0 <= sst_anomaly <= 4.0):
             raise ValueError("Parameter out of bounds: sst_anomaly")
 
+        # Load calibrated parameters with defaults
+        defaults = {
+            "el_nino_threshold": 0.5,
+            "la_nina_threshold": -0.5,
+            "low_bound_offset": -0.2,
+            "high_bound_offset": 0.2,
+        }
+        cal_params = load_calibrated_parameters("enso_forecast", defaults)
+
+        nino_thresh = cal_params.get("el_nino_threshold", defaults["el_nino_threshold"])
+        nina_thresh = cal_params.get("la_nina_threshold", defaults["la_nina_threshold"])
+        low_offset = cal_params.get("low_bound_offset", defaults["low_bound_offset"])
+        high_offset = cal_params.get("high_bound_offset", defaults["high_bound_offset"])
+
         # Deterministic statistical calculation
-        if sst_anomaly >= 0.5:
+        if sst_anomaly >= nino_thresh:
             state = "El Niño"
-        elif sst_anomaly <= -0.5:
+        elif sst_anomaly <= nina_thresh:
             state = "La Niña"
         else:
             state = "Neutral"
 
         prediction = f"ENSO Forecast prediction: current SST anomaly indicates {state} conditions."
-        low_bound = sst_anomaly - 0.2
-        high_bound = sst_anomaly + 0.2
+        low_bound = sst_anomaly + low_offset
+        high_bound = sst_anomaly + high_offset
 
         return SimulationResult(
             prediction=prediction,

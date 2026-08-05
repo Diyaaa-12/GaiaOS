@@ -136,6 +136,25 @@ def main() -> None:
             repeat=None,
         )
 
+    # Idempotent scheduling for simulation model calibration job
+    target_cal_func = "workers.jobs.calibration_job.run_calibration_job"
+    cal_interval = settings.simulation_calibration_interval_days * 24 * 3600
+    if is_job_already_scheduled(scheduler, target_cal_func, "simulation_calibration"):
+        _log.info("scheduler.job_exists_skipping", source="simulation_calibration")
+    else:
+        _log.info(
+            "scheduler.registering_job",
+            source="simulation_calibration",
+            interval_seconds=cal_interval,
+        )
+        scheduler.schedule(
+            scheduled_time=datetime.now(UTC) + timedelta(seconds=30),
+            func=target_cal_func,
+            args=["simulation_calibration"],
+            interval=cal_interval,
+            repeat=None,
+        )
+
     _log.info("scheduler.running")
     scheduler.run()
 

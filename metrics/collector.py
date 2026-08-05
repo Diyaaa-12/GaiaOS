@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from logging_config import get_logger
 from metrics.events import (
     BackupCompleted,
+    CalibrationCompleted,
     IngestionCompleted,
     JobCompleted,
     JobFailed,
@@ -95,6 +96,14 @@ async def persist_metric(session: AsyncSession, event: MetricEvent) -> None:
             duration_ms=int(event.duration_ms),
             cost_estimate=Decimal("0"),
             success=False,
+        )
+    elif isinstance(event, CalibrationCompleted):
+        row = MetricEventRow(
+            event_type="CalibrationCompleted",
+            group_key=event.model_name,
+            duration_ms=0,
+            cost_estimate=Decimal("0"),
+            success=event.promoted,
         )
     else:
         # Unknown event subclass — log and skip rather than fail.

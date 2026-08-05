@@ -133,3 +133,13 @@ class DegradedResponseEmitted(MetricEvent):
     source: str
     source_status: str
 
+
+@dataclass
+class CalibrationCompleted(MetricEvent):
+    """Emitted when a simulation model calibration finishes."""
+
+    model_name: str
+    promoted: bool
+    version: int
+    validation_score: float
+

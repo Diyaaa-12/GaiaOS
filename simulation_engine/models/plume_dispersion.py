@@ -13,6 +13,8 @@ class PlumeDispersionModel:
         return "PlumeDispersionModel"
 
     def run(self, parameters: dict) -> SimulationResult:
+        from simulation_engine.parameter_loader import load_calibrated_parameters
+
         wind_speed = parameters.get("wind_speed")
         if wind_speed is None:
             raise ValueError("Missing required input: wind_speed")
@@ -21,10 +23,22 @@ class PlumeDispersionModel:
         if not (0.5 <= wind_speed <= 50.0):
             raise ValueError("Parameter out of bounds: wind_speed")
 
+        # Load calibrated parameters with defaults
+        defaults = {
+            "wind_coefficient": 1.8,
+            "low_bound_factor": 1.5,
+            "high_bound_factor": 2.1,
+        }
+        cal_params = load_calibrated_parameters("plume_dispersion", defaults)
+
+        wind_coeff = cal_params.get("wind_coefficient", defaults["wind_coefficient"])
+        low_factor = cal_params.get("low_bound_factor", defaults["low_bound_factor"])
+        high_factor = cal_params.get("high_bound_factor", defaults["high_bound_factor"])
+
         # Deterministic statistical calculation
-        dispersion_distance = wind_speed * 1.8
-        low_bound = wind_speed * 1.5
-        high_bound = wind_speed * 2.1
+        dispersion_distance = wind_speed * wind_coeff
+        low_bound = wind_speed * low_factor
+        high_bound = wind_speed * high_factor
 
         prediction = (
             f"Plume dispersion prediction: plume will disperse up to "

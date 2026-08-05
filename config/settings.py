@@ -173,6 +173,11 @@ class Settings(BaseSettings):
         validation_alias="INGESTION_POLL_INTERVAL_HOURS",
         description="Interval in hours between scheduled hazard event ingestion runs.",
     )
+    simulation_calibration_interval_days: int = Field(
+        default=30,
+        validation_alias="SIMULATION_CALIBRATION_INTERVAL_DAYS",
+        description="Interval in days between scheduled simulation parameter calibration runs.",
+    )
     firms_api_url: str = Field(
         default="https://firms.modaps.eosdis.nasa.gov/api/area/csv",
         validation_alias="FIRMS_API_URL",
