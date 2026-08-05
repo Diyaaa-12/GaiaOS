@@ -11,9 +11,19 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.settings import get_settings
-from db.models.literature_chunk import LiteratureChunk
 from ingestion.scheduled.literature_sources.arxiv_open_access import fetch_new_arxiv_papers
 from workers.jobs.literature_ingestion_job import _async_run_literature_ingestion_job
+
+
+class MockSessionContext:
+    def __init__(self, db_session: AsyncSession) -> None:
+        self.db_session = db_session
+
+    async def __aenter__(self) -> AsyncSession:
+        return self.db_session
+
+    async def __aexit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
+        await self.db_session.__aexit__(exc_type, exc_val, exc_tb)
 
 
 @pytest.mark.asyncio
@@ -63,15 +73,25 @@ async def test_fetch_arxiv_parsing() -> None:
 @pytest.mark.asyncio
 async def test_arxiv_ingestion_deduplication(db_session: AsyncSession) -> None:
     """Verify that duplicate papers are skipped and not re-inserted."""
-    # Seed a pre-existing chunk with a specific source_id
-    existing_chunk = LiteratureChunk(
-        document_id="arxiv_test_dup_123",
-        source_id="test_dup_123",
-        chunk_text="Existing paper content",
-        source_url="http://arxiv.org/pdf/test_dup_123",
-        extra_metadata={"title": "Test Title"},
+    # Seed a pre-existing chunk using raw SQL to avoid computed column issue
+    import json
+    import uuid
+    await db_session.execute(
+        text("""
+            INSERT INTO literature_chunks (
+                id, document_id, source_id, chunk_text, source_url, metadata, created_at
+            )
+            VALUES (:id, :document_id, :source_id, :chunk_text, :source_url, :metadata, NOW());
+        """),
+        {
+            "id": uuid.uuid4(),
+            "document_id": "arxiv_test_dup_123",
+            "source_id": "test_dup_123",
+            "chunk_text": "Existing paper content",
+            "source_url": "http://arxiv.org/pdf/test_dup_123",
+            "metadata": json.dumps({"title": "Test Title"}),
+        }
     )
-    db_session.add(existing_chunk)
     await db_session.commit()
 
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
@@ -89,9 +109,8 @@ async def test_arxiv_ingestion_deduplication(db_session: AsyncSession) -> None:
     settings = get_settings()
 
     with respx.mock, patch("db.session.AsyncSessionLocal") as mock_session_factory:
-        # Mock session local factory to return our test db_session
-        mock_session_factory.return_value.__aenter__.return_value = db_session
-        mock_session_factory.return_value.__aexit__ = db_session.__aexit__
+        # Mock session local factory to return our test db_session context manager
+        mock_session_factory.return_value = MockSessionContext(db_session)
 
         respx.get(settings.arxiv_api_url).respond(
             text=xml_data,
@@ -137,8 +156,7 @@ async def test_arxiv_ingestion_cursor_advancement(db_session: AsyncSession) -> N
     settings = get_settings()
 
     with respx.mock, patch("db.session.AsyncSessionLocal") as mock_session_factory:
-        mock_session_factory.return_value.__aenter__.return_value = db_session
-        mock_session_factory.return_value.__aexit__ = db_session.__aexit__
+        mock_session_factory.return_value = MockSessionContext(db_session)
 
         respx.get(settings.arxiv_api_url).respond(
             text=xml_data,
@@ -184,8 +202,7 @@ async def test_arxiv_ingestion_transactional_cursor_progress(db_session: AsyncSe
     with respx.mock, patch("db.session.AsyncSessionLocal") as mock_session_factory, patch.object(
         db_session, "commit", AsyncMock(side_effect=RuntimeError("Database error during commit"))
     ):
-        mock_session_factory.return_value.__aenter__.return_value = db_session
-        mock_session_factory.return_value.__aexit__ = db_session.__aexit__
+        mock_session_factory.return_value = MockSessionContext(db_session)
 
         respx.get(settings.arxiv_api_url).respond(
             text=xml_data,
