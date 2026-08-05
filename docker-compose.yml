@@ -119,7 +119,28 @@ services:
           cpus: '${ADMIN_UI_CPU_LIMIT:-0.25}'
           memory: '${ADMIN_UI_MEMORY_LIMIT:-128M}'
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin_password
+    volumes:
+      - minio_data:/data
+    profiles:
+      - minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
 
 volumes:
   postgres_data:
   redis_data:
+  minio_data:

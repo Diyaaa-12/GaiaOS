@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from logging_config import get_logger
+from ops.backup.storage import compute_file_sha256
 
 _log = get_logger(__name__)
 
@@ -90,17 +90,13 @@ def verify_redis_snapshot(
         )
 
     # 2. Check Magic Header & SHA256 Checksum
-    sha256 = hashlib.sha256()
     magic_valid = False
     try:
         with open(path_obj, "rb") as f:
             header = f.read(5)
             if header == b"REDIS" or path_obj.suffix == ".aof":
                 magic_valid = True
-
-            f.seek(0)
-            while chunk := f.read(65536):
-                sha256.update(chunk)
+        checksum = compute_file_sha256(path_obj)
     except OSError as exc:
         return SnapshotVerificationResult(
             exists=True,
@@ -111,8 +107,6 @@ def verify_redis_snapshot(
             valid=False,
             error_message=f"Error reading snapshot file: {str(exc)}",
         )
-
-    checksum = sha256.hexdigest()
 
     # 3. Check age limit
     if age_seconds > max_age_seconds:

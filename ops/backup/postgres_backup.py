@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import time
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -18,7 +17,7 @@ from logging_config import get_logger
 from metrics.collector import emit, persist_metric
 from metrics.events import BackupCompleted
 from ops.backup.provider import DatabaseBackupProvider, PostgresBackupProvider
-from ops.backup.storage import BackupStorage, LocalBackupStorage
+from ops.backup.storage import BackupStorage, compute_file_sha256, get_backup_storage
 
 _log = get_logger(__name__)
 
@@ -80,7 +79,7 @@ async def run_postgres_backup(
         )
 
     db_url = settings.database_url
-    storage_backend = storage or LocalBackupStorage(base_dir=settings.backup_storage_path)
+    storage_backend = storage or get_backup_storage()
     backup_provider = provider or PostgresBackupProvider(db_url=db_url)
 
     backup_id = f"backup_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
@@ -116,26 +115,26 @@ async def run_postgres_backup(
 
         # 3. Create local dump file
         dump_path = await backup_provider.create_backup(temp_dump_path)
+        storage_location = None
+        try:
+            # 4. Compute file size and SHA256 checksum
+            size_bytes = dump_path.stat().st_size if dump_path.exists() else 0
+            checksum = compute_file_sha256(dump_path) if dump_path.exists() else ""
 
-        # 4. Compute file size and SHA256 checksum
-        size_bytes = dump_path.stat().st_size if dump_path.exists() else 0
-        sha256 = hashlib.sha256()
-        if dump_path.exists():
-            with open(dump_path, "rb") as f:
-                while chunk := f.read(65536):
-                    sha256.update(chunk)
-        checksum = sha256.hexdigest()
-
-        # 5. Upload dump file to BackupStorage
-        remote_key = f"{backup_id}.sql"
-        storage_location = await storage_backend.upload(dump_path, remote_key)
-
-        # Clean up local temp dump file if distinct from storage
-        if dump_path.exists() and dump_path.resolve() != Path(storage_location).resolve():
-            try:
-                dump_path.unlink()
-            except OSError:
-                pass
+            # 5. Upload dump file to BackupStorage
+            remote_key = f"{backup_id}.sql"
+            storage_location = await storage_backend.upload(dump_path, remote_key)
+        finally:
+            if dump_path.exists():
+                is_distinct = (
+                    storage_location is None or
+                    dump_path.resolve() != Path(storage_location).resolve()
+                )
+                if is_distinct:
+                    try:
+                        dump_path.unlink()
+                    except OSError:
+                        pass
 
         duration_ms = (time.monotonic() - start_time) * 1000.0
         completed_at = datetime.now(UTC)

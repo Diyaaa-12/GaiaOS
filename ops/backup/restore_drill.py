@@ -21,7 +21,7 @@ from logging_config import get_logger
 from metrics.collector import emit, persist_metric
 from metrics.events import RestoreDrillCompleted, RestoreDrillFailed
 from ops.backup.provider import DatabaseBackupProvider, PostgresBackupProvider
-from ops.backup.storage import BackupStorage, LocalBackupStorage
+from ops.backup.storage import BackupStorage, compute_file_sha256, get_backup_storage
 
 _log = get_logger(__name__)
 
@@ -90,7 +90,7 @@ async def run_restore_drill(
             "Restore drill cannot execute without an explicit connection URL."
         )
 
-    storage_backend = storage or LocalBackupStorage(base_dir=settings.backup_storage_path)
+    storage_backend = storage or get_backup_storage()
     main_db_url = settings.database_url
 
     drill_id = f"drill_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
@@ -157,6 +157,15 @@ async def run_restore_drill(
         # 3. Download backup dump file from storage
         remote_key = f"{selected_backup_id}.sql"
         local_dump_path = await storage_backend.download(remote_key, temp_download_path)
+
+        # SHA-256 Checksum Verification
+        downloaded_checksum = compute_file_sha256(local_dump_path)
+        expected_checksum = target_backup_record.checksum
+        if expected_checksum and downloaded_checksum != expected_checksum:
+            raise ValueError(
+                f"Backup checksum mismatch! Expected: {expected_checksum}, "
+                f"Got: {downloaded_checksum}"
+            )
 
         # 4. Create fresh scratch DB
         scratch_db_url = await _create_scratch_database(main_db_url, scratch_db_name)

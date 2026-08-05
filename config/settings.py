@@ -255,6 +255,41 @@ class Settings(BaseSettings):
         validation_alias="BACKUP_STORAGE_PATH",
         description="Local or S3-compatible directory path for database backup files.",
     )
+    backup_storage_backend: Literal["local", "minio"] = Field(
+        default="local",
+        validation_alias="BACKUP_STORAGE_BACKEND",
+        description="Active backup storage backend provider.",
+    )
+    minio_endpoint: str | None = Field(
+        default=None,
+        validation_alias="MINIO_ENDPOINT",
+        description="Endpoint URL for S3-compatible MinIO server.",
+    )
+    minio_access_key: str | None = Field(
+        default=None,
+        validation_alias="MINIO_ACCESS_KEY",
+        description="Access key credential for MinIO authentication.",
+    )
+    minio_secret_key: str | None = Field(
+        default=None,
+        validation_alias="MINIO_SECRET_KEY",
+        description="Secret key credential for MinIO authentication.",
+    )
+    minio_bucket: str | None = Field(
+        default=None,
+        validation_alias="MINIO_BUCKET",
+        description="Target S3 bucket name for backups and exports.",
+    )
+    minio_secure: bool = Field(
+        default=False,
+        validation_alias="MINIO_SECURE",
+        description="Whether to use secure connection (SSL/HTTPS) for MinIO.",
+    )
+    minio_auto_create_bucket: bool = Field(
+        default=True,
+        validation_alias="MINIO_AUTO_CREATE_BUCKET",
+        description="Whether to automatically create target bucket if it is missing.",
+    )
     # ---------------------------------------------------------------------------
     # Public Research API & Dataset Publishing settings (Phase 5 Milestone 9)
     # ---------------------------------------------------------------------------
@@ -539,6 +574,39 @@ class Settings(BaseSettings):
 
             if len(self.jwt_secret_key) < 32:
                 raise ValueError("JWT_SECRET_KEY must be at least 32 characters long")
+
+        # Validate S3/MinIO configuration conditionally
+        if self.backup_storage_backend == "minio":
+            if not self.minio_endpoint:
+                raise ValueError("MINIO_ENDPOINT must be set when BACKUP_STORAGE_BACKEND is minio")
+            if not self.minio_access_key:
+                raise ValueError(
+                    "MINIO_ACCESS_KEY must be set when BACKUP_STORAGE_BACKEND is minio"
+                )
+            if not self.minio_secret_key:
+                raise ValueError(
+                    "MINIO_SECRET_KEY must be set when BACKUP_STORAGE_BACKEND is minio"
+                )
+            if not self.minio_bucket:
+                raise ValueError("MINIO_BUCKET must be set when BACKUP_STORAGE_BACKEND is minio")
+
+            # Validate S3/MinIO bucket naming constraints
+            bucket = self.minio_bucket
+            if len(bucket) < 3 or len(bucket) > 63:
+                raise ValueError("MINIO_BUCKET name must be between 3 and 63 characters long")
+
+            import re
+
+            if not re.match(r"^[a-z0-9][a-z0-9.-]*[a-z0-9]$", bucket):
+                raise ValueError(
+                    "MINIO_BUCKET name must consist only of lowercase letters, numbers, dots, "
+                    "or hyphens, and start and end with an alphanumeric character"
+                )
+            if ".." in bucket:
+                raise ValueError("MINIO_BUCKET name must not contain contiguous periods")
+            if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", bucket):
+                raise ValueError("MINIO_BUCKET name must not be formatted as an IP address")
+
         return self
 
     @property

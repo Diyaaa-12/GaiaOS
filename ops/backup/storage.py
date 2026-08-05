@@ -2,15 +2,27 @@
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
+from config.settings import get_settings
 from logging_config import get_logger
 
 _log = get_logger(__name__)
 
 
+def compute_file_sha256(file_path: Path) -> str:
+    """Compute the SHA-256 checksum of a local file."""
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while chunk := f.read(65536):
+            sha256.update(chunk)
+    return sha256.hexdigest()
+
+
+@runtime_checkable
 class BackupStorage(Protocol):
     """Protocol abstraction for backup file storage backends."""
 
@@ -88,3 +100,12 @@ class LocalBackupStorage:
             if p.is_file()
         ]
         return keys
+
+
+def get_backup_storage() -> BackupStorage:
+    """Factory to retrieve the active backup storage provider backend."""
+    settings = get_settings()
+    if settings.backup_storage_backend == "minio":
+        from ops.backup.minio_storage import MinIOBackupStorage
+        return MinIOBackupStorage()
+    return LocalBackupStorage(base_dir=settings.backup_storage_path)

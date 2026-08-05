@@ -19,6 +19,7 @@ from db.models.hazard_event import HazardEvent
 from db.models.investigation import Investigation
 from db.session import AsyncSessionLocal, init_engine
 from logging_config import configure_logging, get_logger
+from ops.backup.storage import get_backup_storage
 
 _log = get_logger(__name__)
 
@@ -121,6 +122,12 @@ async def _async_run_dataset_export() -> dict[str, Any]:
 
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest_data, f, indent=2)
+
+    # 3. Upload export files to the storage backend
+    storage_backend = get_backup_storage()
+    await storage_backend.upload(archive_path, archive_filename)
+    await storage_backend.upload(checksum_path, f"{archive_filename}.sha256")
+    await storage_backend.upload(manifest_path, "manifest.json")
 
     duration_ms = round((time.monotonic() - start_time) * 1000, 2)
     _log.info(
