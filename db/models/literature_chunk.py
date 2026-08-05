@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, Text
+from sqlalchemy import Computed, DateTime, Text
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -45,6 +45,7 @@ class LiteratureChunk(Base):
     # Computed column for full-text search
     ts_content: Mapped[str | None] = mapped_column(
         TSVECTOR,
+        Computed("to_tsvector('english', chunk_text)", persisted=True),
         nullable=True,
     )
 
