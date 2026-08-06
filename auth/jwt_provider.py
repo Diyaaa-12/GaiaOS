@@ -127,6 +127,11 @@ class JWTAuthProvider:
 
         token = parts[1]
 
+        settings = get_settings()
+        if settings.prometheus_metrics_token and token == settings.prometheus_metrics_token:
+            request.state.user = None
+            return
+
         try:
             payload = decode_access_token(token)
         except jwt.ExpiredSignatureError:
