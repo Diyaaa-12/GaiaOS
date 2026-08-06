@@ -75,3 +75,70 @@ export interface BackupRecordSchema {
   verification_metadata: Record<string, unknown>;
   error_details: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Explainability Trace (GET /api/v1/investigations/{id}/trace)
+// ---------------------------------------------------------------------------
+
+export interface TraceNode {
+  id: string;
+  label: string;
+  type: string; // planning | agent_started | synthesizing | critic_flag | replanning | collaboration | finalize | custom
+  status: string; // completed | failed | skipped | flagged | degraded
+  timestamp?: string | null;
+  details?: Record<string, unknown>;
+}
+
+export interface TraceEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string | null;
+  type?: string | null; // sequential | replan | collaboration | conditional
+}
+
+export interface TraceSummary {
+  evidence_count: number;
+  replan_count: number;
+  critic_flag_count: number;
+  collaboration_event_count: number;
+  degraded_sources: string[];
+}
+
+export interface TraceMetadata {
+  investigation_id: string;
+  schema_version: string;
+  generated_at: string; // ISO 8601
+  status: string;
+  complexity_tier?: string | null;
+  created_at: string;
+  completed_at?: string | null;
+  confidence?: number | null;
+  node_count: number;
+  edge_count: number;
+  has_replan: boolean;
+  has_collaboration: boolean;
+  has_degraded_mode: boolean;
+}
+
+export interface InvestigationTraceResponse {
+  investigation_id: string;
+  schema_version: string;
+  metadata: TraceMetadata;
+  nodes: TraceNode[];
+  edges: TraceEdge[];
+  summary: TraceSummary;
+}
+
+export interface InvestigationStatusResponse {
+  investigation_id: string;
+  status: string;
+  complexity_tier?: string | null;
+  answer?: string | null;
+  confidence?: number | null;
+  evidence_gaps: string[];
+  execution_trace?: Record<string, unknown> | null;
+  created_at: string;
+  completed_at?: string | null;
+}
+
