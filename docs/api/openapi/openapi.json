@@ -1730,7 +1730,7 @@
     },
     "/api/v1/admin/metrics/prometheus": {
       "get": {
-        "description": "Returns system telemetry, worker scaling gauges, and location fallback counters formatted in standard OpenMetrics text format. Requires ADMIN role.",
+        "description": "Returns system telemetry, worker scaling gauges, and location fallback counters formatted in standard OpenMetrics text format. Authenticates via static PROMETHEUS_METRICS_TOKEN or ADMIN role.",
         "operationId": "get_prometheus_metrics_api_v1_admin_metrics_prometheus_get",
         "responses": {
           "200": {
