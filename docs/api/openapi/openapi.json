@@ -1728,6 +1728,27 @@
         ]
       }
     },
+    "/api/v1/admin/metrics/prometheus": {
+      "get": {
+        "description": "Returns system telemetry, worker scaling gauges, and location fallback counters formatted in standard OpenMetrics text format. Requires ADMIN role.",
+        "operationId": "get_prometheus_metrics_api_v1_admin_metrics_prometheus_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Prometheus / OpenMetrics exposition endpoint",
+        "tags": [
+          "v1",
+          "Admin"
+        ]
+      }
+    },
     "/api/v1/admin/restore-drills": {
       "get": {
         "description": "Returns read-only history of automated restore drill executions and verification outcomes. Requires ADMIN role.",

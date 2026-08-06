@@ -19,6 +19,10 @@ This document details the versioning strategy, tag evolution, and milestone rele
 | v0.5.2  | Phase 5 Milestone 6 (Agent Plugin Architecture) | Complete |
 | v0.5.3  | Phase 5 Milestones 7–8 (Read Replica Scaling & SLO Burn-Rate Alerting) | Complete |
 | v0.5.4  | Phase 5 Capstone (Public Research API & Dataset Publishing) | Complete |
+| v0.6.0  | Phase 6 Milestone 1 (Resilience Layer: Caching, Retry & Circuit Breaker) | Complete |
+| v0.6.1  | Phase 6 Milestones 2–3 (Copernicus, ERA5, GDELT Ingestion & OSM Administrative Boundaries) | Complete |
+| v0.6.2  | Phase 6 Milestones 4–5 (ArXiv Open-Access Corpus & Offline Simulation Calibration) | Complete |
+| v0.6.3  | Phase 6 Milestone 6 (MinIO Self-Hosted Object Storage Option) | Complete |
 
 ---
 
@@ -33,8 +37,8 @@ This document details the versioning strategy, tag evolution, and milestone rele
 
 GaiaOS follows Semantic Versioning (`v0.X.Y`):
 
-- **MINOR versions** (`v0.4.0`, `v0.5.0`) represent major phase completions.
-- **PATCH versions** (`v0.4.1`, `v0.5.1`) represent milestone releases within a phase series.
+- **MINOR versions** (`v0.4.0`, `v0.5.0`, `v0.6.0`) represent major phase completions.
+- **PATCH versions** (`v0.4.1`, `v0.5.1`, `v0.6.1`) represent milestone releases within a phase series.
 
 ### The v0.4.x Open Source Readiness Series
 
@@ -52,10 +56,17 @@ GaiaOS follows Semantic Versioning (`v0.X.Y`):
 - **v0.5.3** — Phase 5 Milestones 7–8 (Read Replica Scaling & SLOs / Error Budgets)
 - **v0.5.4** — Phase 5 Capstone (Public Research API & Dataset Publishing)
 
+### The v0.6.x Real-Data Grounding & Resilience Series
+
+- **v0.6.0** — Phase 6 Milestone 1 (Resilience Layer: Caching, Retry & Circuit Breaker)
+- **v0.6.1** — Phase 6 Milestones 2–3 (Copernicus, ERA5, GDELT Ingestion & OSM Administrative Boundaries)
+- **v0.6.2** — Phase 6 Milestones 4–5 (ArXiv Open-Access Corpus & Offline Simulation Calibration)
+- **v0.6.3** — Phase 6 Milestone 6 (MinIO Self-Hosted Object Storage Option)
+
 ---
 
 ## Future Releases
 
-- **v0.6.0** — Phase 6 (Production Hardening & Next-Gen Capabilities)
+- **v0.7.0** — Phase 7 (Advanced Planetary Intelligence)
 
 *(Refer to the project roadmap for current scope.)*

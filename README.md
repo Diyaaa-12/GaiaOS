@@ -9,7 +9,7 @@ An Agentic Planetary Risk Intelligence Platform.
 
 ## Status
 
-Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and the v0.5.x Planetary Intelligence Series — Complete
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and the v0.6.x Real-Data Grounding & Resilience Series — Complete
 
 | Milestone | Scope / Deliverable | Status |
 |-----------|---------------------|--------|
@@ -23,11 +23,15 @@ Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and the v0.5.x Planetary Intelligen
 | **v0.5.2** | Phase 5 Milestone 6 (Agent Plugin Architecture & Dynamic Extensions) | Complete |
 | **v0.5.3** | Phase 5 Milestones 7–8 (Read Replica Scaling & SLO Burn-Rate Alerting) | Complete |
 | **v0.5.4** | Phase 5 Capstone (Public Research API & Dataset Publishing) | Complete |
+| **v0.6.0** | Phase 6 Milestone 1 (Resilience Layer: Caching, Retry & Circuit Breaker) | Complete |
+| **v0.6.1** | Phase 6 Milestones 2–3 (Copernicus, ERA5, GDELT Ingestion & OSM Administrative Boundaries) | Complete |
+| **v0.6.2** | Phase 6 Milestones 4–5 (ArXiv Open-Access Corpus & Offline Simulation Calibration) | Complete |
+| **v0.6.3** | Phase 6 Milestone 6 (MinIO Self-Hosted Object Storage Option) | Complete |
 
 Detailed architectural specifications, documentation hub, and milestone scope documents are linked below:
 - **Documentation Hub**: [`docs/README.md`](docs/README.md)
 - **Architecture**: [`docs/Architecture.md`](docs/Architecture.md)
-- **Roadmaps**: [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md), [`docs/Roadmap_Phase2.md`](docs/Roadmap_Phase2.md), [`docs/Roadmap_Phase3.md`](docs/Roadmap_Phase3.md), [`docs/Roadmap_Phase4.md`](docs/Roadmap_Phase4.md), [`docs/Roadmap_Phase5.md`](docs/Roadmap_Phase5.md)
+- **Roadmaps**: [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md), [`docs/Roadmap_Phase2.md`](docs/Roadmap_Phase2.md), [`docs/Roadmap_Phase3.md`](docs/Roadmap_Phase3.md), [`docs/Roadmap_Phase4.md`](docs/Roadmap_Phase4.md), [`docs/Roadmap_Phase5.md`](docs/Roadmap_Phase5.md), [`docs/Roadmap_Phase6.md`](docs/Roadmap_Phase6.md)
 - **Versioning Strategy**: [`docs/releases/Versioning.md`](docs/releases/Versioning.md)
 
 ## Core Architecture
@@ -72,7 +76,11 @@ docker compose up -d --build
 
 **Services**:
 - API Server & OpenAPI UI: `http://localhost:8000/docs`
+- OpenMetrics Prometheus Endpoint: `http://localhost:8000/api/v1/admin/metrics/prometheus`
+- Grafana Dashboard: `ops/dashboards/gaiaos-dashboard.json`
 - Admin Dashboard: `http://localhost:3000`
+
+For complete production deployment, database migration hooks, MinIO configuration, Grafana dashboard import, and PostgreSQL/Redis operational maintenance, see the [Deployment & Operations Runbook](ops/runbooks/deployment_and_operations.md).
 
 ## Development & Local Verification
 

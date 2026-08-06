@@ -28,6 +28,7 @@ The central navigation index for all GaiaOS system architecture, contributor gui
 - **[General Contributing Guidelines](../CONTRIBUTING.md)** — Code of conduct, branching conventions, and pull request requirements.
 
 ## Operations & Runbooks
+- **[Deployment & Operations Runbook](../ops/runbooks/deployment_and_operations.md)** — Production deployment sequence, migration hooks, MinIO notes, Prometheus setup, Grafana dashboard import, and DB maintenance.
 - **[Disaster Recovery Runbook](../ops/runbooks/disaster_recovery.md)** — Backup restoration and disaster recovery procedures.
 - **[Incident Response Runbook](../ops/runbooks/incident_response.md)** — Severity levels, escalation pathways, and incident handling SOP.
 - **[Migration Rollback Runbook](../ops/runbooks/migration_rollback.md)** — Standard operating procedures for rolling back database migrations.

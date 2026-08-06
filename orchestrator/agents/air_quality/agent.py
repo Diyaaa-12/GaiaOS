@@ -9,14 +9,19 @@ import re
 from datetime import UTC, datetime
 
 from config.settings import get_settings
+from metrics.collector import (
+    LOCATION_REGEX_FALLBACK_TOTAL,
+    PLANNER_REGION_HINT_MISSING_TOTAL,
+)
 from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
-from orchestrator.schemas.uncertainty import UncertaintyEstimate
+from orchestrator.schemas.uncertainty import SourceType, UncertaintyEstimate
 from tools.air_quality_openaq.client import OpenAQClient
 
 
 def _extract_city(query: str) -> str:
     """Fallback simple city parser for Milestone 2 query texts."""
+    LOCATION_REGEX_FALLBACK_TOTAL.labels(agent="air_quality").inc()
     match = re.search(
         r"\b(Paris|London|Delhi|Madrid|Beijing|Tokyo|New York)\b",
         query,
@@ -29,7 +34,11 @@ def _extract_city(query: str) -> str:
 
 async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Query OpenAQ and format measurements as evidence items."""
-    city = agent_input.region_hint or _extract_city(agent_input.query)
+    if not agent_input.region_hint:
+        PLANNER_REGION_HINT_MISSING_TOTAL.labels(agent="air_quality").inc()
+        city = _extract_city(agent_input.query)
+    else:
+        city = agent_input.region_hint
 
     settings = get_settings()
     api_key = settings.openaq_api_key
@@ -51,7 +60,9 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
         if not results:
             errors.append(f"No active OpenAQ stations found for city: {city}")
 
-        uncertainty_source = "data_sparsity" if result.degraded else "well_supported"
+        uncertainty_source: SourceType = (
+            "data_sparsity" if result.degraded else "well_supported"
+        )
         for res in results:
             location = res.get("location", "unknown")
             measurements = res.get("measurements", [])

@@ -31,6 +31,20 @@ services:
       retries: 5
       start_period: 5s
 
+  db_migrations:
+    build: .
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql://gaiaos:${POSTGRES_PASSWORD:-gaiaos_dev_password}@postgres:5432/gaiaos
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '${MIGRATIONS_CPU_LIMIT:-0.5}'
+          memory: '${MIGRATIONS_MEMORY_LIMIT:-256M}'
+
   app:
     build: .
     ports:
@@ -47,6 +61,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      db_migrations:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -75,6 +91,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      db_migrations:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -98,6 +116,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      db_migrations:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:

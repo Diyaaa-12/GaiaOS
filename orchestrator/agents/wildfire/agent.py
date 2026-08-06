@@ -6,6 +6,10 @@ import re
 from datetime import UTC, datetime
 
 from config.settings import get_settings
+from metrics.collector import (
+    LOCATION_REGEX_FALLBACK_TOTAL,
+    PLANNER_REGION_HINT_MISSING_TOTAL,
+)
 from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
 from orchestrator.schemas.uncertainty import SourceType, UncertaintyEstimate
@@ -14,6 +18,7 @@ from tools.wildfire_firms.client import FIRMSWildfireClient
 
 
 def _extract_location(query: str) -> str:
+    LOCATION_REGEX_FALLBACK_TOTAL.labels(agent="wildfire").inc()
     match = re.search(
         r"\b(Tokyo|Japan|California|New York|Paris|London|Delhi|Madrid|Beijing)\b",
         query,
@@ -26,7 +31,11 @@ def _extract_location(query: str) -> str:
 
 async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Fetch active fire counts from NASA FIRMS API."""
-    location = agent_input.region_hint or _extract_location(agent_input.query)
+    if not agent_input.region_hint:
+        PLANNER_REGION_HINT_MISSING_TOTAL.labels(agent="wildfire").inc()
+        location = _extract_location(agent_input.query)
+    else:
+        location = agent_input.region_hint
     evidence_list: list[Evidence] = []
     errors: list[str] = []
 

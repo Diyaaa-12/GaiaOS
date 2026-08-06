@@ -5,14 +5,19 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime
 
+from metrics.collector import (
+    LOCATION_REGEX_FALLBACK_TOTAL,
+    PLANNER_REGION_HINT_MISSING_TOTAL,
+)
 from orchestrator.graph.collaboration_bus import CollaborationBus
 from orchestrator.schemas.agent_io import AgentInput, AgentOutput, Evidence
-from orchestrator.schemas.uncertainty import UncertaintyEstimate
+from orchestrator.schemas.uncertainty import SourceType, UncertaintyEstimate
 from tools.geocoding import geocode_location
 from tools.weather.client import WeatherClient
 
 
 def _extract_location(query: str) -> str:
+    LOCATION_REGEX_FALLBACK_TOTAL.labels(agent="atmosphere").inc()
     match = re.search(
         r"\b(Tokyo|Japan|California|New York|Paris|London|Delhi|Madrid|Beijing)\b",
         query,
@@ -25,7 +30,11 @@ def _extract_location(query: str) -> str:
 
 async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> AgentOutput:
     """Fetch current weather metrics from Open-Meteo."""
-    location = agent_input.region_hint or _extract_location(agent_input.query)
+    if not agent_input.region_hint:
+        PLANNER_REGION_HINT_MISSING_TOTAL.labels(agent="atmosphere").inc()
+        location = _extract_location(agent_input.query)
+    else:
+        location = agent_input.region_hint
     evidence_list: list[Evidence] = []
     errors: list[str] = []
 
@@ -48,7 +57,9 @@ async def run(agent_input: AgentInput, bus: CollaborationBus | None = None) -> A
             temp = current.get("temperature_2m")
             wind = current.get("wind_speed_10m")
             humidity = current.get("relative_humidity_2m")
-            uncertainty_source = "data_sparsity" if result.degraded else "well_supported"
+            uncertainty_source: SourceType = (
+                "data_sparsity" if result.degraded else "well_supported"
+            )
             claim = (
                 f"Current atmospheric conditions in {location}: "
                 f"Temperature is {temp}°C, Wind Speed is {wind} km/h, "

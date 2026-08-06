@@ -13,7 +13,9 @@ from metrics.events import (
     IngestionCompleted,
     JobCompleted,
     JobFailed,
+    LocationRegexFallbackExecuted,
     MetricEvent,
+    PlannerRegionHintMissing,
     RestoreDrillCompleted,
     RestoreDrillFailed,
 )
@@ -105,6 +107,14 @@ async def persist_metric(session: AsyncSession, event: MetricEvent) -> None:
             cost_estimate=Decimal("0"),
             success=event.promoted,
         )
+    elif isinstance(event, (PlannerRegionHintMissing, LocationRegexFallbackExecuted)):
+        row = MetricEventRow(
+            event_type=event.__class__.__name__,
+            group_key=event.agent,
+            duration_ms=0,
+            cost_estimate=Decimal("0"),
+            success=True,
+        )
     else:
         # Unknown event subclass — log and skip rather than fail.
         _log.warning(
@@ -114,3 +124,48 @@ async def persist_metric(session: AsyncSession, event: MetricEvent) -> None:
         return
 
     session.add(row)
+
+
+class MetricCounterLabel:
+    def __init__(
+        self, parent: MetricCounter, key: tuple[tuple[str, str], ...], labels: dict[str, str]
+    ) -> None:
+        self.parent = parent
+        self.key = key
+        self.labels = labels
+
+    def inc(self, amount: int = 1) -> None:
+        self.parent._counts[self.key] = self.parent._counts.get(self.key, 0) + amount
+        agent = self.labels.get("agent", "unknown")
+        if self.parent.name == "gaiaos_planner_region_hint_missing_total":
+            emit(PlannerRegionHintMissing(agent=agent))
+        elif self.parent.name == "gaiaos_location_regex_fallback_total":
+            emit(LocationRegexFallbackExecuted(agent=agent))
+
+
+class MetricCounter:
+    """Lightweight metric counter supporting .labels(...).inc()."""
+
+    def __init__(self, name: str, description: str) -> None:
+        self.name: str = name
+        self.description: str = description
+        self._counts: dict[tuple[tuple[str, str], ...], int] = {}
+
+    def labels(self, **label_kwargs: str) -> MetricCounterLabel:
+        key = tuple(sorted(label_kwargs.items()))
+        return MetricCounterLabel(self, key, label_kwargs)
+
+    def get(self, **label_kwargs: str) -> int:
+        key = tuple(sorted(label_kwargs.items()))
+        return self._counts.get(key, 0)
+
+
+PLANNER_REGION_HINT_MISSING_TOTAL = MetricCounter(
+    "gaiaos_planner_region_hint_missing_total",
+    "Count of queries missing region_hint before fallback",
+)
+
+LOCATION_REGEX_FALLBACK_TOTAL = MetricCounter(
+    "gaiaos_location_regex_fallback_total",
+    "Count of location extraction regex fallback executions",
+)

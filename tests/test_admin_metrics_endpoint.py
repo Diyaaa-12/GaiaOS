@@ -267,3 +267,48 @@ class TestAdminMetricsEndpoint:
             "success_rate",
         }
         assert expected_keys <= set(rollup.keys())
+
+    async def test_admin_gets_prometheus_metrics_text(
+        self, client: AsyncClient, db_session: AsyncSession, monkeypatch
+    ) -> None:
+        """ADMIN user receives 200 with valid OpenMetrics text content."""
+        key = "super-secret-key-that-is-at-least-32-chars-long!"
+        monkeypatch.setenv("JWT_SECRET_KEY", key)
+        monkeypatch.setenv("ENABLE_AUTH", "true")
+        get_settings.cache_clear()
+
+        admin = await self._create_user(db_session, Role.ADMIN)
+        token = create_access_token(admin.id, admin.role)
+
+        res = await client.get(
+            "/api/v1/admin/metrics/prometheus",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 200
+        assert "text/plain" in res.headers["content-type"]
+        text_body = res.text
+        assert "# TYPE gaiaos_planner_region_hint_missing_total counter" in text_body
+        assert "# TYPE gaiaos_location_regex_fallback_total counter" in text_body
+        assert "gaiaos_queue_depth" in text_body
+        assert 'gaiaos_location_regex_fallback_total{agent="seismic"}' in text_body
+
+    async def test_prometheus_metrics_static_token_auth(
+        self, client: AsyncClient, monkeypatch
+    ) -> None:
+        """Static PROMETHEUS_METRICS_TOKEN allows scraping without user authentication."""
+        static_token = "my-long-lived-prometheus-scrape-token-12345"
+        monkeypatch.setenv("PROMETHEUS_METRICS_TOKEN", static_token)
+        monkeypatch.setenv("ENABLE_AUTH", "true")
+        get_settings.cache_clear()
+
+        # 1. Unauthenticated / invalid token fails with 401
+        res_fail = await client.get("/api/v1/admin/metrics/prometheus")
+        assert res_fail.status_code == 401
+
+        # 2. Valid static token header succeeds with 200
+        res_ok = await client.get(
+            "/api/v1/admin/metrics/prometheus",
+            headers={"Authorization": f"Bearer {static_token}"},
+        )
+        assert res_ok.status_code == 200
+        assert "# TYPE gaiaos_planner_region_hint_missing_total counter" in res_ok.text

@@ -65,6 +65,9 @@ jobs:
             exit 1
           fi
 
+      - name: Verify documentation drift
+        run: python scripts/verify_documentation_drift.py
+
       - name: Flush stale RQ jobs left over from the Pytest run
         run: |
           # tests/ enqueues real RQ jobs onto the shared Redis instance (127.0.0.1:6379)

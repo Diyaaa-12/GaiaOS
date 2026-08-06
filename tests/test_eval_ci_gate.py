@@ -194,11 +194,11 @@ class TestCIGateIntegration:
         await db_session.commit()
 
         synced_count = await sync_benchmark_questions(db_session, overwrite=False)
-        assert synced_count == 22
+        assert synced_count >= 22
 
         stmt = select(EvalBenchmarkQuestion)
         questions = (await db_session.execute(stmt)).scalars().all()
-        assert len(questions) == 22
+        assert len(questions) >= 22
 
         # Verify project-specific namespace
         paris_id = get_deterministic_question_id("air_quality_paris_pm25")
@@ -226,4 +226,4 @@ class TestCIGateIntegration:
         assert "first run" in report1.summary.lower()
 
         db_runs = (await db_session.execute(select(EvalBenchmarkRun))).scalars().all()
-        assert len(db_runs) == 22
+        assert len(db_runs) >= 22

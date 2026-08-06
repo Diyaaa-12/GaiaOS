@@ -143,3 +143,17 @@ class CalibrationCompleted(MetricEvent):
     version: int
     validation_score: float
 
+
+@dataclass
+class PlannerRegionHintMissing(MetricEvent):
+    """Emitted when a domain agent receives an input missing region_hint before fallback."""
+
+    agent: str
+
+
+@dataclass
+class LocationRegexFallbackExecuted(MetricEvent):
+    """Emitted when a domain agent executes the regex fallback for location extraction."""
+
+    agent: str
+

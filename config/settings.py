@@ -554,6 +554,11 @@ class Settings(BaseSettings):
         validation_alias="ALERT_FLAPPING_MIN_CYCLES",
         description="Global default minimum consecutive firing cycles before notifying.",
     )
+    prometheus_metrics_token: str | None = Field(
+        default=None,
+        validation_alias="PROMETHEUS_METRICS_TOKEN",
+        description="Optional static token for long-lived Prometheus scrapers.",
+    )
 
     @model_validator(mode="after")
     def validate_production_security(self) -> Self:
