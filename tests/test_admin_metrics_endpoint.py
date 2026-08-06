@@ -297,6 +297,8 @@ class TestAdminMetricsEndpoint:
     ) -> None:
         """Static PROMETHEUS_METRICS_TOKEN allows scraping without user authentication."""
         static_token = "my-long-lived-prometheus-scrape-token-12345"
+        key = "super-secret-key-that-is-at-least-32-chars-long!"
+        monkeypatch.setenv("JWT_SECRET_KEY", key)
         monkeypatch.setenv("PROMETHEUS_METRICS_TOKEN", static_token)
         monkeypatch.setenv("ENABLE_AUTH", "true")
         get_settings.cache_clear()
