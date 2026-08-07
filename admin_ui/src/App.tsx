@@ -6,6 +6,7 @@ import { Backups } from './pages/Backups';
 import { Investigations } from './pages/Investigations';
 import { Login } from './pages/Login';
 import { Metrics } from './pages/Metrics';
+import { ResearchPatternsPage } from './pages/ResearchPatterns';
 import { Workers } from './pages/Workers';
 import { isAuthenticated } from './utils/auth';
 
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/backups" element={<Backups />} />
           <Route path="/investigations" element={<Investigations />} />
           <Route path="/investigations/:id" element={<Investigations />} />
+          <Route path="/research/patterns" element={<ResearchPatternsPage />} />
         </Route>
       </Routes>
     </Router>

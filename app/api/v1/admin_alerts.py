@@ -72,7 +72,7 @@ class AlertIncidentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class MessageResponse(BaseModel):
+class AlertMessageResponse(BaseModel):
     """Standardized response container."""
 
     message: str
@@ -156,7 +156,7 @@ async def upsert_alert_rule(
 
 @admin_alerts_router.delete(
     "/alert-rules/{rule_id}",
-    response_model=MessageResponse,
+    response_model=AlertMessageResponse,
     summary="Delete an alert rule",
     responses={404: {"description": "Alert rule not found"}},
 )
@@ -175,7 +175,7 @@ async def delete_alert_rule(
                 "error_code": "alert_rule_not_found",
             },
         )
-    return MessageResponse(
+    return AlertMessageResponse(
         message=f"Alert rule '{rule_id}' deleted successfully.",
         status="success",
     )

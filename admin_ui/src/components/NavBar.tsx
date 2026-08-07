@@ -56,6 +56,9 @@ export function NavBar() {
       <NavLink to="/investigations" style={getStyle} id="nav-investigations">
         Investigations
       </NavLink>
+      <NavLink to="/research/patterns" style={getStyle} id="nav-patterns">
+        Patterns
+      </NavLink>
       <span style={{ marginLeft: 'auto' }}>
         <button
           id="btn-logout"

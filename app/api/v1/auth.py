@@ -66,7 +66,7 @@ class UserResponse(BaseModel):
     last_login_at: datetime | None
 
 
-class MessageResponse(BaseModel):
+class AuthMessageResponse(BaseModel):
     """Standardized response message container."""
 
     message: str
@@ -221,7 +221,7 @@ async def login(
 
 @auth_router.get(
     "/verify-email",
-    response_model=MessageResponse,
+    response_model=AuthMessageResponse,
     responses={
         400: {"description": "Invalid or expired verification token"},
     },
@@ -258,7 +258,7 @@ async def verify_email(
     await UserRepository.verify_user_email(db_session, user)
     _log.info("auth.verify_email.success", user_id=str(user.id))
 
-    return MessageResponse(
+    return AuthMessageResponse(
         message="Email address verified successfully.",
         status="success",
     )
@@ -266,7 +266,7 @@ async def verify_email(
 
 @auth_router.post(
     "/resend-verification",
-    response_model=MessageResponse,
+    response_model=AuthMessageResponse,
 )
 async def resend_verification(
     payload: ResendVerificationRequest,
@@ -292,7 +292,7 @@ async def resend_verification(
         _log.info("auth.resend_verification.sent", user_id=str(user.id))
 
     # Generic response to prevent account enumeration
-    return MessageResponse(
+    return AuthMessageResponse(
         message=(
             "If an unverified account exists with that email, a verification link has been sent."
         ),
@@ -335,7 +335,7 @@ class PasswordResetConfirmPayload(BaseModel):
 
 @auth_router.post(
     "/request-reset",
-    response_model=MessageResponse,
+    response_model=AuthMessageResponse,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Request a password reset link",
     description=(
@@ -383,7 +383,7 @@ async def request_password_reset(
         _ = hash_verification_token(dummy_raw)
         _log.info("auth.request_reset.processed")
 
-    return MessageResponse(
+    return AuthMessageResponse(
         message="If an account with this email exists, a password reset link has been sent.",
         status="success",
     )
@@ -391,7 +391,7 @@ async def request_password_reset(
 
 @auth_router.post(
     "/reset",
-    response_model=MessageResponse,
+    response_model=AuthMessageResponse,
     status_code=status.HTTP_200_OK,
     summary="Reset password using valid reset token",
     responses={
@@ -445,7 +445,7 @@ async def reset_password(
 
     _log.info("auth.reset.success", user_id=str(user.id))
 
-    return MessageResponse(
+    return AuthMessageResponse(
         message="Password has been reset successfully. Please log in with your new password.",
         status="success",
     )

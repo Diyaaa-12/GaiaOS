@@ -155,6 +155,25 @@ def main() -> None:
             repeat=None,
         )
 
+    # Idempotent scheduling for longitudinal pattern mining job
+    target_pm_func = "workers.jobs.pattern_mining_job.run_pattern_mining_job"
+    pm_interval = settings.pattern_mining_interval_hours * 3600
+    if is_job_already_scheduled(scheduler, target_pm_func, "longitudinal_patterns"):
+        _log.info("scheduler.job_exists_skipping", source="longitudinal_patterns")
+    else:
+        _log.info(
+            "scheduler.registering_job",
+            source="longitudinal_patterns",
+            interval_seconds=pm_interval,
+        )
+        scheduler.schedule(
+            scheduled_time=datetime.now(UTC) + timedelta(seconds=35),
+            func=target_pm_func,
+            args=["longitudinal_patterns"],
+            interval=pm_interval,
+            repeat=None,
+        )
+
     _log.info("scheduler.running")
     scheduler.run()
 

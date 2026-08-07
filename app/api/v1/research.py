@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Query, status
 from fastapi.responses import JSONResponse
@@ -19,7 +19,7 @@ from app.api.v1.anonymization import AnonymizationPolicy
 from app.dependencies import DbSessionDep
 from config.settings import get_settings
 from db.models.hazard_event import HazardEvent
-from db.repository import InvestigationRepository
+from db.repository import InvestigationRepository, PatternFindingRepository
 from logging_config import get_logger
 
 _log = get_logger(__name__)
@@ -157,6 +157,95 @@ async def list_public_hazard_events(
         event_type=event_type,
     )
     return events
+
+
+class PatternFindingResponse(BaseModel):
+    """Public research longitudinal pattern finding schema."""
+
+    id: uuid.UUID
+    pattern_hash: str
+    algorithm_version: str
+    version: int
+    source_event_type: str
+    target_event_type: str
+    region_label: str | None
+    time_window_days: int
+    support_count: int
+    total_source_events: int
+    total_target_events: int
+    observed_rate: float
+    baseline_rate: float
+    lift: float
+    statistical_confidence: float
+    uncertainty: dict[str, Any]
+    supporting_event_ids: list[str]
+    description: str
+    mined_at: datetime
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+@research_router.get(
+    "/patterns",
+    response_model=list[PatternFindingResponse],
+    summary="List mined longitudinal research patterns",
+    description=(
+        "Returns statistically-notable recurring co-occurrence patterns discovered across "
+        "historical hazard events. Findings are computed periodically by background jobs "
+        "and versioned to track historical confidence trends."
+    ),
+    responses={503: {"model": ErrorResponse, "description": "Public research API disabled"}},
+)
+async def list_public_research_patterns(
+    session: DbSessionDep,
+    event_type: str | None = Query(
+        default=None, description="Filter by source or target event type (e.g. earthquake)"
+    ),
+    region: str | None = Query(default=None, description="Filter by geographic region label"),
+    time_window_days: int | None = Query(
+        default=None, description="Filter by co-occurrence time window in days"
+    ),
+    min_confidence: float | None = Query(
+        default=None, ge=0.0, le=1.0, description="Filter by minimum statistical confidence"
+    ),
+    sort_by: Literal["confidence", "support_count", "lift", "mined_at"] = Query(
+        default="confidence", description="Sort attribute"
+    ),
+    order: Literal["asc", "desc"] = Query(default="desc", description="Sort direction"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> Any:
+    """List paginated longitudinal pattern findings."""
+    settings = get_settings()
+    if not settings.public_research_api_enabled:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "detail": "Public Research API is disabled by feature flag.",
+                "error_code": "public_research_api_disabled",
+            },
+        )
+
+    patterns = await PatternFindingRepository.list_active_patterns(
+        session=session,
+        event_type=event_type,
+        region=region,
+        time_window_days=time_window_days,
+        min_confidence=min_confidence,
+        sort_by=sort_by,
+        order=order,
+        limit=limit,
+        offset=offset,
+    )
+
+    _log.info(
+        "research.api.patterns_queried",
+        count=len(patterns),
+        event_type=event_type,
+        region=region,
+    )
+    return patterns
 
 
 __all__ = ["research_router"]

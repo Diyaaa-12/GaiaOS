@@ -178,6 +178,38 @@ class Settings(BaseSettings):
         validation_alias="SIMULATION_CALIBRATION_INTERVAL_DAYS",
         description="Interval in days between scheduled simulation parameter calibration runs.",
     )
+    pattern_min_support: int = Field(
+        default=3,
+        ge=1,
+        validation_alias="PATTERN_MIN_SUPPORT",
+        description="Minimum number of co-occurring event pairs required to report a pattern.",
+    )
+    pattern_min_confidence: float = Field(
+        default=0.70,
+        ge=0.0,
+        le=1.0,
+        validation_alias="PATTERN_MIN_CONFIDENCE",
+        description="Minimum lower-bound statistical confidence required to report a pattern.",
+    )
+    pattern_significance_level: float = Field(
+        default=0.05,
+        ge=0.001,
+        le=0.20,
+        validation_alias="PATTERN_SIGNIFICANCE_LEVEL",
+        description="Maximum p-value significance threshold for co-occurrence hypothesis testing.",
+    )
+    pattern_lookback_days: int = Field(
+        default=90,
+        ge=1,
+        validation_alias="PATTERN_LOOKBACK_DAYS",
+        description="Historical observation window in days for longitudinal pattern mining.",
+    )
+    pattern_mining_interval_hours: int = Field(
+        default=24,
+        ge=1,
+        validation_alias="PATTERN_MINING_INTERVAL_HOURS",
+        description="Interval in hours between background longitudinal pattern mining job runs.",
+    )
     firms_api_url: str = Field(
         default="https://firms.modaps.eosdis.nasa.gov/api/area/csv",
         validation_alias="FIRMS_API_URL",

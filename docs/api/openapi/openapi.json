@@ -89,6 +89,25 @@
         "title": "AlertIncidentResponse",
         "type": "object"
       },
+      "AlertMessageResponse": {
+        "description": "Standardized response container.",
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "default": "success",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "AlertMessageResponse",
+        "type": "object"
+      },
       "AlertRuleResponse": {
         "description": "API response model for an alert rule.",
         "properties": {
@@ -348,6 +367,25 @@
           "key_id"
         ],
         "title": "ApiKeyRevokedResponse",
+        "type": "object"
+      },
+      "AuthMessageResponse": {
+        "description": "Standardized response message container.",
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "default": "success",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "AuthMessageResponse",
         "type": "object"
       },
       "BackupRecordSchema": {
@@ -908,6 +946,129 @@
           "email"
         ],
         "title": "PasswordResetRequestPayload",
+        "type": "object"
+      },
+      "PatternFindingResponse": {
+        "description": "Public research longitudinal pattern finding schema.",
+        "properties": {
+          "algorithm_version": {
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "baseline_rate": {
+            "title": "Baseline Rate",
+            "type": "number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lift": {
+            "title": "Lift",
+            "type": "number"
+          },
+          "mined_at": {
+            "format": "date-time",
+            "title": "Mined At",
+            "type": "string"
+          },
+          "observed_rate": {
+            "title": "Observed Rate",
+            "type": "number"
+          },
+          "pattern_hash": {
+            "title": "Pattern Hash",
+            "type": "string"
+          },
+          "region_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Label"
+          },
+          "source_event_type": {
+            "title": "Source Event Type",
+            "type": "string"
+          },
+          "statistical_confidence": {
+            "title": "Statistical Confidence",
+            "type": "number"
+          },
+          "support_count": {
+            "title": "Support Count",
+            "type": "integer"
+          },
+          "supporting_event_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supporting Event Ids",
+            "type": "array"
+          },
+          "target_event_type": {
+            "title": "Target Event Type",
+            "type": "string"
+          },
+          "time_window_days": {
+            "title": "Time Window Days",
+            "type": "integer"
+          },
+          "total_source_events": {
+            "title": "Total Source Events",
+            "type": "integer"
+          },
+          "total_target_events": {
+            "title": "Total Target Events",
+            "type": "integer"
+          },
+          "uncertainty": {
+            "additionalProperties": true,
+            "title": "Uncertainty",
+            "type": "object"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "pattern_hash",
+          "algorithm_version",
+          "version",
+          "source_event_type",
+          "target_event_type",
+          "region_label",
+          "time_window_days",
+          "support_count",
+          "total_source_events",
+          "total_target_events",
+          "observed_rate",
+          "baseline_rate",
+          "lift",
+          "statistical_confidence",
+          "uncertainty",
+          "supporting_event_ids",
+          "description",
+          "mined_at",
+          "created_at"
+        ],
+        "title": "PatternFindingResponse",
         "type": "object"
       },
       "PingResponse": {
@@ -1612,44 +1773,6 @@
         ],
         "title": "ValidationError",
         "type": "object"
-      },
-      "app__api__v1__admin_alerts__MessageResponse": {
-        "description": "Standardized response container.",
-        "properties": {
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "status": {
-            "default": "success",
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "message"
-        ],
-        "title": "MessageResponse",
-        "type": "object"
-      },
-      "app__api__v1__auth__MessageResponse": {
-        "description": "Standardized response message container.",
-        "properties": {
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "status": {
-            "default": "success",
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "message"
-        ],
-        "title": "MessageResponse",
-        "type": "object"
       }
     }
   },
@@ -1771,7 +1894,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__api__v1__admin_alerts__MessageResponse"
+                  "$ref": "#/components/schemas/AlertMessageResponse"
                 }
               }
             },
@@ -2304,7 +2427,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__api__v1__auth__MessageResponse"
+                  "$ref": "#/components/schemas/AuthMessageResponse"
                 }
               }
             },
@@ -2347,7 +2470,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__api__v1__auth__MessageResponse"
+                  "$ref": "#/components/schemas/AuthMessageResponse"
                 }
               }
             },
@@ -2390,7 +2513,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__api__v1__auth__MessageResponse"
+                  "$ref": "#/components/schemas/AuthMessageResponse"
                 }
               }
             },
@@ -2432,7 +2555,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__api__v1__auth__MessageResponse"
+                  "$ref": "#/components/schemas/AuthMessageResponse"
                 }
               }
             },
@@ -2978,6 +3101,186 @@
           }
         },
         "summary": "List anonymized public research findings",
+        "tags": [
+          "v1",
+          "Public Research"
+        ]
+      }
+    },
+    "/api/v1/research/patterns": {
+      "get": {
+        "description": "Returns statistically-notable recurring co-occurrence patterns discovered across historical hazard events. Findings are computed periodically by background jobs and versioned to track historical confidence trends.",
+        "operationId": "list_public_research_patterns_api_v1_research_patterns_get",
+        "parameters": [
+          {
+            "description": "Filter by source or target event type (e.g. earthquake)",
+            "in": "query",
+            "name": "event_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by source or target event type (e.g. earthquake)",
+              "title": "Event Type"
+            }
+          },
+          {
+            "description": "Filter by geographic region label",
+            "in": "query",
+            "name": "region",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by geographic region label",
+              "title": "Region"
+            }
+          },
+          {
+            "description": "Filter by co-occurrence time window in days",
+            "in": "query",
+            "name": "time_window_days",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by co-occurrence time window in days",
+              "title": "Time Window Days"
+            }
+          },
+          {
+            "description": "Filter by minimum statistical confidence",
+            "in": "query",
+            "name": "min_confidence",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by minimum statistical confidence",
+              "title": "Min Confidence"
+            }
+          },
+          {
+            "description": "Sort attribute",
+            "in": "query",
+            "name": "sort_by",
+            "required": false,
+            "schema": {
+              "default": "confidence",
+              "description": "Sort attribute",
+              "enum": [
+                "confidence",
+                "support_count",
+                "lift",
+                "mined_at"
+              ],
+              "title": "Sort By",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sort direction",
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "desc",
+              "description": "Sort direction",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PatternFindingResponse"
+                  },
+                  "title": "Response List Public Research Patterns Api V1 Research Patterns Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Public research API disabled"
+          }
+        },
+        "summary": "List mined longitudinal research patterns",
         "tags": [
           "v1",
           "Public Research"

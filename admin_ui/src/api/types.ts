@@ -142,3 +142,31 @@ export interface InvestigationStatusResponse {
   completed_at?: string | null;
 }
 
+export interface PatternFindingResponse {
+  id: string;
+  pattern_hash: string;
+  algorithm_version: string;
+  version: number;
+  source_event_type: string;
+  target_event_type: string;
+  region_label: string | null;
+  time_window_days: number;
+  support_count: number;
+  total_source_events: number;
+  total_target_events: number;
+  observed_rate: number;
+  baseline_rate: number;
+  lift: number;
+  statistical_confidence: number;
+  uncertainty: {
+    point_estimate: number;
+    lower_bound: number;
+    upper_bound: number;
+    source: string;
+  };
+  supporting_event_ids: string[];
+  description: string;
+  mined_at: string;
+  created_at: string;
+}
+

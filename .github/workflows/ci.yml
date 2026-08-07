@@ -65,6 +65,16 @@ jobs:
             exit 1
           fi
 
+      - name: Verify Python SDK drift & package build
+        run: |
+          python scripts/generate_sdk.py
+          if ! git diff --exit-code sdk/python; then
+            echo "::error::Python SDK is out of date with OpenAPI specification. Run python scripts/generate_sdk.py and commit updated sdk/python."
+            exit 1
+          fi
+          python -m build sdk/python
+          twine check sdk/python/dist/*
+
       - name: Verify documentation drift
         run: python scripts/verify_documentation_drift.py
 

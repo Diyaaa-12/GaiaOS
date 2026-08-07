@@ -15,6 +15,7 @@ from db.models.alert_incident import AlertIncident
 from db.models.alert_rule import AlertRule
 from db.models.investigation import Investigation
 from db.models.password_reset_token import PasswordResetToken
+from db.models.pattern_finding import PatternFinding
 from db.models.user import User
 from orchestrator.schemas.agent_io import Evidence
 
@@ -734,3 +735,118 @@ class AlertRepository:
         stmt = stmt.order_by(AlertIncident.fired_at.desc()).limit(limit).offset(offset)
         res = await session.execute(stmt)
         return list(res.scalars().all())
+
+
+class PatternFindingRepository:
+    """Helper repository to manage CRUD and versioning operations for pattern findings."""
+
+    @staticmethod
+    async def save_pattern_version(
+        session: AsyncSession,
+        pattern_hash: str,
+        source_event_type: str,
+        target_event_type: str,
+        region_label: str | None,
+        time_window_days: int,
+        support_count: int,
+        total_source_events: int,
+        total_target_events: int,
+        observed_rate: float,
+        baseline_rate: float,
+        lift: float,
+        statistical_confidence: float,
+        uncertainty: dict[str, Any],
+        supporting_event_ids: list[str],
+        description: str,
+        mined_at: datetime,
+        algorithm_version: str = "1.0",
+    ) -> PatternFinding:
+        """Deactivate previous active version of pattern_hash and insert new active version."""
+        stmt = (
+            select(PatternFinding)
+            .where(PatternFinding.pattern_hash == pattern_hash)
+            .order_by(PatternFinding.version.desc())
+        )
+        res = await session.execute(stmt)
+        existing_findings = list(res.scalars().all())
+
+        next_version = 1
+        if existing_findings:
+            next_version = existing_findings[0].version + 1
+            for old_finding in existing_findings:
+                if old_finding.is_active:
+                    old_finding.is_active = False
+
+        new_finding = PatternFinding(
+            pattern_hash=pattern_hash,
+            algorithm_version=algorithm_version,
+            version=next_version,
+            source_event_type=source_event_type,
+            target_event_type=target_event_type,
+            region_label=region_label,
+            time_window_days=time_window_days,
+            support_count=support_count,
+            total_source_events=total_source_events,
+            total_target_events=total_target_events,
+            observed_rate=observed_rate,
+            baseline_rate=baseline_rate,
+            lift=lift,
+            statistical_confidence=statistical_confidence,
+            uncertainty=uncertainty,
+            supporting_event_ids=supporting_event_ids,
+            description=description,
+            mined_at=mined_at,
+            is_active=True,
+        )
+        session.add(new_finding)
+        await session.flush()
+        return new_finding
+
+    @staticmethod
+    async def list_active_patterns(
+        session: AsyncSession,
+        event_type: str | None = None,
+        region: str | None = None,
+        time_window_days: int | None = None,
+        min_confidence: float | None = None,
+        sort_by: str = "confidence",
+        order: str = "desc",
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[PatternFinding]:
+        """List active pattern findings with filtering, sorting, and pagination."""
+        stmt = select(PatternFinding).where(PatternFinding.is_active.is_(True))
+
+        if event_type:
+            clean_type = event_type.strip().lower()
+            stmt = stmt.where(
+                (PatternFinding.source_event_type == clean_type)
+                | (PatternFinding.target_event_type == clean_type)
+            )
+
+        if region:
+            stmt = stmt.where(PatternFinding.region_label == region.strip())
+
+        if time_window_days is not None:
+            stmt = stmt.where(PatternFinding.time_window_days == time_window_days)
+
+        if min_confidence is not None:
+            stmt = stmt.where(PatternFinding.statistical_confidence >= min_confidence)
+
+        sort_column = PatternFinding.statistical_confidence
+        if sort_by == "support_count":
+            sort_column = PatternFinding.support_count
+        elif sort_by == "lift":
+            sort_column = PatternFinding.lift
+        elif sort_by == "mined_at":
+            sort_column = PatternFinding.mined_at
+
+        if order == "asc":
+            stmt = stmt.order_by(sort_column.asc())
+        else:
+            stmt = stmt.order_by(sort_column.desc())
+
+        stmt = stmt.limit(limit).offset(offset)
+        res = await session.execute(stmt)
+        return list(res.scalars().all())
+

@@ -16,6 +16,7 @@ import type {
   InvestigationStatusResponse,
   InvestigationTraceResponse,
   MetricsResponse,
+  PatternFindingResponse,
   TokenResponse,
 } from './types';
 
@@ -129,5 +130,30 @@ export async function getInvestigation(id: string): Promise<InvestigationStatusR
 /** Fetch structured explainability graph trace of an investigation. */
 export async function getInvestigationTrace(id: string): Promise<InvestigationTraceResponse> {
   return request<InvestigationTraceResponse>(`/api/v1/investigations/${id}/trace`);
+}
+
+/** Fetch mined longitudinal research patterns. */
+export async function getResearchPatterns(params?: {
+  event_type?: string;
+  region?: string;
+  time_window_days?: number;
+  min_confidence?: number;
+  sort_by?: 'confidence' | 'support_count' | 'lift' | 'mined_at';
+  order?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}): Promise<PatternFindingResponse[]> {
+  const query = new URLSearchParams();
+  if (params?.event_type) query.append('event_type', params.event_type);
+  if (params?.region) query.append('region', params.region);
+  if (params?.time_window_days !== undefined) query.append('time_window_days', String(params.time_window_days));
+  if (params?.min_confidence !== undefined) query.append('min_confidence', String(params.min_confidence));
+  if (params?.sort_by) query.append('sort_by', params.sort_by);
+  if (params?.order) query.append('order', params.order);
+  if (params?.limit !== undefined) query.append('limit', String(params.limit));
+  if (params?.offset !== undefined) query.append('offset', String(params.offset));
+
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return request<PatternFindingResponse[]>(`/api/v1/research/patterns${qs}`);
 }
 

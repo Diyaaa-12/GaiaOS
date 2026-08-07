@@ -17,6 +17,7 @@ from db.models.investigation import Investigation
 from db.models.literature_chunk import LiteratureChunk
 from db.models.metric_event import MetricEventRow
 from db.models.password_reset_token import PasswordResetToken
+from db.models.pattern_finding import PatternFinding
 from db.models.user import User
 
 __all__ = [
@@ -34,6 +35,7 @@ __all__ = [
     "HazardRelationship",
     "MetricEventRow",
     "PasswordResetToken",
+    "PatternFinding",
     "RestoreDrillRecord",
     "User",
 ]

@@ -44,6 +44,7 @@ asyncio_mode = "auto"
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+extend-exclude = ["sdk/python/gaiaos_sdk/_generated"]
 
 [tool.ruff.lint]
 select = [
