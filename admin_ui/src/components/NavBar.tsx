@@ -53,6 +53,9 @@ export function NavBar() {
       <NavLink to="/backups" style={getStyle} id="nav-backups">
         Backups
       </NavLink>
+      <NavLink to="/investigations" style={getStyle} id="nav-investigations">
+        Investigations
+      </NavLink>
       <span style={{ marginLeft: 'auto' }}>
         <button
           id="btn-logout"

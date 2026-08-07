@@ -3,6 +3,7 @@ import { NavBar } from './components/NavBar';
 import { MetricsProvider } from './context/MetricsContext';
 import { Alerts } from './pages/Alerts';
 import { Backups } from './pages/Backups';
+import { Investigations } from './pages/Investigations';
 import { Login } from './pages/Login';
 import { Metrics } from './pages/Metrics';
 import { Workers } from './pages/Workers';
@@ -42,6 +43,8 @@ export default function App() {
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/workers" element={<Workers />} />
           <Route path="/backups" element={<Backups />} />
+          <Route path="/investigations" element={<Investigations />} />
+          <Route path="/investigations/:id" element={<Investigations />} />
         </Route>
       </Routes>
     </Router>

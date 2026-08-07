@@ -13,6 +13,8 @@ import { AUTH_TOKEN_KEY } from '../utils/auth';
 import type {
   AlertIncidentResponse,
   BackupRecordSchema,
+  InvestigationStatusResponse,
+  InvestigationTraceResponse,
   MetricsResponse,
   TokenResponse,
 } from './types';
@@ -118,3 +120,14 @@ export async function getAlerts(
 export async function getBackups(limit = 50): Promise<BackupRecordSchema[]> {
   return request<BackupRecordSchema[]>(`/api/v1/admin/backups?limit=${limit}`);
 }
+
+/** Fetch status of an investigation by ID. */
+export async function getInvestigation(id: string): Promise<InvestigationStatusResponse> {
+  return request<InvestigationStatusResponse>(`/api/v1/investigations/${id}`);
+}
+
+/** Fetch structured explainability graph trace of an investigation. */
+export async function getInvestigationTrace(id: string): Promise<InvestigationTraceResponse> {
+  return request<InvestigationTraceResponse>(`/api/v1/investigations/${id}/trace`);
+}
+

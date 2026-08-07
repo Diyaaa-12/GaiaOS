@@ -125,3 +125,13 @@ Before submitting a pull request, ensure all checklist items pass:
 - [ ] At least one question added to `eval/benchmarks/questions.json` with `expected_domains` matching `<domain_name>`.
 - [ ] `python -m eval.agent_contract_validator` succeeds with 0 errors.
 - [ ] `ruff check .`, `mypy .`, and `pytest` pass cleanly.
+
+---
+
+## 4. Explainability & Reasoning Trace Taxonomy Guidelines
+
+Phase 7 Milestone 1 formalizes a canonical shared event taxonomy (`TraceEventTaxonomy`) for system explainability (`GET /api/v1/investigations/{id}/trace`):
+
+- **Event Taxonomy Registry**: Custom event types emitted by new agents or plugins should align with existing taxonomy categories (`planning`, `agent_started`, `evidence_found`, `synthesizing`, `critic_flag`, `replanning`, `collaboration`, `finalize`).
+- **Plugin Forward Compatibility**: If a plugin agent introduces custom event structures or extra payload keys, do not invent ad-hoc top-level response schemas. Pass extra payload fields in the event dictionary; the trace transformation layer (`orchestrator/explainability/trace_transformer.py`) will automatically preserve custom payloads under `type="custom"` in node details without breaking the API contract.
+

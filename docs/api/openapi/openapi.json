@@ -717,6 +717,50 @@
         "title": "InvestigationStatusResponse",
         "type": "object"
       },
+      "InvestigationTraceResponse": {
+        "description": "Response payload for GET /api/v1/investigations/{id}/trace.",
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/TraceEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "investigation_id": {
+            "format": "uuid",
+            "title": "Investigation Id",
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/TraceMetadata"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/TraceNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/TraceSummary"
+          }
+        },
+        "required": [
+          "investigation_id",
+          "metadata",
+          "nodes",
+          "edges",
+          "summary"
+        ],
+        "title": "InvestigationTraceResponse",
+        "type": "object"
+      },
       "LivenessResponse": {
         "description": "Response body for GET /api/v1/health/live.",
         "properties": {
@@ -1187,6 +1231,227 @@
           "expires_in"
         ],
         "title": "TokenResponse",
+        "type": "object"
+      },
+      "TraceEdge": {
+        "description": "A directed edge in the reasoning execution graph.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "sequential",
+            "title": "Type"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target"
+        ],
+        "title": "TraceEdge",
+        "type": "object"
+      },
+      "TraceMetadata": {
+        "description": "Metadata container including contract schema_version and generated_at timestamp.",
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "complexity_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Complexity Tier"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "edge_count": {
+            "default": 0,
+            "title": "Edge Count",
+            "type": "integer"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "has_collaboration": {
+            "default": false,
+            "title": "Has Collaboration",
+            "type": "boolean"
+          },
+          "has_degraded_mode": {
+            "default": false,
+            "title": "Has Degraded Mode",
+            "type": "boolean"
+          },
+          "has_replan": {
+            "default": false,
+            "title": "Has Replan",
+            "type": "boolean"
+          },
+          "investigation_id": {
+            "format": "uuid",
+            "title": "Investigation Id",
+            "type": "string"
+          },
+          "node_count": {
+            "default": 0,
+            "title": "Node Count",
+            "type": "integer"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "investigation_id",
+          "status",
+          "created_at"
+        ],
+        "title": "TraceMetadata",
+        "type": "object"
+      },
+      "TraceNode": {
+        "description": "A node in the reasoning execution graph.",
+        "properties": {
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "default": "completed",
+            "title": "Status",
+            "type": "string"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "type"
+        ],
+        "title": "TraceNode",
+        "type": "object"
+      },
+      "TraceSummary": {
+        "description": "High-level summary of execution trace statistics.",
+        "properties": {
+          "collaboration_event_count": {
+            "default": 0,
+            "title": "Collaboration Event Count",
+            "type": "integer"
+          },
+          "critic_flag_count": {
+            "default": 0,
+            "title": "Critic Flag Count",
+            "type": "integer"
+          },
+          "degraded_sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Degraded Sources",
+            "type": "array"
+          },
+          "evidence_count": {
+            "default": 0,
+            "title": "Evidence Count",
+            "type": "integer"
+          },
+          "replan_count": {
+            "default": 0,
+            "title": "Replan Count",
+            "type": "integer"
+          }
+        },
+        "title": "TraceSummary",
         "type": "object"
       },
       "UserLoginRequest": {
@@ -2409,6 +2674,71 @@
           }
         },
         "summary": "Stream Investigation Events",
+        "tags": [
+          "v1",
+          "Investigations"
+        ]
+      }
+    },
+    "/api/v1/investigations/{investigation_id}/trace": {
+      "get": {
+        "description": "Retrieve the structured explainability graph trace of an investigation.\n\nTransforms raw stored execution_trace JSONB into a normalized node/edge graph representation.\nReuses existing RBAC authorization logic (owner or ADMIN).",
+        "operationId": "get_investigation_trace_api_v1_investigations__investigation_id__trace_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "investigation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Investigation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigationTraceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Investigation not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Investigation Trace",
         "tags": [
           "v1",
           "Investigations"

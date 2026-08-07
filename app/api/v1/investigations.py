@@ -20,6 +20,7 @@ from auth.roles import Role
 from config.settings import get_settings
 from db.repository import InvestigationRepository
 from logging_config import get_logger
+from orchestrator.explainability.trace_transformer import InvestigationTraceResponse
 from orchestrator.graph.builder import build_graph
 from orchestrator.graph.checkpointer import RedisCheckpointSaver
 from workers.jobs.investigation_job import run_investigation_job
@@ -250,3 +251,45 @@ async def get_investigation(
         created_at=investigation.created_at,
         completed_at=investigation.completed_at,
     )
+
+
+@investigations_router.get(
+    "/{investigation_id}/trace",
+    response_model=InvestigationTraceResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Investigation not found"},
+        403: {"model": ErrorResponse, "description": "Forbidden"},
+    },
+)
+async def get_investigation_trace(
+    investigation_id: uuid.UUID,
+    request: Request,
+    db_session: DbSessionDep,
+) -> Any:
+    """Retrieve the structured explainability graph trace of an investigation.
+
+    Transforms raw stored execution_trace JSONB into a normalized node/edge graph representation.
+    Reuses existing RBAC authorization logic (owner or ADMIN).
+    """
+    from orchestrator.explainability.trace_transformer import transform_execution_trace
+
+    investigation = await InvestigationRepository.get_investigation(
+        session=db_session,
+        investigation_id=investigation_id,
+    )
+    if not investigation:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "detail": f"Investigation {investigation_id} not found.",
+                "error_code": "investigation_not_found",
+            },
+        )
+
+    # Enforce ownership / admin role if request carries authenticated user context (Refinement 6)
+    user = getattr(request.state, "user", None)
+    if user:
+        check_owner_or_role(investigation.user_id, user, Role.ADMIN)
+
+    return transform_execution_trace(investigation)
+
