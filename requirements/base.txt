@@ -25,7 +25,7 @@ email-validator>=2.0,<3
 rq>=1.16
 rq-scheduler>=0.14.0
 # PostGIS Geometry ORM (Phase 3 Milestone 7)
-geoalchemy2>=0.14,<1
+geoalchemy2>=0.20.0,<1
 # Resilience layer — retry/backoff (Phase 6 Milestone 1).
 # Pinned to the already-resolved transitive version; bump deliberately with lockfile regen.
 tenacity==9.1.4
