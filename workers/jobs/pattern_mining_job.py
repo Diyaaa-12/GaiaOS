@@ -41,10 +41,11 @@ def calculate_wilson_lower_bound(
     if trials <= 0 or successes <= 0:
         return 0.0
 
-    p_hat = successes / trials
+    p_hat = min(1.0, max(0.0, successes / trials))
     denom = 1 + (z**2 / trials)
     center = p_hat + (z**2 / (2 * trials))
-    spread = z * math.sqrt((p_hat * (1 - p_hat) / trials) + (z**2 / (4 * trials**2)))
+    radicand = (p_hat * (1 - p_hat) / trials) + (z**2 / (4 * trials**2))
+    spread = z * math.sqrt(max(0.0, radicand))
 
     lower = (center - spread) / denom
     return max(0.0, min(1.0, float(lower)))
@@ -236,8 +237,7 @@ async def execute_pattern_mining(
                         )
                         accepted_findings_count += 1
 
-        if session.dirty or session.new or session.deleted:
-            await session.commit()
+        await session.commit()
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models.hazard_event import HazardEvent
 from db.models.pattern_finding import PatternFinding
 from db.repository import PatternFindingRepository
-from workers.jobs.pattern_mining_job import run_pattern_mining_job
+from workers.jobs.pattern_mining_job import execute_pattern_mining
 
 
 @pytest.mark.asyncio
@@ -113,7 +113,7 @@ class TestPatternMiningJobIntegration:
         db_session.add(ev)
         await db_session.commit()
 
-        res = run_pattern_mining_job(source="test_entrypoint")
+        res = await execute_pattern_mining(source_tag="test_entrypoint")
         assert "events_scanned" in res
         assert "candidate_pairs" in res
         assert "accepted_findings" in res
