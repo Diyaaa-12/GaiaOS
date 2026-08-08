@@ -237,8 +237,7 @@ async def execute_pattern_mining(
                         )
                         accepted_findings_count += 1
 
-        if session.dirty or session.new or session.deleted:
-            await session.commit()
+        await session.commit()
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 

@@ -71,6 +71,8 @@ class TestPatternMiningMixedDataset:
         db_res = await db_session.execute(stmt)
         findings = list(db_res.scalars().all())
 
+
+
         # Assert the planted pattern was found
         planted = next(
             (
