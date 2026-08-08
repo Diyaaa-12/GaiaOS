@@ -46,10 +46,14 @@ def test_first_time_contributor_persona_flow(tmp_path: Path) -> None:
     assert "Successfully scaffolded new domain agent 'volcanology'" in scaffold_res.stdout
     assert tmp_path.joinpath("orchestrator", "agents", "volcanology", "agent.py").exists()
 
-    # Step 4: Contributor checks `gaiaos investigate --help` and submits an investigation
-    inv_help = runner.invoke(app, ["investigate", "--help"])
-    assert inv_help.exit_code == 0
-    assert "--stream" in inv_help.stdout
+    # Step 4: Contributor checks `gaiaos investigate --help` and `gaiaos investigate submit --help`
+    inv_group_help = runner.invoke(app, ["investigate", "--help"])
+    assert inv_group_help.exit_code == 0
+    assert "submit" in inv_group_help.stdout
+
+    inv_submit_help = runner.invoke(app, ["investigate", "submit", "--help"])
+    assert inv_submit_help.exit_code == 0
+    assert "--stream" in inv_submit_help.stdout
 
     with patch("gaiaos_cli.commands.investigate.get_sdk_client") as mock_sdk:
         mock_client = MagicMock()
