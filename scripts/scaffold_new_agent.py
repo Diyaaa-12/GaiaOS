@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import sys
 
-from orchestrator.plugins.scaffold import scaffold_agent
+from orchestrator.plugins.scaffold import scaffold_agent, validate_domain_name
+
+__all__ = ["scaffold_agent", "validate_domain_name"]
 
 
 def main() -> None:
