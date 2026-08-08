@@ -80,6 +80,39 @@ docker compose up -d --build
 - Grafana Dashboard: `ops/dashboards/gaiaos-dashboard.json`
 - Admin Dashboard: `http://localhost:3000`
 
+### Recommended Quickstart (CLI Wizard & Python SDK)
+
+Install the GaiaOS CLI and Python SDK:
+
+```bash
+pip install -e cli/ -e sdk/python/
+```
+
+Submit an investigation and stream real-time SSE execution events via CLI:
+
+```bash
+gaiaos auth login
+gaiaos investigate "Assess seismic and ocean anomaly risks in the Pacific" --stream
+```
+
+Scaffold a new domain agent plugin:
+
+```bash
+gaiaos plugin scaffold hydrology
+```
+
+Or interact programmatically via Python SDK:
+
+```python
+from gaiaos_sdk import GaiaClient
+
+client = GaiaClient(base_url="http://localhost:8000")
+investigation = client.investigations.create("Assess seismic hazard in California")
+print(investigation.investigation_id)
+```
+
+*(Note: Raw HTTP `curl` request examples are retained in the [API Documentation](docs/api/)).*
+
 For complete production deployment, database migration hooks, MinIO configuration, Grafana dashboard import, and PostgreSQL/Redis operational maintenance, see the [Deployment & Operations Runbook](ops/runbooks/deployment_and_operations.md).
 
 ## Development & Local Verification
