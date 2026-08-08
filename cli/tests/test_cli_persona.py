@@ -47,11 +47,26 @@ def test_first_time_contributor_persona_flow(tmp_path: Path) -> None:
     assert tmp_path.joinpath("orchestrator", "agents", "volcanology", "agent.py").exists()
 
     # Step 4: Contributor checks `gaiaos investigate --help` and `gaiaos investigate submit --help`
+    import subprocess
+
+    commit_hash = (
+        subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
+    )
+    print(f"\n--- DIAGNOSTIC: TESTED COMMIT HASH: {commit_hash} ---")
+
     inv_group_help = runner.invoke(app, ["investigate", "--help"])
+    print("\n--- DIAGNOSTIC: inv_group_help.stdout ---")
+    print(inv_group_help.stdout.encode("ascii", errors="backslashreplace").decode("ascii"))
+    print(f"REPR: {ascii(inv_group_help.stdout)}")
+
+    inv_submit_help = runner.invoke(app, ["investigate", "submit", "--help"])
+    print("\n--- DIAGNOSTIC: inv_submit_help.stdout ---")
+    print(inv_submit_help.stdout.encode("ascii", errors="backslashreplace").decode("ascii"))
+    print(f"REPR: {ascii(inv_submit_help.stdout)}")
+
     assert inv_group_help.exit_code == 0
     assert "submit" in inv_group_help.stdout
 
-    inv_submit_help = runner.invoke(app, ["investigate", "submit", "--help"])
     assert inv_submit_help.exit_code == 0
     assert "--stream" in inv_submit_help.stdout
 
