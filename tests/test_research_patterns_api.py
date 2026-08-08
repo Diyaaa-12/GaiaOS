@@ -58,7 +58,7 @@ class TestResearchPatternsAPI:
         data = response.json()
         assert len(data) >= 1
 
-        pattern = data[0]
+        pattern = next(p for p in data if p["pattern_hash"] == "api_test_hash_1")
         assert pattern["pattern_hash"] == "api_test_hash_1"
         assert pattern["source_event_type"] == "earthquake"
         assert pattern["target_event_type"] == "tsunami"
