@@ -32,6 +32,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements/dev.lock
           python -m pip install -e sdk/python
+          python -m pip install -e cli
 
       - name: Start PostgreSQL and Redis stack
         run: |
@@ -75,6 +76,14 @@ jobs:
           fi
           python -m build sdk/python
           twine check sdk/python/dist/*
+
+      - name: Verify CLI Wizard package build & wheel installation
+        run: |
+          python -m build cli
+          twine check cli/dist/*
+          pip install --force-reinstall --find-links sdk/python/dist cli/dist/*.whl
+          gaiaos --help
+          gaiaos --version
 
       - name: Verify documentation drift
         run: python scripts/verify_documentation_drift.py

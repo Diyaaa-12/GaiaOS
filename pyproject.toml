@@ -33,7 +33,7 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 # Discover tests only under tests/ to avoid accidentally picking up conftest
 # files from third-party packages installed in the venv.
-testpaths = ["tests"]
+testpaths = ["tests", "cli/tests"]
 # Print test names as they run and summarise failures/skips at the end.
 addopts = "-v -ra"
 # asyncio_mode = "auto" runs every async test function and fixture under
