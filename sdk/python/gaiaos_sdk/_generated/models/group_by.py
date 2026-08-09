@@ -6,6 +6,7 @@ from enum import Enum
 class GroupBy(str, Enum):
     COMPLEXITY_TIER = "complexity_tier"
     DAY = "day"
+    EVENT_TYPE = "event_type"
 
     def __str__(self) -> str:
         return str(self.value)

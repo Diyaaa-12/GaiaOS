@@ -256,6 +256,7 @@ class TestAdminMetricsEndpoint:
         )
         assert res.status_code == 200
         body = res.json()
+        assert "generated_at" in body
         assert len(body["rollups"]) >= 1
         rollup = body["rollups"][0]
         expected_keys = {
@@ -267,6 +268,90 @@ class TestAdminMetricsEndpoint:
             "success_rate",
         }
         assert expected_keys <= set(rollup.keys())
+
+    async def test_event_type_group_by_and_filtering(
+        self, client: AsyncClient, db_session: AsyncSession, monkeypatch
+    ) -> None:
+        """Test group_by=event_type and event_type filtering."""
+        import uuid as _uuid
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from db.models.metric_event import MetricEventRow
+
+        key = "super-secret-key-that-is-at-least-32-chars-long!"
+        monkeypatch.setenv("JWT_SECRET_KEY", key)
+        monkeypatch.setenv("ENABLE_AUTH", "true")
+        get_settings.cache_clear()
+
+        db_session.add(
+            MetricEventRow(
+                id=_uuid.uuid4(),
+                event_type="JobCompleted",
+                group_key="trivial",
+                duration_ms=1000,
+                cost_estimate=Decimal("0"),
+                success=True,
+                ts=datetime.now(UTC),
+            )
+        )
+        db_session.add(
+            MetricEventRow(
+                id=_uuid.uuid4(),
+                event_type="IngestionCompleted",
+                group_key="usgs",
+                duration_ms=200,
+                cost_estimate=Decimal("0"),
+                success=True,
+                ts=datetime.now(UTC),
+            )
+        )
+        await db_session.commit()
+
+        admin = await self._create_user(db_session, Role.ADMIN)
+        token = create_access_token(admin.id, admin.role)
+
+        # 1. Test group_by=event_type
+        res = await client.get(
+            "/api/v1/admin/metrics",
+            params={"window": "1d", "group_by": "event_type"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 200
+        body = res.json()
+        event_types = {r["group_key"] for r in body["rollups"]}
+        assert "JobCompleted" in event_types
+        assert "IngestionCompleted" in event_types
+
+        # 2. Test event_type filter
+        res_filter = await client.get(
+            "/api/v1/admin/metrics",
+            params={"window": "1d", "group_by": "event_type", "event_type": "JobCompleted"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res_filter.status_code == 200
+        filter_body = res_filter.json()
+        assert len(filter_body["rollups"]) == 1
+        assert filter_body["rollups"][0]["group_key"] == "JobCompleted"
+
+    async def test_invalid_event_type_returns_422(
+        self, client: AsyncClient, db_session: AsyncSession, monkeypatch
+    ) -> None:
+        """Unsupported event_type parameter returns 422."""
+        key = "super-secret-key-that-is-at-least-32-chars-long!"
+        monkeypatch.setenv("JWT_SECRET_KEY", key)
+        monkeypatch.setenv("ENABLE_AUTH", "true")
+        get_settings.cache_clear()
+
+        admin = await self._create_user(db_session, Role.ADMIN)
+        token = create_access_token(admin.id, admin.role)
+
+        res = await client.get(
+            "/api/v1/admin/metrics",
+            params={"window": "7d", "group_by": "complexity_tier", "event_type": "InvalidEvent"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 422
 
     async def test_admin_gets_prometheus_metrics_text(
         self, client: AsyncClient, db_session: AsyncSession, monkeypatch
@@ -289,6 +374,8 @@ class TestAdminMetricsEndpoint:
         text_body = res.text
         assert "# TYPE gaiaos_planner_region_hint_missing_total counter" in text_body
         assert "# TYPE gaiaos_location_regex_fallback_total counter" in text_body
+        assert "# TYPE gaiaos_circuit_breaker_state gauge" in text_body
+        assert 'gaiaos_circuit_breaker_state{source="usgs"}' in text_body
         assert "gaiaos_queue_depth" in text_body
         assert 'gaiaos_location_regex_fallback_total{agent="seismic"}' in text_body
 
@@ -314,3 +401,4 @@ class TestAdminMetricsEndpoint:
         )
         assert res_ok.status_code == 200
         assert "# TYPE gaiaos_planner_region_hint_missing_total counter" in res_ok.text
+

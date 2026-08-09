@@ -506,10 +506,11 @@
         "type": "object"
       },
       "GroupBy": {
-        "description": "Safe enumeration of supported group_by dimensions.\n\nValues map to fixed SQL expressions via GROUP_BY_SQL below; no user string\nis ever interpolated into a query.\n\nNotes\n-----\n``COMPLEXITY_TIER`` groups investigation jobs by the tier assigned during\ngraph execution (\"trivial\" | \"moderate\" | \"complex\"). Rows where\n``group_key`` is NULL are investigations that did not complete tier\nclassification (e.g. early failure before the supervisor ran).\n\n``DAY`` groups all event types by calendar day (UTC).\n\n``DOMAIN_AGENT`` is intentionally absent: no per-agent metric events are\nemitted in the current implementation. It will be added as a dimension\nwhen agent-level events are wired into the domain agent nodes.\nSee docs/phase3/observability.md.",
+        "description": "Safe enumeration of supported group_by dimensions.\n\nValues map to fixed SQL expressions via GROUP_BY_SQL below; no user string\nis ever interpolated into a query.\n\nNotes\n-----\n``COMPLEXITY_TIER`` groups investigation jobs by the tier assigned during\ngraph execution (\"trivial\" | \"moderate\" | \"complex\"). Rows where\n``group_key`` is NULL are investigations that did not complete tier\nclassification (e.g. early failure before the supervisor ran).\n\n``DAY`` groups all event types by calendar day (UTC).\n\n``EVENT_TYPE`` groups rows by event_type (\"JobCompleted\" | \"IngestionCompleted\" | ...).",
         "enum": [
           "complexity_tier",
-          "day"
+          "day",
+          "event_type"
         ],
         "title": "GroupBy",
         "type": "string"
@@ -872,6 +873,22 @@
       "MetricsResponse": {
         "description": "Container for metrics rollups and advisory worker pool scaling metrics.",
         "properties": {
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type"
+          },
+          "generated_at": {
+            "description": "ISO 8601 UTC timestamp when metrics rollups were generated.",
+            "title": "Generated At",
+            "type": "string"
+          },
           "group_by": {
             "title": "Group By",
             "type": "string"
@@ -2058,7 +2075,7 @@
     },
     "/api/v1/admin/metrics": {
       "get": {
-        "description": "Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling recommendations (queue_depth, worker_utilization_pct, recommended_pool_size) for the requested window. Requires ADMIN role.",
+        "description": "Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN role.",
         "operationId": "get_admin_metrics_api_v1_admin_metrics_get",
         "parameters": [
           {
@@ -2084,6 +2101,24 @@
             "schema": {
               "$ref": "#/components/schemas/GroupBy",
               "default": "complexity_tier"
+            }
+          },
+          {
+            "description": "Optional event_type filter",
+            "in": "query",
+            "name": "event_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional event_type filter",
+              "title": "Event Type"
             }
           }
         ],
@@ -2118,7 +2153,7 @@
     },
     "/api/v1/admin/metrics/prometheus": {
       "get": {
-        "description": "Returns system telemetry, worker scaling gauges, and location fallback counters formatted in standard OpenMetrics text format. Authenticates via static PROMETHEUS_METRICS_TOKEN or ADMIN role.",
+        "description": "Returns system telemetry, worker scaling gauges, data source circuit breaker status, and location fallback counters formatted in standard OpenMetrics text format. Authenticates via static PROMETHEUS_METRICS_TOKEN or ADMIN role.",
         "operationId": "get_prometheus_metrics_api_v1_admin_metrics_prometheus_get",
         "responses": {
           "200": {

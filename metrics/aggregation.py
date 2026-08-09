@@ -55,14 +55,25 @@ class GroupBy(StrEnum):
 
     ``DAY`` groups all event types by calendar day (UTC).
 
-    ``DOMAIN_AGENT`` is intentionally absent: no per-agent metric events are
-    emitted in the current implementation. It will be added as a dimension
-    when agent-level events are wired into the domain agent nodes.
-    See docs/phase3/observability.md.
+    ``EVENT_TYPE`` groups rows by event_type ("JobCompleted" | "IngestionCompleted" | ...).
     """
 
     COMPLEXITY_TIER = "complexity_tier"
     DAY = "day"
+    EVENT_TYPE = "event_type"
+
+
+SUPPORTED_EVENT_TYPES: set[str] = {
+    "JobCompleted",
+    "JobFailed",
+    "IngestionCompleted",
+    "BackupCompleted",
+    "RestoreDrillCompleted",
+    "RestoreDrillFailed",
+    "CalibrationCompleted",
+    "PlannerRegionHintMissing",
+    "LocationRegexFallbackExecuted",
+}
 
 
 @dataclass(frozen=True)
@@ -92,6 +103,7 @@ _SQL_GROUP_BY_KEY = text("""
         AVG(CASE WHEN success THEN 1.0 ELSE 0.0 END)           AS success_rate
     FROM metrics
     WHERE ts > now() - CAST(:interval AS INTERVAL)
+      AND (CAST(:event_type AS VARCHAR) IS NULL OR event_type = CAST(:event_type AS VARCHAR))
     GROUP BY group_key
     ORDER BY count DESC
 """)
@@ -107,9 +119,27 @@ _SQL_GROUP_BY_DAY = text("""
         AVG(CASE WHEN success THEN 1.0 ELSE 0.0 END)           AS success_rate
     FROM metrics
     WHERE ts > now() - CAST(:interval AS INTERVAL)
+      AND (CAST(:event_type AS VARCHAR) IS NULL OR event_type = CAST(:event_type AS VARCHAR))
     GROUP BY DATE_TRUNC('day', ts AT TIME ZONE 'UTC')
     ORDER BY DATE_TRUNC('day', ts AT TIME ZONE 'UTC') ASC
 """)
+
+# group_by=event_type: group rows by the event_type column.
+_SQL_GROUP_BY_EVENT_TYPE = text("""
+    SELECT
+        event_type                                              AS group_key,
+        COUNT(*)                                                AS count,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms) AS p50_latency_ms,
+        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95_latency_ms,
+        AVG(cost_estimate)                                      AS avg_cost_estimate,
+        AVG(CASE WHEN success THEN 1.0 ELSE 0.0 END)           AS success_rate
+    FROM metrics
+    WHERE ts > now() - CAST(:interval AS INTERVAL)
+      AND (CAST(:event_type AS VARCHAR) IS NULL OR event_type = CAST(:event_type AS VARCHAR))
+    GROUP BY event_type
+    ORDER BY count DESC
+""")
+
 
 
 def _row_to_rollup(row: Any) -> MetricRollup:
@@ -133,6 +163,7 @@ async def aggregate_metrics(
     session: AsyncSession,
     window: WindowLiteral,
     group_by: GroupBy,
+    event_type: str | None = None,
 ) -> list[MetricRollup]:
     """Return aggregated metric rollups for the given time window and dimension.
 
@@ -144,29 +175,35 @@ async def aggregate_metrics(
         Time window to aggregate over. Must be one of ``"1d"``, ``"7d"``,
         ``"30d"``, ``"90d"``. Validated by FastAPI at the endpoint layer.
     group_by:
-        Aggregation dimension. ``GroupBy.COMPLEXITY_TIER`` groups investigation
-        jobs by tier (``group_key`` column, set from graph final state).
-        ``GroupBy.DAY`` groups all events by calendar day (UTC).
+        Aggregation dimension: ``GroupBy.COMPLEXITY_TIER``, ``GroupBy.DAY``,
+        or ``GroupBy.EVENT_TYPE``.
+    event_type:
+        Optional event_type filter (e.g. ``"JobCompleted"``, ``"IngestionCompleted"``).
+        Must be a member of ``SUPPORTED_EVENT_TYPES`` if provided.
 
     Returns
     -------
     list[MetricRollup]
-        Empty list if no rows exist in the requested window — this is a valid
-        state (e.g. freshly deployed system) and must not raise an error.
+        Empty list if no rows exist in the requested window.
     """
-    interval = _WINDOW_INTERVAL[window]  # always a literal — KeyError impossible
-    # (FastAPI validates window as Literal["1d","7d","30d","90d"] before calling here)
+    if event_type is not None and event_type not in SUPPORTED_EVENT_TYPES:
+        raise ValueError(
+            f"Unsupported event_type {event_type!r}. Must be one of {sorted(SUPPORTED_EVENT_TYPES)}"
+        )
+
+    interval = _WINDOW_INTERVAL[window]
 
     if group_by is GroupBy.DAY:
         sql = _SQL_GROUP_BY_DAY
-
+    elif group_by is GroupBy.EVENT_TYPE:
+        sql = _SQL_GROUP_BY_EVENT_TYPE
     else:
-        # COMPLEXITY_TIER groups on the group_key column.
         sql = _SQL_GROUP_BY_KEY
 
-    result = await session.execute(sql, {"interval": interval})
+    result = await session.execute(sql, {"interval": interval, "event_type": event_type})
     rows = result.fetchall()
     return [_row_to_rollup(row) for row in rows]
 
 
-__all__ = ["GroupBy", "MetricRollup", "aggregate_metrics"]
+__all__ = ["GroupBy", "MetricRollup", "SUPPORTED_EVENT_TYPES", "aggregate_metrics"]
+

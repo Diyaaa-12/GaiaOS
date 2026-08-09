@@ -59,8 +59,9 @@ def sync_detailed(
 ) -> Response[Any]:
     """ Prometheus / OpenMetrics exposition endpoint
 
-     Returns system telemetry, worker scaling gauges, and location fallback counters formatted in
-    standard OpenMetrics text format. Authenticates via static PROMETHEUS_METRICS_TOKEN or ADMIN role.
+     Returns system telemetry, worker scaling gauges, data source circuit breaker status, and location
+    fallback counters formatted in standard OpenMetrics text format. Authenticates via static
+    PROMETHEUS_METRICS_TOKEN or ADMIN role.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -89,8 +90,9 @@ async def asyncio_detailed(
 ) -> Response[Any]:
     """ Prometheus / OpenMetrics exposition endpoint
 
-     Returns system telemetry, worker scaling gauges, and location fallback counters formatted in
-    standard OpenMetrics text format. Authenticates via static PROMETHEUS_METRICS_TOKEN or ADMIN role.
+     Returns system telemetry, worker scaling gauges, data source circuit breaker status, and location
+    fallback counters formatted in standard OpenMetrics text format. Authenticates via static
+    PROMETHEUS_METRICS_TOKEN or ADMIN role.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
