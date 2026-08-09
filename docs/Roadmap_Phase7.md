@@ -184,9 +184,17 @@ This document consolidates all four Phase 7 planning deliverables — the roadma
 ## Milestone 7 — Kubernetes / Helm Deployment Path (Explicitly Optional, Non-Default)
 *(Backlog item — deferred from Phase 6, placed last and most conditionally of all four backlog items.)*
 
-**Purpose:** An optional enterprise deployment path. Per `Roadmap_Phase7.md`'s conditional directive, since Milestone 5's evidence review resulted in Outcome B (deferral of multi-node scaling), Milestone 7 is formally deferred to Phase 8 in its entirety.
+**Status:** **Completed (2026-08-10)** (Completed as a deployment-governance/evaluation milestone under M5 Outcome B; the original Kubernetes/Helm implementation remains deferred to Phase 8).
 
-**Completed Status:** Deferred to Phase 8 under Milestone 5 Outcome B verdict.
+**Purpose:** Documented production deployment governance standards covering single-node Docker Compose multi-process scaling (`docker compose up -d --scale worker=N`), container health checks, resource limits, and read-replica failover semantics based on established M5 scaling evidence. Per `Roadmap_Phase7.md`'s conditional directive, since Milestone 5's evidence review resulted in Outcome B (deferral of multi-node scaling), Kubernetes, Helm charts, HPA, and multi-host infrastructure are formally deferred to Phase 8 in their entirety.
+
+**Architecture:** Single-node Docker Compose process scaling remains the primary production deployment standard. Kubernetes/Helm deployment paths are deferred to Phase 8 until quantitative scaling triggers are met.
+
+**Dependencies:** Milestone 5 (Outcome B completed) and Milestone 6 (completed).
+
+**Documentation updates:** [`docs/phase7/deployment_m7.md`](phase7/deployment_m7.md) (completed).
+
+
 
 
 ---
