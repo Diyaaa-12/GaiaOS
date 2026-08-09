@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -23,8 +24,9 @@ class TestPatternMiningJobIntegration:
         db_session: AsyncSession,
     ) -> None:
         """save_pattern_version deactivates previous version and increments version counter."""
-        hash_key = "test_hash_1234567890abcdef"
+        hash_key = f"test_hash_{uuid.uuid4().hex}"
         mined_time = datetime.now(UTC)
+
 
         # 1. First version
         f1 = await PatternFindingRepository.save_pattern_version(

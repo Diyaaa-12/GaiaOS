@@ -170,3 +170,21 @@ async def record_success(source: str) -> None:
                 current=CLOSED,
             )
 
+
+async def get_circuit_status(source: str) -> str:
+    """Return current circuit status ("closed" | "open" | "half-open") for a source."""
+    state = await _get_state(source)
+    return str(state.get("status", CLOSED))
+
+
+__all__ = [
+    "CLOSED",
+    "OPEN",
+    "HALF_OPEN",
+    "is_open",
+    "record_failure",
+    "record_success",
+    "get_circuit_status",
+]
+
+

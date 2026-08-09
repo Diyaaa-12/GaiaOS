@@ -13,16 +13,18 @@ See docs/phase3/observability.md for what is and is not tracked.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Request, Response
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from pydantic import BaseModel, Field
 
 from app.dependencies import DbReadSessionDep
 from auth.dependencies import RequireRole, get_current_active_user, get_current_user
 from auth.roles import Role
 from config.settings import get_settings
-from metrics.aggregation import GroupBy, MetricRollup, aggregate_metrics
+from metrics.aggregation import SUPPORTED_EVENT_TYPES, GroupBy, MetricRollup, aggregate_metrics
+from resilience.circuit_breaker import HALF_OPEN, OPEN, get_circuit_status
 from workers.scaling_policy import get_scaling_metrics
 
 admin_metrics_router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -49,8 +51,13 @@ class MetricRollupSchema(BaseModel):
 class MetricsResponse(BaseModel):
     """Container for metrics rollups and advisory worker pool scaling metrics."""
 
+    generated_at: str = Field(
+        default_factory=lambda: datetime.now(UTC).isoformat(),
+        description="ISO 8601 UTC timestamp when metrics rollups were generated.",
+    )
     window: str
     group_by: str
+    event_type: str | None = None
     rollups: list[MetricRollupSchema]
     queue_depth: int
     worker_utilization_pct: float
@@ -68,28 +75,42 @@ class MetricsResponse(BaseModel):
     summary="Aggregated observability metrics",
     description=(
         "Returns aggregated p50/p95 latency, success rate, cost estimate "
-        "rollups, and advisory worker scaling recommendations (queue_depth, "
-        "worker_utilization_pct, recommended_pool_size) for the requested window. "
-        "Requires ADMIN role."
+        "rollups, and advisory worker scaling recommendations for the requested window. "
+        "Supports optional event_type filtering. Requires ADMIN role."
     ),
 )
 async def get_admin_metrics(
     session: DbReadSessionDep,
     window: Literal["1d", "7d", "30d", "90d"] = "7d",
     group_by: GroupBy = GroupBy.COMPLEXITY_TIER,
+    event_type: str | None = Query(default=None, description="Optional event_type filter"),
     _admin: object = Depends(RequireRole(Role.ADMIN)),
 ) -> MetricsResponse:
     """Return aggregated metric rollups and worker scaling status for given window."""
-    rollups: list[MetricRollup] = await aggregate_metrics(
-        session=session,
-        window=window,
-        group_by=group_by,
-    )
+    if event_type is not None and event_type not in SUPPORTED_EVENT_TYPES:
+        allowed = sorted(SUPPORTED_EVENT_TYPES)
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported event_type {event_type!r}. Must be one of {allowed}",
+        )
+
+
+    try:
+        rollups: list[MetricRollup] = await aggregate_metrics(
+            session=session,
+            window=window,
+            group_by=group_by,
+            event_type=event_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     scaling_data = get_scaling_metrics()
 
     return MetricsResponse(
         window=window,
         group_by=group_by,
+        event_type=event_type,
         rollups=[MetricRollupSchema(**r.__dict__) for r in rollups],
         queue_depth=scaling_data["current_queue_depth"],
         worker_utilization_pct=scaling_data["worker_utilization_pct"],
@@ -129,9 +150,9 @@ async def verify_prometheus_auth(
     "/metrics/prometheus",
     summary="Prometheus / OpenMetrics exposition endpoint",
     description=(
-        "Returns system telemetry, worker scaling gauges, and location fallback "
-        "counters formatted in standard OpenMetrics text format. Authenticates via "
-        "static PROMETHEUS_METRICS_TOKEN or ADMIN role."
+        "Returns system telemetry, worker scaling gauges, data source circuit breaker "
+        "status, and location fallback counters formatted in standard OpenMetrics text format. "
+        "Authenticates via static PROMETHEUS_METRICS_TOKEN or ADMIN role."
     ),
 )
 async def get_prometheus_metrics(
@@ -170,6 +191,26 @@ async def get_prometheus_metrics(
         val = LOCATION_REGEX_FALLBACK_TOTAL.get(agent=agent)
         lines.append(f'gaiaos_location_regex_fallback_total{{agent="{agent}"}} {val}')
 
+    sources = ["usgs", "noaa", "copernicus", "era5", "gdelt", "arxiv"]
+    lines.extend(
+        [
+            (
+                "# HELP gaiaos_circuit_breaker_state Circuit breaker status gauge "
+                "(0=closed, 0.5=half-open, 1=open)"
+            ),
+            "# TYPE gaiaos_circuit_breaker_state gauge",
+        ]
+    )
+
+    for src in sources:
+        st = await get_circuit_status(src)
+        val = 0.0
+        if st == OPEN:
+            val = 1.0
+        elif st == HALF_OPEN:
+            val = 0.5
+        lines.append(f'gaiaos_circuit_breaker_state{{source="{src}"}} {val}')
+
     lines.extend(
         [
             "# HELP gaiaos_queue_depth Current RQ task queue depth",
@@ -192,3 +233,4 @@ async def get_prometheus_metrics(
 
 
 __all__ = ["admin_metrics_router"]
+

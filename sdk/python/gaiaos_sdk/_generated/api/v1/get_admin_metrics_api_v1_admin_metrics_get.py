@@ -24,6 +24,7 @@ def _get_kwargs(
     *,
     window: GetAdminMetricsApiV1AdminMetricsGetWindow | Unset = GetAdminMetricsApiV1AdminMetricsGetWindow.VALUE_1,
     group_by: GroupBy | Unset = UNSET,
+    event_type: None | str | Unset = UNSET,
 
 ) -> dict[str, Any]:
     
@@ -43,6 +44,13 @@ def _get_kwargs(
         json_group_by = group_by.value
 
     params["group_by"] = json_group_by
+
+    json_event_type: None | str | Unset
+    if isinstance(event_type, Unset):
+        json_event_type = UNSET
+    else:
+        json_event_type = event_type
+    params["event_type"] = json_event_type
 
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
@@ -94,13 +102,14 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     window: GetAdminMetricsApiV1AdminMetricsGetWindow | Unset = GetAdminMetricsApiV1AdminMetricsGetWindow.VALUE_1,
     group_by: GroupBy | Unset = UNSET,
+    event_type: None | str | Unset = UNSET,
 
 ) -> Response[HTTPValidationError | MetricsResponse]:
     """ Aggregated observability metrics
 
      Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling
-    recommendations (queue_depth, worker_utilization_pct, recommended_pool_size) for the requested
-    window. Requires ADMIN role.
+    recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN
+    role.
 
     Args:
         window (GetAdminMetricsApiV1AdminMetricsGetWindow | Unset):  Default:
@@ -119,10 +128,8 @@ def sync_detailed(
 
             ``DAY`` groups all event types by calendar day (UTC).
 
-            ``DOMAIN_AGENT`` is intentionally absent: no per-agent metric events are
-            emitted in the current implementation. It will be added as a dimension
-            when agent-level events are wired into the domain agent nodes.
-            See docs/phase3/observability.md.
+            ``EVENT_TYPE`` groups rows by event_type ("JobCompleted" | "IngestionCompleted" | ...).
+        event_type (None | str | Unset): Optional event_type filter
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -136,6 +143,7 @@ def sync_detailed(
     kwargs = _get_kwargs(
         window=window,
 group_by=group_by,
+event_type=event_type,
 
     )
 
@@ -150,13 +158,14 @@ def sync(
     client: AuthenticatedClient | Client,
     window: GetAdminMetricsApiV1AdminMetricsGetWindow | Unset = GetAdminMetricsApiV1AdminMetricsGetWindow.VALUE_1,
     group_by: GroupBy | Unset = UNSET,
+    event_type: None | str | Unset = UNSET,
 
 ) -> HTTPValidationError | MetricsResponse | None:
     """ Aggregated observability metrics
 
      Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling
-    recommendations (queue_depth, worker_utilization_pct, recommended_pool_size) for the requested
-    window. Requires ADMIN role.
+    recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN
+    role.
 
     Args:
         window (GetAdminMetricsApiV1AdminMetricsGetWindow | Unset):  Default:
@@ -175,10 +184,8 @@ def sync(
 
             ``DAY`` groups all event types by calendar day (UTC).
 
-            ``DOMAIN_AGENT`` is intentionally absent: no per-agent metric events are
-            emitted in the current implementation. It will be added as a dimension
-            when agent-level events are wired into the domain agent nodes.
-            See docs/phase3/observability.md.
+            ``EVENT_TYPE`` groups rows by event_type ("JobCompleted" | "IngestionCompleted" | ...).
+        event_type (None | str | Unset): Optional event_type filter
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -193,6 +200,7 @@ def sync(
         client=client,
 window=window,
 group_by=group_by,
+event_type=event_type,
 
     ).parsed
 
@@ -201,13 +209,14 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     window: GetAdminMetricsApiV1AdminMetricsGetWindow | Unset = GetAdminMetricsApiV1AdminMetricsGetWindow.VALUE_1,
     group_by: GroupBy | Unset = UNSET,
+    event_type: None | str | Unset = UNSET,
 
 ) -> Response[HTTPValidationError | MetricsResponse]:
     """ Aggregated observability metrics
 
      Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling
-    recommendations (queue_depth, worker_utilization_pct, recommended_pool_size) for the requested
-    window. Requires ADMIN role.
+    recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN
+    role.
 
     Args:
         window (GetAdminMetricsApiV1AdminMetricsGetWindow | Unset):  Default:
@@ -226,10 +235,8 @@ async def asyncio_detailed(
 
             ``DAY`` groups all event types by calendar day (UTC).
 
-            ``DOMAIN_AGENT`` is intentionally absent: no per-agent metric events are
-            emitted in the current implementation. It will be added as a dimension
-            when agent-level events are wired into the domain agent nodes.
-            See docs/phase3/observability.md.
+            ``EVENT_TYPE`` groups rows by event_type ("JobCompleted" | "IngestionCompleted" | ...).
+        event_type (None | str | Unset): Optional event_type filter
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -243,6 +250,7 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         window=window,
 group_by=group_by,
+event_type=event_type,
 
     )
 
@@ -257,13 +265,14 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     window: GetAdminMetricsApiV1AdminMetricsGetWindow | Unset = GetAdminMetricsApiV1AdminMetricsGetWindow.VALUE_1,
     group_by: GroupBy | Unset = UNSET,
+    event_type: None | str | Unset = UNSET,
 
 ) -> HTTPValidationError | MetricsResponse | None:
     """ Aggregated observability metrics
 
      Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling
-    recommendations (queue_depth, worker_utilization_pct, recommended_pool_size) for the requested
-    window. Requires ADMIN role.
+    recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN
+    role.
 
     Args:
         window (GetAdminMetricsApiV1AdminMetricsGetWindow | Unset):  Default:
@@ -282,10 +291,8 @@ async def asyncio(
 
             ``DAY`` groups all event types by calendar day (UTC).
 
-            ``DOMAIN_AGENT`` is intentionally absent: no per-agent metric events are
-            emitted in the current implementation. It will be added as a dimension
-            when agent-level events are wired into the domain agent nodes.
-            See docs/phase3/observability.md.
+            ``EVENT_TYPE`` groups rows by event_type ("JobCompleted" | "IngestionCompleted" | ...).
+        event_type (None | str | Unset): Optional event_type filter
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -300,5 +307,6 @@ async def asyncio(
         client=client,
 window=window,
 group_by=group_by,
+event_type=event_type,
 
     )).parsed

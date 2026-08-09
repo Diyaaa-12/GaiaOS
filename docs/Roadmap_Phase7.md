@@ -168,11 +168,16 @@ This document consolidates all four Phase 7 planning deliverables — the roadma
 ## Milestone 6 — Distributed Metrics Aggregation
 *(Backlog item — deferred from Phase 6, now placed, with its own stated dependency honored explicitly.)*
 
-**Purpose:** The backlog's own deferral reasoning was precise: "should only be introduced when Phase 7 includes horizontal scaling capabilities." **This milestone's dependency on Milestone 5 is therefore not just sequencing — it's conditional scope.** As Milestone 5's honest evidence review concluded multi-node deployment is not yet justified (Outcome B), this milestone's scope shrunken correspondingly: single-node in-memory/Redis/Postgres metrics (Phase 4 M9, Phase 5 M8) remain entirely correct and sufficient. Building distributed multi-host Prometheus scraping on top of single-node deployments is out of scope for Phase 7.
+**Status:** **Completed (2026-08-10)**.
 
-**Architecture:** Single-node metrics collection and rollup via `metrics/aggregation.py` and `GET /api/v1/admin/metrics` remain active. Multi-host Prometheus scraping layers are deferred until multi-node scaling is triggered.
+**Purpose:** Audited single-node metrics aggregation and OpenMetrics exposition against production requirements under single-host scope (honoring Milestone 5's Outcome B verdict). Added `GroupBy.EVENT_TYPE` aggregation, `event_type` parameterized SQL filtering, top-level ISO timestamp (`generated_at`) schema metadata, and `# HELP gaiaos_circuit_breaker_state` OpenMetrics gauges for data sources (`usgs`, `noaa`, `copernicus`, `era5`, `gdelt`, `arxiv`).
+
+**Architecture:** Single-node metrics collection and rollup via `metrics/aggregation.py` and `GET /api/v1/admin/metrics` remain active and enriched. Multi-host Prometheus scraping layers are deferred until multi-node scaling is triggered.
 
 **Dependencies:** Milestone 5 (Outcome B completed).
+
+**Documentation updates:** [`docs/phase7/distributed_metrics.md`](file:///c:/Users/DIYA/OneDrive/Documents/Projects/GaiaOS/docs/phase7/distributed_metrics.md) (completed).
+
 
 ---
 

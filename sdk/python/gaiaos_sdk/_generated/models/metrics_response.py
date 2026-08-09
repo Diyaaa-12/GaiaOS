@@ -11,6 +11,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
@@ -35,6 +36,8 @@ class MetricsResponse:
             rollups (list[MetricRollupSchema]):
             window (str):
             worker_utilization_pct (float):
+            event_type (None | str | Unset):
+            generated_at (str | Unset): ISO 8601 UTC timestamp when metrics rollups were generated.
      """
 
     group_by: str
@@ -43,6 +46,8 @@ class MetricsResponse:
     rollups: list[MetricRollupSchema]
     window: str
     worker_utilization_pct: float
+    event_type: None | str | Unset = UNSET
+    generated_at: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
 
@@ -68,6 +73,14 @@ class MetricsResponse:
 
         worker_utilization_pct = self.worker_utilization_pct
 
+        event_type: None | str | Unset
+        if isinstance(self.event_type, Unset):
+            event_type = UNSET
+        else:
+            event_type = self.event_type
+
+        generated_at = self.generated_at
+
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -79,6 +92,10 @@ class MetricsResponse:
             "window": window,
             "worker_utilization_pct": worker_utilization_pct,
         })
+        if event_type is not UNSET:
+            field_dict["event_type"] = event_type
+        if generated_at is not UNSET:
+            field_dict["generated_at"] = generated_at
 
         return field_dict
 
@@ -108,6 +125,18 @@ class MetricsResponse:
 
         worker_utilization_pct = d.pop("worker_utilization_pct")
 
+        def _parse_event_type(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        event_type = _parse_event_type(d.pop("event_type", UNSET))
+
+
+        generated_at = d.pop("generated_at", UNSET)
+
         metrics_response = cls(
             group_by=group_by,
             queue_depth=queue_depth,
@@ -115,6 +144,8 @@ class MetricsResponse:
             rollups=rollups,
             window=window,
             worker_utilization_pct=worker_utilization_pct,
+            event_type=event_type,
+            generated_at=generated_at,
         )
 
 
