@@ -66,3 +66,19 @@ The load test executes $N=4$ concurrent worker processes processing a burst of $
 ## 5. Observability & Future Work
 
 - **Replica Replication Lag**: Future observability enhancements will query PostgreSQL's `pg_stat_replication` view to export `replication_lag_bytes` and `replication_lag_seconds` into Prometheus and admin metrics.
+
+---
+
+## 6. Phase 7 Milestone 5 Evaluation & Production Guidance
+
+**Evaluation Verdict:** **Outcome B — Evidence Does Not Justify Multi-Node Scaling (Dated 2026-08-10)**.
+
+For full evaluation details, see [`docs/phase7/scaling_evaluation_m5.md`](../../docs/phase7/scaling_evaluation_m5.md).
+
+### Operational Directives:
+1. **Primary Deployment Topology**: Single-node Docker Compose multi-process worker scaling (`docker compose up -d --scale worker=N`) remains the primary, fully-supported production deployment standard.
+2. **Multi-Node Trigger Criteria**: Physical multi-node deployment across separate host boundaries remains deferred until empirical telemetry demonstrates one or more of the following:
+   - `queue_depth > 10 \times WORKER_POOL_SIZE` ($>20$ jobs) sustained for $>15$ minutes.
+   - `worker_utilization_pct = 100%` sustained for $>10$ minutes.
+   - P95 queue wait time $>60$ seconds.
+

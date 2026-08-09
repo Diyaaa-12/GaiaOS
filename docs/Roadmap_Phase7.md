@@ -149,83 +149,40 @@ This document consolidates all four Phase 7 planning deliverables — the roadma
 
 ## Milestone 5 — Horizontal Scaling Maturity
 
-**Purpose:** Phase 5 M7 deliberately built the *signal* (advisory `recommended_pool_size`) without the *actuation*, explicitly pending real operational evidence. Two phases of real production-shaped usage later (Phase 6's six new ingestion sources, Milestone 1–2's new scheduled jobs), this is the natural point to look at that evidence honestly and, if it justifies it, build genuine multi-node worker deployment guidance and tooling — still not autoscaling infrastructure, still not Kubernetes, but a real, tested, documented path to running more than one worker node reliably.
+**Purpose:** Phase 5 M7 deliberately built the *signal* (advisory `recommended_pool_size`) without the *actuation*, explicitly pending real operational evidence. Two phases of real production-shaped usage later (Phase 6's six new ingestion sources, Milestone 1–2's new scheduled jobs), this milestone evaluated available repository telemetry and test benchmarks against Phase 5 M7's named trigger conditions.
 
-**Architecture:** This milestone's *first, real deliverable* is an honest look at Phase 5 M7's collected `recommended_pool_size`/queue-depth data (mirroring that milestone's own Definition of Done, which explicitly allowed "not yet needed" as a legitimate outcome). If the data justifies it: multi-node worker deployment documentation and a genuine load test at real multi-node scale (extending Phase 5 M7's single-node concurrent-worker test, which already found and fixed real event-loop-lifecycle bugs — this milestone's job is confirming those same fixes hold across physically separate nodes, not just separate processes on one host, which is a genuinely different and non-trivial thing to verify). If the data does *not* justify it: this milestone's deliverable becomes a written, evidence-backed statement to that effect, and Milestone 6 is explicitly re-evaluated (see Milestone 6's own dependency note) rather than built on a false premise.
+**Completed Evaluation Verdict:** **Outcome B — Evidence Does Not Justify Multi-Node Scaling (Completed 2026-08-10)**.
+- **Evidence Review**: No available repository telemetry or test evidence demonstrates that the scaling trigger conditions (`queue_depth > 20` sustained for $>15$ minutes, `worker_utilization_pct = 100\%` sustained for $>10$ minutes, or P95 queue wait time $>60$ seconds) have been met. Single-node multi-process worker scaling (`docker compose up -d --scale worker=N`) completely processes current workloads.
+- **Deliverable**: Dated evaluation report ([docs/phase7/scaling_evaluation_m5.md](file:///c:/Users/DIYA/OneDrive/Documents/Projects/GaiaOS/docs/phase7/scaling_evaluation_m5.md)).
 
-**Dependencies:** None blocking, but sequenced after the Intelligence/Ecosystem tracks specifically because this project's own consistent discipline (Architecture v1.0 onward) is to let real usage justify scaling investment, not to build it speculatively — Milestones 1–4 give the system two more milestones' worth of real usage to accumulate before this one asks "is more scale actually needed yet."
+**Architecture:** Single-node Docker Compose process scaling (`docker compose up -d --scale worker=N`) remains the primary, verified production deployment standard. Physically separate multi-node worker node deployment is deferred until quantitative triggers are demonstrated by real production load.
 
-**Implementation order:**
-1. Data review against Phase 5 M7's own named trigger condition.
-2. If justified: multi-node Docker Compose deployment reference (documented, not a new orchestrator — still Compose, just documented for a multi-VPS topology, consistent with "extend Docker Compose, don't replace it" until Milestone 7's explicitly-optional territory).
-3. Multi-node load test.
+**Dependencies:** None.
 
-**Verification strategy:** The multi-node load test (if built) must specifically re-verify Phase 5 M7's event-loop-lifecycle fixes hold under genuine network-separated concurrency, not just re-run the existing single-node test on more hardware.
+**Documentation updates:** `docs/phase7/scaling_evaluation_m5.md` (completed) and `ops/runbooks/horizontal_scaling.md` (updated).
 
-**Documentation updates:** `ops/runbooks/multi_node_deployment.md` (if justified) or a documented, dated "evaluated, not yet needed" note in `docs/phase7/` (if not) — both are legitimate, both are required outputs of this milestone either way.
-
-**Testing requirements:** The multi-node load test, if built, following the same rigor as Phase 5 M7's original (exact completion counts, zero duplicates, zero lost jobs, zero checkpoint cross-contamination — now across nodes, not just processes).
-
-**Acceptance criteria:** A clear, evidence-backed answer — not an assumption either way — to "does GaiaOS need multi-node worker deployment yet," with the corresponding deliverable (runbook+load-test, or honest deferral note) produced regardless of which answer the evidence supports.
-
-**Estimated difficulty:** Low for the evidence review itself; Medium-High if the multi-node load test is actually built (genuine distributed-systems testing, real infrastructure needed for CI or a documented manual verification step).
-**Estimated time:** 1 session for the evidence review and written outcome. If proceeding: 2–3 sessions for deployment documentation, 3–4 sessions for the multi-node load test — roughly 1 session (deferred outcome) to 7–8 sessions (built outcome).
+**Acceptance criteria:** Completed via Outcome B evidence evaluation document.
 
 ---
 
 ## Milestone 6 — Distributed Metrics Aggregation
 *(Backlog item — deferred from Phase 6, now placed, with its own stated dependency honored explicitly.)*
 
-**Purpose:** The backlog's own deferral reasoning was precise: "should only be introduced when Phase 7 includes horizontal scaling capabilities." **This milestone's dependency on Milestone 5 is therefore not just sequencing — it's conditional scope.** If Milestone 5's honest evidence review concludes multi-node deployment isn't yet justified, this milestone's scope shrinks correspondingly: single-node in-memory/Redis-backed metrics (Phase 4 M9, Phase 5 M8) remain entirely correct and sufficient, and building distributed aggregation on top of them would be exactly the "adding complexity without enough value" this roadmap's own instructions ask to reject. **This document explicitly does not force this milestone to build something if Milestone 5 doesn't justify it** — stated here, not left implicit, per the roadmap brief's own instruction to explain such calls plainly.
+**Purpose:** The backlog's own deferral reasoning was precise: "should only be introduced when Phase 7 includes horizontal scaling capabilities." **This milestone's dependency on Milestone 5 is therefore not just sequencing — it's conditional scope.** As Milestone 5's honest evidence review concluded multi-node deployment is not yet justified (Outcome B), this milestone's scope shrunken correspondingly: single-node in-memory/Redis/Postgres metrics (Phase 4 M9, Phase 5 M8) remain entirely correct and sufficient. Building distributed multi-host Prometheus scraping on top of single-node deployments is out of scope for Phase 7.
 
-**Architecture (if Milestone 5 justifies it):** Metrics collection remains per-node (each worker/app instance still emits its own events, unchanged); aggregation moves from a single Postgres `metrics` table queried directly (Phase 4 M9's current design) to a proper time-series-aware aggregation layer — the concrete, well-scoped addition being **Prometheus** (free, self-hosted, the standard, boring, correct choice for exactly this problem) scraping each node, with Phase 4's existing `metrics/aggregation.py` API surface *reimplemented* to query Prometheus instead of Postgres directly, **not exposed as a second, parallel metrics API** — `admin_ui` and the alerting evaluator (Phase 4 M3/Phase 5 M8) continue calling the same internal interface, now backed differently, a clean swap behind an already-existing abstraction boundary, not a new one invented for this milestone.
+**Architecture:** Single-node metrics collection and rollup via `metrics/aggregation.py` and `GET /api/v1/admin/metrics` remain active. Multi-host Prometheus scraping layers are deferred until multi-node scaling is triggered.
 
-**Dependencies:** Milestone 5, conditionally, exactly as described above.
-
-**Implementation order (if justified):**
-1. Prometheus added as an optional Compose service (off by default for single-node deployments, exactly matching Milestone 5's own "extend, don't replace, Compose" discipline and Phase 6 M6's MinIO opt-in precedent).
-2. `metrics/aggregation.py`'s internal implementation swapped to query Prometheus, external interface unchanged.
-3. Alerting (Phase 5 M8) and the admin dashboard (Phase 4 M9) re-verified against the new backend, proving the abstraction boundary held.
-
-**Verification strategy:** The existing SLO burn-rate alert tests (Phase 5 M8) and admin dashboard metrics tests (Phase 4 M9) must pass **unmodified** against the new backend — the concrete, testable proof this was a clean swap, not a parallel system.
-
-**Documentation updates:** `docs/phase7/distributed_metrics.md`, explicitly stating the conditional nature of this milestone and, if deferred, the honest note explaining why, cross-linked from Milestone 5's own documentation.
-
-**Testing requirements:** As in "verification strategy" — reused, not new, test suites passing against a swapped backend is the actual bar.
-
-**Acceptance criteria:** Either (a) Prometheus-backed aggregation passes every existing alerting/dashboard test unmodified, or (b) a documented, evidence-backed statement that this milestone is correctly out of scope for this phase, exactly mirroring Milestone 5's own two-valid-outcomes design.
-
-**Estimated difficulty:** Medium (Prometheus integration itself is well-trodden; the discipline of keeping the swap genuinely transparent to every existing consumer is the real engineering care required).
-**Estimated time (if built):** 1–2 sessions for the optional Compose service, 3–4 sessions for the aggregation-layer swap, 2 sessions for re-verifying existing test suites pass unmodified — roughly 6–8 sessions. **If deferred: under 1 session** (the written rationale alone).
+**Dependencies:** Milestone 5 (Outcome B completed).
 
 ---
 
 ## Milestone 7 — Kubernetes / Helm Deployment Path (Explicitly Optional, Non-Default)
 *(Backlog item — deferred from Phase 6, placed last and most conditionally of all four backlog items.)*
 
-**Purpose:** An optional, clearly-labeled enterprise deployment path for organizations that already run Kubernetes infrastructure and want GaiaOS to fit into it — **never a replacement for, or an implied upgrade from, Docker Compose**, which remains and will remain this project's primary, default, student-first deployment target.
+**Purpose:** An optional enterprise deployment path. Per `Roadmap_Phase7.md`'s conditional directive, since Milestone 5's evidence review resulted in Outcome B (deferral of multi-node scaling), Milestone 7 is formally deferred to Phase 8 in its entirety.
 
-**Why this is placed last, and why it's the one milestone in this document most likely to be correctly deferred further:** Helm charts for a system with no real multi-node deployment story (Milestone 5) and no real distributed metrics (Milestone 6) would be charts for infrastructure this project doesn't yet have evidence anyone needs — the single clearest case in this entire roadmap of "adding complexity without enough value" if built ahead of its own prerequisites. **This document's explicit recommendation: build Milestone 7 within Phase 7 only if Milestone 5's evidence review genuinely justifies multi-node deployment; otherwise, defer Milestone 7 to Phase 8 in its entirety, re-evaluated at that point against then-current evidence, rather than building a Kubernetes path for a workload that has never demonstrated needing one.** This is not a soft "nice to have" — it is this document's considered engineering judgment, stated plainly per the roadmap brief's own instruction to reject or move weak milestones rather than preserve them by default.
+**Completed Status:** Deferred to Phase 8 under Milestone 5 Outcome B verdict.
 
-**Architecture (if built):** Helm charts are a packaging of the *existing* container images (`app`, `worker`, `scheduler`, `admin_ui` — all four already built and CI-verified since Phase 4/5) into Kubernetes manifests — no new application code, no new business logic, a deployment-tooling addition only. Postgres/Redis/MinIO remain either self-hosted-in-cluster (via standard, well-known community Helm charts, not reinvented) or externally managed, at the deployer's choice — GaiaOS's own chart does not mandate either.
-
-**Dependencies:** Milestone 5 (conditionally, per above) and, if Milestone 6 was built, Milestone 6 (since a multi-node K8s deployment without distributed metrics would be flying blind operationally).
-
-**Implementation order (if built):**
-1. Helm chart authoring against the existing, unchanged container images.
-2. A documented, tested `helm install` path on a real (e.g., k3s, for a genuinely free/self-hostable K8s target — not assuming a paid managed Kubernetes service, consistent with free-first even in this "enterprise path" milestone) test cluster in CI.
-3. Explicit, prominent documentation stating Docker Compose remains the recommended default.
-
-**Verification strategy:** A real `helm install` against a real (k3s-in-CI) cluster, followed by the same investigation-submit-and-stream smoke test Milestone 1-of-Phase-1's Docker Compose CI verification originally established — proving the K8s path delivers the same correctness the Compose path already guarantees, not a lesser or different experience.
-
-**Documentation updates:** `docs/deployment/kubernetes.md`, explicitly subordinate to and cross-linked from the primary, Compose-based deployment documentation — never presented as the "more serious" or "more production-grade" option, since Compose-on-a-VPS is and remains a completely legitimate production deployment for this project's actual stated audience.
-
-**Testing requirements:** The `helm install` + smoke-test CI job (point above), run on the same cadence as other infrequent, longer-running CI jobs this project already has precedent for (Phase 4/5's nightly-eval, Phase 5 M7's load test) — not on every PR.
-
-**Acceptance criteria:** The k3s smoke test passes; or, if Milestone 5's evidence doesn't justify proceeding, this milestone is formally deferred to Phase 8 with a written rationale, which is itself a complete and acceptable Phase 7 outcome for this specific milestone.
-
-**Estimated difficulty:** Medium (Helm charting itself is standard, well-documented practice; the k3s-in-CI smoke test is the more novel piece for this project specifically).
-**Estimated time (if built):** 2–3 sessions for chart authoring, 2–3 sessions for the CI smoke-test pipeline, 1 session for documentation — roughly 5–7 sessions. **If deferred: under 1 session** (the written rationale alone).
 
 ---
 
