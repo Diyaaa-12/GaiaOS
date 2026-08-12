@@ -6,9 +6,11 @@ from pathlib import Path
 
 import pytest
 import yaml  # type: ignore[import-untyped]
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.settings import get_settings
+from db.models.scaling_telemetry import ScalingTelemetrySampleRow
 from workers.scaling_policy import (
     emit_scaling_summary_log,
     get_historical_scaling_telemetry,
@@ -108,6 +110,9 @@ async def test_scaling_telemetry_persistence_and_historical_aggregation(
     db_session: AsyncSession,
 ) -> None:
     """Verify recording, querying, and pruning historical scaling telemetry samples."""
+    await db_session.execute(delete(ScalingTelemetrySampleRow))
+    await db_session.commit()
+
     # 1. Record sample
     sample = await record_scaling_telemetry_sample(
         session=db_session,
@@ -142,7 +147,8 @@ async def test_scaling_telemetry_sustained_breach_continuity(
     """Verify continuity rules for sustained scaling breach evaluation."""
     from datetime import UTC, datetime, timedelta
 
-    from db.models.scaling_telemetry import ScalingTelemetrySampleRow
+    await db_session.execute(delete(ScalingTelemetrySampleRow))
+    await db_session.commit()
 
     now = datetime.now(UTC)
 
@@ -215,9 +221,10 @@ async def test_scaling_telemetry_utilization_breach_and_interruption_reset(
     """Verify regularly spaced utilization breach and below-threshold interruption resetting run."""
     from datetime import UTC, datetime, timedelta
 
-    from db.models.scaling_telemetry import ScalingTelemetrySampleRow
+    await db_session.execute(delete(ScalingTelemetrySampleRow))
+    await db_session.commit()
 
-    now = datetime.now(UTC) + timedelta(hours=2)
+    now = datetime.now(UTC)
 
     # D. Regularly spaced qualifying samples (every 4 min) spanning >= 10 minutes
     # -> sustained utilization breach
@@ -239,6 +246,7 @@ async def test_scaling_telemetry_utilization_breach_and_interruption_reset(
     assert hist_d["sustained_trigger_satisfied"] is True
     assert "Outcome A" in hist_d["scaling_verdict"]
 
+
 @pytest.mark.asyncio
 async def test_scaling_telemetry_below_threshold_reset_isolation(
     db_session: AsyncSession,
@@ -246,7 +254,8 @@ async def test_scaling_telemetry_below_threshold_reset_isolation(
     """Independently verify that a below-threshold sample resets the sustained breach run."""
     from datetime import UTC, datetime, timedelta
 
-    from db.models.scaling_telemetry import ScalingTelemetrySampleRow
+    await db_session.execute(delete(ScalingTelemetrySampleRow))
+    await db_session.commit()
 
     now = datetime.now(UTC)
 
@@ -257,7 +266,7 @@ async def test_scaling_telemetry_below_threshold_reset_isolation(
         active_worker_count=2,
         busy_worker_count=1,
         recommended_pool_size=5,
-        ts=now - timedelta(minutes=20),
+        ts=now - timedelta(minutes=15),
     )
     s2 = ScalingTelemetrySampleRow(
         queue_depth=25,
@@ -275,7 +284,7 @@ async def test_scaling_telemetry_below_threshold_reset_isolation(
         active_worker_count=2,
         busy_worker_count=0,
         recommended_pool_size=1,
-        ts=now - timedelta(minutes=6),
+        ts=now - timedelta(minutes=5),
     )
 
     # 3. Only 5 minutes above threshold after reset (not sustained)
@@ -285,7 +294,7 @@ async def test_scaling_telemetry_below_threshold_reset_isolation(
         active_worker_count=2,
         busy_worker_count=1,
         recommended_pool_size=5,
-        ts=now - timedelta(minutes=1),
+        ts=now,
     )
 
     db_session.add_all([s1, s2, s_reset, s_post_reset])

@@ -107,9 +107,9 @@ def sync_detailed(
 ) -> Response[HTTPValidationError | MetricsResponse]:
     """ Aggregated observability metrics
 
-     Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling
-    recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN
-    role.
+     Returns aggregated p50/p95 latency, success rate, cost estimate rollups, advisory worker scaling
+    recommendations, and historical telemetry for the requested window. Supports optional event_type
+    filtering. Requires ADMIN role.
 
     Args:
         window (GetAdminMetricsApiV1AdminMetricsGetWindow | Unset):  Default:
@@ -163,9 +163,9 @@ def sync(
 ) -> HTTPValidationError | MetricsResponse | None:
     """ Aggregated observability metrics
 
-     Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling
-    recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN
-    role.
+     Returns aggregated p50/p95 latency, success rate, cost estimate rollups, advisory worker scaling
+    recommendations, and historical telemetry for the requested window. Supports optional event_type
+    filtering. Requires ADMIN role.
 
     Args:
         window (GetAdminMetricsApiV1AdminMetricsGetWindow | Unset):  Default:
@@ -214,9 +214,9 @@ async def asyncio_detailed(
 ) -> Response[HTTPValidationError | MetricsResponse]:
     """ Aggregated observability metrics
 
-     Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling
-    recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN
-    role.
+     Returns aggregated p50/p95 latency, success rate, cost estimate rollups, advisory worker scaling
+    recommendations, and historical telemetry for the requested window. Supports optional event_type
+    filtering. Requires ADMIN role.
 
     Args:
         window (GetAdminMetricsApiV1AdminMetricsGetWindow | Unset):  Default:
@@ -270,9 +270,9 @@ async def asyncio(
 ) -> HTTPValidationError | MetricsResponse | None:
     """ Aggregated observability metrics
 
-     Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling
-    recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN
-    role.
+     Returns aggregated p50/p95 latency, success rate, cost estimate rollups, advisory worker scaling
+    recommendations, and historical telemetry for the requested window. Supports optional event_type
+    filtering. Requires ADMIN role.
 
     Args:
         window (GetAdminMetricsApiV1AdminMetricsGetWindow | Unset):  Default:
