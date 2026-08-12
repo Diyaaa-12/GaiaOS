@@ -136,6 +136,24 @@ def main() -> None:
             repeat=None,
         )
 
+    # Idempotent scheduling for periodic scaling telemetry sampling job (Phase 7 Audit Exit Fix)
+    target_telemetry_func = "workers.jobs.scaling_telemetry_job.run_scaling_telemetry_job"
+    if is_job_already_scheduled(scheduler, target_telemetry_func, "scaling_telemetry"):
+        _log.info("scheduler.job_exists_skipping", source="scaling_telemetry")
+    else:
+        _log.info(
+            "scheduler.registering_job",
+            source="scaling_telemetry",
+            interval_seconds=scaling_interval,
+        )
+        scheduler.schedule(
+            scheduled_time=datetime.now(UTC) + timedelta(seconds=22),
+            func=target_telemetry_func,
+            args=["scaling_telemetry"],
+            interval=scaling_interval,
+            repeat=None,
+        )
+
     # Idempotent scheduling for simulation model calibration job
     target_cal_func = "workers.jobs.calibration_job.run_calibration_job"
     cal_interval = settings.simulation_calibration_interval_days * 24 * 3600

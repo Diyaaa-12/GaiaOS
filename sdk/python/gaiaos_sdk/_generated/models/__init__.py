@@ -21,6 +21,7 @@ from .error_response import ErrorResponse
 from .get_admin_metrics_api_v1_admin_metrics_get_window import GetAdminMetricsApiV1AdminMetricsGetWindow
 from .group_by import GroupBy
 from .hazard_event_response import HazardEventResponse
+from .historical_scaling_telemetry_schema import HistoricalScalingTelemetrySchema
 from .http_validation_error import HTTPValidationError
 from .investigation_create_request import InvestigationCreateRequest
 from .investigation_create_response import InvestigationCreateResponse
@@ -77,6 +78,7 @@ __all__ = (
     "GetAdminMetricsApiV1AdminMetricsGetWindow",
     "GroupBy",
     "HazardEventResponse",
+    "HistoricalScalingTelemetrySchema",
     "HTTPValidationError",
     "InvestigationCreateRequest",
     "InvestigationCreateResponse",

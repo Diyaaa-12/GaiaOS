@@ -25,7 +25,7 @@ Per the evidence-first principles of GaiaOS (Architecture v1.0 through Phase 6) 
 
 ### 2.2 Empirical Audit & Telemetry Scope
 - **Current-State Queue Inspection**: In steady-state operation when idle, `workers.scaling_policy.get_scaling_metrics()` queries Redis `len(Queue("default"))` and returns `current_queue_depth = 0`.
-- **Historical Telemetry Boundary**: GaiaOS maintains real-time queue inspection APIs and periodic structured log summaries (`scaling.summary`), but does not store persistent historical queue-depth time-series databases. Current-state observations represent dynamic inspection snapshots rather than historical proofs of past behavior over arbitrary time windows.
+- **Persisted Telemetry Sampling Architecture**: GaiaOS records periodic scaling telemetry samples in a dedicated PostgreSQL table (`scaling_telemetry_samples`) via `workers.jobs.scaling_telemetry_job.run_scaling_telemetry_job()`. Queue depth, worker utilization %, active worker count, busy worker count, and advisory pool size are sampled and stored with a 30-day automated retention pruning policy (`workers.scaling_policy.prune_scaling_telemetry_samples()`). Historical time-series windows (`1d`, `7d`, `30d`, `90d`) are evaluated dynamically via `workers.scaling_policy.get_historical_scaling_telemetry()`.
 - **Audit Verdict**: **No available repository telemetry or test evidence demonstrates that these trigger conditions have been met.**
 
 ---

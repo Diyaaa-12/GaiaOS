@@ -4,13 +4,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml  # type: ignore[import-untyped]
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.settings import get_settings
+from db.models.scaling_telemetry import ScalingTelemetrySampleRow
 from workers.scaling_policy import (
     emit_scaling_summary_log,
+    get_historical_scaling_telemetry,
     get_scaling_metrics,
+    prune_scaling_telemetry_samples,
     recommended_pool_size,
+    record_scaling_telemetry_sample,
 )
 
 
@@ -96,3 +103,206 @@ def test_docker_compose_resource_limits_configured() -> None:
         limits = resources["limits"]
         assert "cpus" in limits, f"Service {svc_name} missing cpus limit"
         assert "memory" in limits, f"Service {svc_name} missing memory limit"
+
+
+@pytest.mark.asyncio
+async def test_scaling_telemetry_persistence_and_historical_aggregation(
+    db_session: AsyncSession,
+) -> None:
+    """Verify recording, querying, and pruning historical scaling telemetry samples."""
+    await db_session.execute(delete(ScalingTelemetrySampleRow))
+    await db_session.commit()
+
+    # 1. Record sample
+    sample = await record_scaling_telemetry_sample(
+        session=db_session,
+        metrics={
+            "current_queue_depth": 5,
+            "worker_utilization_pct": 50.0,
+            "active_worker_count": 2,
+            "busy_worker_count": 1,
+            "recommended_pool_size": 2,
+        },
+    )
+    assert sample.id is not None
+    assert sample.queue_depth == 5
+
+    # 2. Query historical telemetry summary
+    hist = await get_historical_scaling_telemetry(session=db_session, window="7d")
+    assert hist["sample_count"] >= 1
+    assert hist["max_queue_depth"] >= 5
+    assert hist["avg_worker_utilization_pct"] >= 0.0
+    assert hist["triggers_met"] is False
+    assert "Outcome B" in hist["scaling_verdict"]
+
+    # 3. Prune samples older than 30 days (sample created now should not be pruned)
+    pruned = await prune_scaling_telemetry_samples(session=db_session, retention_days=30)
+    assert isinstance(pruned, int)
+
+
+@pytest.mark.asyncio
+async def test_scaling_telemetry_sustained_breach_continuity(
+    db_session: AsyncSession,
+) -> None:
+    """Verify continuity rules for sustained scaling breach evaluation."""
+    from datetime import UTC, datetime, timedelta
+
+    await db_session.execute(delete(ScalingTelemetrySampleRow))
+    await db_session.commit()
+
+    now = datetime.now(UTC)
+
+    # A. Single transient spike -> no sustained breach
+    db_session.add(
+        ScalingTelemetrySampleRow(
+            queue_depth=25,
+            worker_utilization_pct=10.0,
+            active_worker_count=2,
+            busy_worker_count=1,
+            recommended_pool_size=5,
+            ts=now - timedelta(minutes=5),
+        )
+    )
+    await db_session.commit()
+
+    hist_a = await get_historical_scaling_telemetry(session=db_session, window="1d")
+    assert hist_a["threshold_crossed_at_least_once"] is True
+    assert hist_a["sustained_queue_depth_breach"] is False
+    assert hist_a["sustained_trigger_satisfied"] is False
+    assert "Transient Spike Only" in hist_a["scaling_verdict"]
+
+    # B. Qualifying samples with a large missing interval (20min gap > max_gap)
+    # -> NO sustained breach
+    s_gap1 = ScalingTelemetrySampleRow(
+        queue_depth=25,
+        worker_utilization_pct=10.0,
+        active_worker_count=2,
+        busy_worker_count=1,
+        recommended_pool_size=5,
+        ts=now - timedelta(minutes=50),
+    )
+    s_gap2 = ScalingTelemetrySampleRow(
+        queue_depth=25,
+        worker_utilization_pct=10.0,
+        active_worker_count=2,
+        busy_worker_count=1,
+        recommended_pool_size=5,
+        ts=now - timedelta(minutes=30),
+    )
+    db_session.add_all([s_gap1, s_gap2])
+    await db_session.commit()
+
+    # C. Regularly spaced qualifying samples (every 5 min) spanning >= 15 minutes
+    # -> sustained queue breach
+    t_start = now + timedelta(hours=1)
+    for m in (0, 5, 10, 15):
+        db_session.add(
+            ScalingTelemetrySampleRow(
+                queue_depth=25,
+                worker_utilization_pct=10.0,
+                active_worker_count=2,
+                busy_worker_count=1,
+                recommended_pool_size=5,
+                ts=t_start + timedelta(minutes=m),
+            )
+        )
+    await db_session.commit()
+
+    hist_c = await get_historical_scaling_telemetry(session=db_session, window="1d")
+    assert hist_c["sustained_queue_depth_breach"] is True
+    assert hist_c["sustained_trigger_satisfied"] is True
+    assert "Outcome A" in hist_c["scaling_verdict"]
+
+
+@pytest.mark.asyncio
+async def test_scaling_telemetry_utilization_breach_and_interruption_reset(
+    db_session: AsyncSession,
+) -> None:
+    """Verify regularly spaced utilization breach and below-threshold interruption resetting run."""
+    from datetime import UTC, datetime, timedelta
+
+    await db_session.execute(delete(ScalingTelemetrySampleRow))
+    await db_session.commit()
+
+    now = datetime.now(UTC)
+
+    # D. Regularly spaced qualifying samples (every 4 min) spanning >= 10 minutes
+    # -> sustained utilization breach
+    for m in (0, 4, 8, 11):
+        db_session.add(
+            ScalingTelemetrySampleRow(
+                queue_depth=2,
+                worker_utilization_pct=100.0,
+                active_worker_count=2,
+                busy_worker_count=2,
+                recommended_pool_size=2,
+                ts=now + timedelta(minutes=m),
+            )
+        )
+    await db_session.commit()
+
+    hist_d = await get_historical_scaling_telemetry(session=db_session, window="1d")
+    assert hist_d["sustained_utilization_breach"] is True
+    assert hist_d["sustained_trigger_satisfied"] is True
+    assert "Outcome A" in hist_d["scaling_verdict"]
+
+
+@pytest.mark.asyncio
+async def test_scaling_telemetry_below_threshold_reset_isolation(
+    db_session: AsyncSession,
+) -> None:
+    """Independently verify that a below-threshold sample resets the sustained breach run."""
+    from datetime import UTC, datetime, timedelta
+
+    await db_session.execute(delete(ScalingTelemetrySampleRow))
+    await db_session.commit()
+
+    now = datetime.now(UTC)
+
+    # 1. 10 minutes above threshold (not yet reaching 15 min requirement)
+    s1 = ScalingTelemetrySampleRow(
+        queue_depth=25,
+        worker_utilization_pct=10.0,
+        active_worker_count=2,
+        busy_worker_count=1,
+        recommended_pool_size=5,
+        ts=now - timedelta(minutes=15),
+    )
+    s2 = ScalingTelemetrySampleRow(
+        queue_depth=25,
+        worker_utilization_pct=10.0,
+        active_worker_count=2,
+        busy_worker_count=1,
+        recommended_pool_size=5,
+        ts=now - timedelta(minutes=10),
+    )
+
+    # 2. Interruption: sample drops below threshold
+    s_reset = ScalingTelemetrySampleRow(
+        queue_depth=0,
+        worker_utilization_pct=0.0,
+        active_worker_count=2,
+        busy_worker_count=0,
+        recommended_pool_size=1,
+        ts=now - timedelta(minutes=5),
+    )
+
+    # 3. Only 5 minutes above threshold after reset (not sustained)
+    s_post_reset = ScalingTelemetrySampleRow(
+        queue_depth=25,
+        worker_utilization_pct=10.0,
+        active_worker_count=2,
+        busy_worker_count=1,
+        recommended_pool_size=5,
+        ts=now,
+    )
+
+    db_session.add_all([s1, s2, s_reset, s_post_reset])
+    await db_session.commit()
+
+    hist = await get_historical_scaling_telemetry(session=db_session, window="1d")
+    assert hist["threshold_crossed_at_least_once"] is True
+    assert hist["sustained_queue_depth_breach"] is False
+    assert hist["sustained_utilization_breach"] is False
+    assert hist["sustained_trigger_satisfied"] is False
+    assert "Transient Spike Only" in hist["scaling_verdict"]

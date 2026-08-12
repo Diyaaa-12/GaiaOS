@@ -100,6 +100,13 @@ def main() -> None:
                 "requirements/dev.lock",
             ],
         ),
+        (
+            "Documentation Currency & Tag Drift Check",
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "verify_documentation_drift.py"),
+            ],
+        ),
     ]
 
     if not args.skip_tests:

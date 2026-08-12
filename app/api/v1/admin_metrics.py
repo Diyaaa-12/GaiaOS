@@ -13,6 +13,7 @@ See docs/phase3/observability.md for what is and is not tracked.
 
 from __future__ import annotations
 
+import secrets
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -25,7 +26,10 @@ from auth.roles import Role
 from config.settings import get_settings
 from metrics.aggregation import SUPPORTED_EVENT_TYPES, GroupBy, MetricRollup, aggregate_metrics
 from resilience.circuit_breaker import HALF_OPEN, OPEN, get_circuit_status
-from workers.scaling_policy import get_scaling_metrics
+from workers.scaling_policy import (
+    get_historical_scaling_telemetry,
+    get_scaling_metrics,
+)
 
 admin_metrics_router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -33,8 +37,6 @@ admin_metrics_router = APIRouter(prefix="/admin", tags=["Admin"])
 # ---------------------------------------------------------------------------
 # Response schemas
 # ---------------------------------------------------------------------------
-
-
 class MetricRollupSchema(BaseModel):
     """Serialised form of a MetricRollup for API consumers."""
 
@@ -46,6 +48,23 @@ class MetricRollupSchema(BaseModel):
     success_rate: float
 
     model_config = {"from_attributes": True}
+
+
+class HistoricalScalingTelemetrySchema(BaseModel):
+    """Historical scaling telemetry summary for M5 trigger validation."""
+
+    window: str
+    sample_count: int
+    max_queue_depth: int
+    avg_queue_depth: float
+    max_worker_utilization_pct: float
+    avg_worker_utilization_pct: float
+    threshold_crossed_at_least_once: bool
+    sustained_queue_depth_breach: bool
+    sustained_utilization_breach: bool
+    sustained_trigger_satisfied: bool
+    triggers_met: bool
+    scaling_verdict: str
 
 
 class MetricsResponse(BaseModel):
@@ -62,6 +81,7 @@ class MetricsResponse(BaseModel):
     queue_depth: int
     worker_utilization_pct: float
     recommended_pool_size: int
+    historical_scaling_telemetry: HistoricalScalingTelemetrySchema | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +95,8 @@ class MetricsResponse(BaseModel):
     summary="Aggregated observability metrics",
     description=(
         "Returns aggregated p50/p95 latency, success rate, cost estimate "
-        "rollups, and advisory worker scaling recommendations for the requested window. "
+        "rollups, advisory worker scaling recommendations, and historical "
+        "telemetry for the requested window. "
         "Supports optional event_type filtering. Requires ADMIN role."
     ),
 )
@@ -94,7 +115,6 @@ async def get_admin_metrics(
             detail=f"Unsupported event_type {event_type!r}. Must be one of {allowed}",
         )
 
-
     try:
         rollups: list[MetricRollup] = await aggregate_metrics(
             session=session,
@@ -107,6 +127,13 @@ async def get_admin_metrics(
 
     scaling_data = get_scaling_metrics()
 
+    historical_telemetry = None
+    try:
+        hist_data = await get_historical_scaling_telemetry(session=session, window=window)
+        historical_telemetry = HistoricalScalingTelemetrySchema(**hist_data)
+    except Exception:
+        historical_telemetry = None
+
     return MetricsResponse(
         window=window,
         group_by=group_by,
@@ -115,6 +142,7 @@ async def get_admin_metrics(
         queue_depth=scaling_data["current_queue_depth"],
         worker_utilization_pct=scaling_data["worker_utilization_pct"],
         recommended_pool_size=scaling_data["recommended_pool_size"],
+        historical_scaling_telemetry=historical_telemetry,
     )
 
 
@@ -138,7 +166,7 @@ async def verify_prometheus_auth(
         elif custom_header:
             token = custom_header.strip()
 
-        if token and token == settings.prometheus_metrics_token:
+        if token and secrets.compare_digest(token, settings.prometheus_metrics_token):
             return
 
     user = await get_current_active_user(await get_current_user(request))
@@ -204,12 +232,12 @@ async def get_prometheus_metrics(
 
     for src in sources:
         st = await get_circuit_status(src)
-        val = 0.0
+        gauge_val = 0.0
         if st == OPEN:
-            val = 1.0
+            gauge_val = 1.0
         elif st == HALF_OPEN:
-            val = 0.5
-        lines.append(f'gaiaos_circuit_breaker_state{{source="{src}"}} {val}')
+            gauge_val = 0.5
+        lines.append(f'gaiaos_circuit_breaker_state{{source="{src}"}} {gauge_val}')
 
     lines.extend(
         [

@@ -15,6 +15,7 @@ from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
+  from ..models.historical_scaling_telemetry_schema import HistoricalScalingTelemetrySchema
   from ..models.metric_rollup_schema import MetricRollupSchema
 
 
@@ -38,6 +39,7 @@ class MetricsResponse:
             worker_utilization_pct (float):
             event_type (None | str | Unset):
             generated_at (str | Unset): ISO 8601 UTC timestamp when metrics rollups were generated.
+            historical_scaling_telemetry (HistoricalScalingTelemetrySchema | None | Unset):
      """
 
     group_by: str
@@ -48,6 +50,7 @@ class MetricsResponse:
     worker_utilization_pct: float
     event_type: None | str | Unset = UNSET
     generated_at: str | Unset = UNSET
+    historical_scaling_telemetry: HistoricalScalingTelemetrySchema | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
 
@@ -55,6 +58,7 @@ class MetricsResponse:
 
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.historical_scaling_telemetry_schema import HistoricalScalingTelemetrySchema
         from ..models.metric_rollup_schema import MetricRollupSchema
         group_by = self.group_by
 
@@ -81,6 +85,14 @@ class MetricsResponse:
 
         generated_at = self.generated_at
 
+        historical_scaling_telemetry: dict[str, Any] | None | Unset
+        if isinstance(self.historical_scaling_telemetry, Unset):
+            historical_scaling_telemetry = UNSET
+        elif isinstance(self.historical_scaling_telemetry, HistoricalScalingTelemetrySchema):
+            historical_scaling_telemetry = self.historical_scaling_telemetry.to_dict()
+        else:
+            historical_scaling_telemetry = self.historical_scaling_telemetry
+
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -96,6 +108,8 @@ class MetricsResponse:
             field_dict["event_type"] = event_type
         if generated_at is not UNSET:
             field_dict["generated_at"] = generated_at
+        if historical_scaling_telemetry is not UNSET:
+            field_dict["historical_scaling_telemetry"] = historical_scaling_telemetry
 
         return field_dict
 
@@ -103,6 +117,7 @@ class MetricsResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.historical_scaling_telemetry_schema import HistoricalScalingTelemetrySchema
         from ..models.metric_rollup_schema import MetricRollupSchema
         d = dict(src_dict)
         group_by = d.pop("group_by")
@@ -137,6 +152,26 @@ class MetricsResponse:
 
         generated_at = d.pop("generated_at", UNSET)
 
+        def _parse_historical_scaling_telemetry(data: object) -> HistoricalScalingTelemetrySchema | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                historical_scaling_telemetry_type_0 = HistoricalScalingTelemetrySchema.from_dict(data)
+
+
+
+                return historical_scaling_telemetry_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(HistoricalScalingTelemetrySchema | None | Unset, data)
+
+        historical_scaling_telemetry = _parse_historical_scaling_telemetry(d.pop("historical_scaling_telemetry", UNSET))
+
+
         metrics_response = cls(
             group_by=group_by,
             queue_depth=queue_depth,
@@ -146,6 +181,7 @@ class MetricsResponse:
             worker_utilization_pct=worker_utilization_pct,
             event_type=event_type,
             generated_at=generated_at,
+            historical_scaling_telemetry=historical_scaling_telemetry,
         )
 
 

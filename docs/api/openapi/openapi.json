@@ -608,6 +608,75 @@
         "title": "HazardEventResponse",
         "type": "object"
       },
+      "HistoricalScalingTelemetrySchema": {
+        "description": "Historical scaling telemetry summary for M5 trigger validation.",
+        "properties": {
+          "avg_queue_depth": {
+            "title": "Avg Queue Depth",
+            "type": "number"
+          },
+          "avg_worker_utilization_pct": {
+            "title": "Avg Worker Utilization Pct",
+            "type": "number"
+          },
+          "max_queue_depth": {
+            "title": "Max Queue Depth",
+            "type": "integer"
+          },
+          "max_worker_utilization_pct": {
+            "title": "Max Worker Utilization Pct",
+            "type": "number"
+          },
+          "sample_count": {
+            "title": "Sample Count",
+            "type": "integer"
+          },
+          "scaling_verdict": {
+            "title": "Scaling Verdict",
+            "type": "string"
+          },
+          "sustained_queue_depth_breach": {
+            "title": "Sustained Queue Depth Breach",
+            "type": "boolean"
+          },
+          "sustained_trigger_satisfied": {
+            "title": "Sustained Trigger Satisfied",
+            "type": "boolean"
+          },
+          "sustained_utilization_breach": {
+            "title": "Sustained Utilization Breach",
+            "type": "boolean"
+          },
+          "threshold_crossed_at_least_once": {
+            "title": "Threshold Crossed At Least Once",
+            "type": "boolean"
+          },
+          "triggers_met": {
+            "title": "Triggers Met",
+            "type": "boolean"
+          },
+          "window": {
+            "title": "Window",
+            "type": "string"
+          }
+        },
+        "required": [
+          "window",
+          "sample_count",
+          "max_queue_depth",
+          "avg_queue_depth",
+          "max_worker_utilization_pct",
+          "avg_worker_utilization_pct",
+          "threshold_crossed_at_least_once",
+          "sustained_queue_depth_breach",
+          "sustained_utilization_breach",
+          "sustained_trigger_satisfied",
+          "triggers_met",
+          "scaling_verdict"
+        ],
+        "title": "HistoricalScalingTelemetrySchema",
+        "type": "object"
+      },
       "InvestigationCreateRequest": {
         "description": "Payload to create a new investigation query.",
         "properties": {
@@ -892,6 +961,16 @@
           "group_by": {
             "title": "Group By",
             "type": "string"
+          },
+          "historical_scaling_telemetry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HistoricalScalingTelemetrySchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "queue_depth": {
             "title": "Queue Depth",
@@ -2075,7 +2154,7 @@
     },
     "/api/v1/admin/metrics": {
       "get": {
-        "description": "Returns aggregated p50/p95 latency, success rate, cost estimate rollups, and advisory worker scaling recommendations for the requested window. Supports optional event_type filtering. Requires ADMIN role.",
+        "description": "Returns aggregated p50/p95 latency, success rate, cost estimate rollups, advisory worker scaling recommendations, and historical telemetry for the requested window. Supports optional event_type filtering. Requires ADMIN role.",
         "operationId": "get_admin_metrics_api_v1_admin_metrics_get",
         "parameters": [
           {

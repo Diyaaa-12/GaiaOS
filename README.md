@@ -9,7 +9,7 @@ An Agentic Planetary Risk Intelligence Platform.
 
 ## Status
 
-Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and the v0.6.x Real-Data Grounding & Resilience Series — Complete
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and the v0.7.x Explainability, Ecosystem & Governance Series — Complete
 
 | Milestone | Scope / Deliverable | Status |
 |-----------|---------------------|--------|
@@ -27,11 +27,16 @@ Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and the v0.6.x Real-Data G
 | **v0.6.1** | Phase 6 Milestones 2–3 (Copernicus, ERA5, GDELT Ingestion & OSM Administrative Boundaries) | Complete |
 | **v0.6.2** | Phase 6 Milestones 4–5 (ArXiv Open-Access Corpus & Offline Simulation Calibration) | Complete |
 | **v0.6.3** | Phase 6 Milestone 6 (MinIO Self-Hosted Object Storage Option) | Complete |
+| **v0.6.4** | Phase 6 Operational Readiness & Polish | Complete |
+| **v0.7.0** | Phase 7 Milestones 1–3 (Explainability & Reasoning Trace Exploration, Pattern Mining, Python SDK) | Complete |
+| **v0.7.1** | Phase 7 Milestone 4 (CLI Wizard & Developer Tooling) | Complete |
+| **v0.7.2** | Phase 7 Milestones 5–6 (Horizontal Scaling Evaluation & OpenMetrics Telemetry Enrichment) | Complete |
+| **v0.7.3** | Phase 7 Milestone 7 (Deployment Governance & Scale Governance) | Complete |
 
 Detailed architectural specifications, documentation hub, and milestone scope documents are linked below:
 - **Documentation Hub**: [`docs/README.md`](docs/README.md)
 - **Architecture**: [`docs/Architecture.md`](docs/Architecture.md)
-- **Roadmaps**: [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md), [`docs/Roadmap_Phase2.md`](docs/Roadmap_Phase2.md), [`docs/Roadmap_Phase3.md`](docs/Roadmap_Phase3.md), [`docs/Roadmap_Phase4.md`](docs/Roadmap_Phase4.md), [`docs/Roadmap_Phase5.md`](docs/Roadmap_Phase5.md), [`docs/Roadmap_Phase6.md`](docs/Roadmap_Phase6.md)
+- **Roadmaps**: [`docs/Roadmap_Phase1.md`](docs/Roadmap_Phase1.md), [`docs/Roadmap_Phase2.md`](docs/Roadmap_Phase2.md), [`docs/Roadmap_Phase3.md`](docs/Roadmap_Phase3.md), [`docs/Roadmap_Phase4.md`](docs/Roadmap_Phase4.md), [`docs/Roadmap_Phase5.md`](docs/Roadmap_Phase5.md), [`docs/Roadmap_Phase6.md`](docs/Roadmap_Phase6.md), [`docs/Roadmap_Phase7.md`](docs/Roadmap_Phase7.md)
 - **Versioning Strategy**: [`docs/releases/Versioning.md`](docs/releases/Versioning.md)
 
 ## Core Architecture
