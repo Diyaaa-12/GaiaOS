@@ -108,12 +108,12 @@ These audit documents are living engineering records that maintain a historical 
 
 ---
 
-## Phase 7 Audit & Explainability, Ecosystem & Governance Series (v0.7.0 / v0.7.1 / v0.7.2 / v0.7.3)
+## Phase 7 Audit & Explainability, Ecosystem & Governance Series (v0.7.0 / v0.7.1 / v0.7.2 / v0.7.3 / v0.7.4)
 
-- **Status**: ✅ Completed (v0.7.3 Capstone Synchronized)
+- **Status**: ✅ Completed (v0.7.4 Capstone Synchronized)
 - **Overall Decision**: Approved for Phase 8 Entry
 - **Major Findings**: 4 Exit Audit Items (All Resolved/Verified)
-- **Resolved in v0.7.0–v0.7.3**:
+- **Resolved in v0.7.0–v0.7.4**:
   - ✔ Reasoning Chain Visualization & Graph Export (Milestones 1–3)
   - ✔ Developer SDK & CLI Interactive Setup Wizard (Milestone 4)
   - ✔ Evidence-Based Scaling Policy Evaluation & Persisted Telemetry Sampling (Milestones 5–6)
@@ -137,7 +137,7 @@ Detailed release history and tag evolution strategy are documented in [`docs/rel
 | **v0.4.1–v0.4.4** | Open Source Readiness Series (Governance, Security Policy, Contributor Experience) | v0.4.4 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
 | **v0.5.0–v0.5.4** | Phase 5 Capstone (Public Research API & Dataset Publishing) | v0.5.4 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
 | **v0.6.0–v0.6.4** | Phase 6 Resilience Capstone (Circuit Breakers, SSE Streaming, JSON Logging) | v0.6.4 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
-| **v0.7.0–v0.7.3** | Phase 7 Capstone (SDK, CLI, Explainability, Persisted Telemetry, Governance) | **v0.7.3** | **✅ Complete** | **✅ Apache-2.0** | **✅ Ready** |
+| **v0.7.0–v0.7.4** | Phase 7 Capstone (SDK, CLI, Explainability, Persisted Telemetry, Governance) | **v0.7.4** | **✅ Complete** | **✅ Apache-2.0** | **✅ Ready** |
 
 ---
 

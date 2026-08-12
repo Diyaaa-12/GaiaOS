@@ -12,7 +12,7 @@ from scripts.verify_documentation_drift import (
 
 
 def _setup_mock_repo(
-    tmp_path: Path, version: str = "0.7.3", phase: str = "Phase 7"
+    tmp_path: Path, version: str = "0.7.4", phase: str = "Phase 7"
 ) -> tuple[Path, Path, Path, Path]:
     pyproject = tmp_path / "pyproject.toml"
     readme = tmp_path / "README.md"
@@ -22,8 +22,12 @@ def _setup_mock_repo(
     architecture = tmp_path / "docs" / "Architecture.md"
 
     pyproject.write_text(f'[project]\nversion = "{version}"\n')
-    readme.write_text(f"# GaiaOS\n{phase}\nv{version}\nv0.7.0\nv0.7.1\nv0.7.2\nv0.7.3\n")
-    versioning.write_text(f"# Release Map\n{phase}\nv{version}\nv0.7.0\nv0.7.1\nv0.7.2\nv0.7.3\n")
+    readme.write_text(
+        f"# GaiaOS\n{phase}\nv{version}\nv0.7.0\nv0.7.1\nv0.7.2\nv0.7.3\nv0.7.4\n"
+    )
+    versioning.write_text(
+        f"# Release Map\n{phase}\nv{version}\nv0.7.0\nv0.7.1\nv0.7.2\nv0.7.3\nv0.7.4\n"
+    )
     architecture.write_text(f"# GaiaOS Architecture\n{phase}\nSection 13\n")
     return pyproject, readme, versioning, architecture
 
@@ -31,8 +35,8 @@ def _setup_mock_repo(
 def test_parse_pyproject_version(tmp_path: Path) -> None:
     """Verify parse_pyproject_version correctly extracts version from pyproject.toml."""
     pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text('[project]\nversion = "0.7.3"\n')
-    assert parse_pyproject_version(pyproject) == "0.7.3"
+    pyproject.write_text('[project]\nversion = "0.7.4"\n')
+    assert parse_pyproject_version(pyproject) == "0.7.4"
 
     non_existent = tmp_path / "missing.toml"
     assert parse_pyproject_version(non_existent) is None
@@ -54,11 +58,11 @@ def test_verify_documentation_drift_success(tmp_path: Path) -> None:
 def test_verify_documentation_drift_readme_missing_latest_release(tmp_path: Path) -> None:
     """Verify failure when README.md is missing latest version reference."""
     _, readme, _, _ = _setup_mock_repo(tmp_path)
-    readme.write_text("# GaiaOS\nPhase 7\nv0.7.0\nv0.7.1\nv0.7.2\n")
+    readme.write_text("# GaiaOS\nPhase 7\nv0.7.0\nv0.7.1\nv0.7.2\nv0.7.3\n")
 
     is_valid, errors = verify_documentation_drift(repo_root=tmp_path)
     assert is_valid is False
-    assert any("README.md is missing reference to latest tag 'v0.7.3'" in e for e in errors)
+    assert any("README.md is missing reference to latest tag 'v0.7.4'" in e for e in errors)
 
 
 def test_verify_documentation_drift_architecture_missing_phase(tmp_path: Path) -> None:

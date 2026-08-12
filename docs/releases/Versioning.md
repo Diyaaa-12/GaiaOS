@@ -28,6 +28,7 @@ This document details the versioning strategy, tag evolution, and milestone rele
 | v0.7.1  | Phase 7 Milestone 4 (CLI Wizard & Developer Tooling) | Complete |
 | v0.7.2  | Phase 7 Milestones 5–6 (Scaling Evaluation & Distributed Metrics Aggregation) | Complete |
 | v0.7.3  | Phase 7 Milestone 7 (Deployment Governance & Scale Governance) | Complete |
+| v0.7.4  | Phase 7 Final Engineering Audit Exit (Persisted Telemetry & Governance Hardening) | Complete |
 
 ---
 
@@ -75,6 +76,7 @@ GaiaOS follows Semantic Versioning (`v0.X.Y`):
 - **v0.7.1** — Phase 7 Milestone 4 (CLI Wizard & Developer Tooling)
 - **v0.7.2** — Phase 7 Milestones 5–6 (Scaling Evaluation & Distributed Metrics Aggregation)
 - **v0.7.3** — Phase 7 Milestone 7 (Deployment Governance & Scale Governance)
+- **v0.7.4** — Phase 7 Final Engineering Audit Exit (Persisted Telemetry & Governance Hardening)
 
 ---
 

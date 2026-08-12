@@ -248,9 +248,9 @@ gaiaos/
 
 ---
 
-## 13. Phase 7 Architectural Status & Governance (v0.7.0–v0.7.3)
+## 13. Phase 7 Architectural Status & Governance (v0.7.0–v0.7.4)
 
-Through Phase 7 (v0.7.0 through v0.7.3), GaiaOS maintained strict architectural stability across all six core bounded contexts without boundary violations:
+Through Phase 7 (v0.7.0 through v0.7.4), GaiaOS maintained strict architectural stability across all six core bounded contexts without boundary violations:
 
 - **Reasoning Trace Exploration & Legibility (v0.7.0 / M1)**: Added `GET /api/v1/investigations/{id}/trace` serving transformed execution traces to the Admin UI `InvestigationTrace` node graph viewer.
 - **Longitudinal Pattern Mining (v0.7.0 / M2)**: Implemented scheduled co-occurrence detection (`workers/jobs/pattern_mining_job.py`) persisting findings to `pattern_findings` table and exposing `GET /api/v1/research/patterns`.
