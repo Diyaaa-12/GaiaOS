@@ -245,3 +245,15 @@ gaiaos/
 - Feasibility for one engineer: 8.5/10 — realistic once scoped as above; would have been 6/10 unscoped.
 - Resume/portfolio impact: 9.5/10 — a working system with a real eval harness and a documented "here's what I cut and why" story is more impressive to an actual staff engineer than a bigger diagram with no eval and no adaptive routing.
 - Deducted for: even the trimmed v1 is still a lot of surface area (9 agent modules + eval harness + 2 MCP servers) for one person on a 10–13 week timeline — the honest risk is scope creep back toward the original's fuller vision before Milestone 1 is even done. Guard against that explicitly, not implicitly.
+
+---
+
+## 13. Phase 7 Architectural Status & Governance (v0.7.0–v0.7.3)
+
+Through Phase 7 (v0.7.0 through v0.7.3), GaiaOS maintained strict architectural stability across all six core bounded contexts without boundary violations:
+
+- **Reasoning Trace Exploration & Legibility (v0.7.0 / M1)**: Added `GET /api/v1/investigations/{id}/trace` serving transformed execution traces to the Admin UI `InvestigationTrace` node graph viewer.
+- **Longitudinal Pattern Mining (v0.7.0 / M2)**: Implemented scheduled co-occurrence detection (`workers/jobs/pattern_mining_job.py`) persisting findings to `pattern_findings` table and exposing `GET /api/v1/research/patterns`.
+- **Ecosystem Client Libraries & CLI (v0.7.0–v0.7.1 / M3–M4)**: Delivered PyPI-ready typed Python SDK (`sdk/python/`) and interactive CLI Wizard (`cli/`) with scaffold tooling (`gaiaos plugin scaffold`).
+- **Horizontal Scale Evaluation & Governance (v0.7.2–v0.7.3 / M5, M7)**: Formally evaluated scale telemetry under M5 Outcome B, confirming single-node process scaling (`docker compose up -d --scale worker=N`) handles workloads cleanly without multi-node overhead. Kubernetes/Helm deferred to Phase 8.
+- **OpenMetrics Telemetry Enrichment (v0.7.2 / M6)**: Extended `metrics/aggregation.py` with `event_type` dimension rollups and OpenMetrics data source circuit-breaker state gauges (`# HELP gaiaos_circuit_breaker_state`).

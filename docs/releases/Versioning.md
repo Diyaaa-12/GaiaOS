@@ -23,6 +23,11 @@ This document details the versioning strategy, tag evolution, and milestone rele
 | v0.6.1  | Phase 6 Milestones 2–3 (Copernicus, ERA5, GDELT Ingestion & OSM Administrative Boundaries) | Complete |
 | v0.6.2  | Phase 6 Milestones 4–5 (ArXiv Open-Access Corpus & Offline Simulation Calibration) | Complete |
 | v0.6.3  | Phase 6 Milestone 6 (MinIO Self-Hosted Object Storage Option) | Complete |
+| v0.6.4  | Phase 6 Operational Readiness & Polish | Complete |
+| v0.7.0  | Phase 7 Milestones 1–3 (Explainability, Pattern Mining & Python SDK) | Complete |
+| v0.7.1  | Phase 7 Milestone 4 (CLI Wizard & Developer Tooling) | Complete |
+| v0.7.2  | Phase 7 Milestones 5–6 (Scaling Evaluation & Distributed Metrics Aggregation) | Complete |
+| v0.7.3  | Phase 7 Milestone 7 (Deployment Governance & Scale Governance) | Complete |
 
 ---
 
@@ -37,8 +42,8 @@ This document details the versioning strategy, tag evolution, and milestone rele
 
 GaiaOS follows Semantic Versioning (`v0.X.Y`):
 
-- **MINOR versions** (`v0.4.0`, `v0.5.0`, `v0.6.0`) represent major phase completions.
-- **PATCH versions** (`v0.4.1`, `v0.5.1`, `v0.6.1`) represent milestone releases within a phase series.
+- **MINOR versions** (`v0.4.0`, `v0.5.0`, `v0.6.0`, `v0.7.0`) represent major phase completions.
+- **PATCH versions** (`v0.4.1`, `v0.5.1`, `v0.6.1`, `v0.7.1`) represent milestone releases within a phase series.
 
 ### The v0.4.x Open Source Readiness Series
 
@@ -62,11 +67,19 @@ GaiaOS follows Semantic Versioning (`v0.X.Y`):
 - **v0.6.1** — Phase 6 Milestones 2–3 (Copernicus, ERA5, GDELT Ingestion & OSM Administrative Boundaries)
 - **v0.6.2** — Phase 6 Milestones 4–5 (ArXiv Open-Access Corpus & Offline Simulation Calibration)
 - **v0.6.3** — Phase 6 Milestone 6 (MinIO Self-Hosted Object Storage Option)
+- **v0.6.4** — Phase 6 Operational Readiness & Polish
+
+### The v0.7.x Explainability, Ecosystem & Governance Series
+
+- **v0.7.0** — Phase 7 Milestones 1–3 (Explainability, Pattern Mining & Python SDK)
+- **v0.7.1** — Phase 7 Milestone 4 (CLI Wizard & Developer Tooling)
+- **v0.7.2** — Phase 7 Milestones 5–6 (Scaling Evaluation & Distributed Metrics Aggregation)
+- **v0.7.3** — Phase 7 Milestone 7 (Deployment Governance & Scale Governance)
 
 ---
 
 ## Future Releases
 
-- **v0.7.0** — Phase 7 (Advanced Planetary Intelligence)
+- **v0.8.0** — Phase 8 (Distributed Worker Orchestration & Scale Operations)
 
 *(Refer to the project roadmap for current scope.)*

@@ -128,6 +128,203 @@ def emit_scaling_summary_log(
     )
 
 
+async def record_scaling_telemetry_sample(
+    session: Any,
+    metrics: dict[str, Any] | None = None,
+) -> Any:
+    """Record a point-in-time scaling telemetry sample into the database.
+
+    Persists queue depth, worker utilization, active worker counts, and advisory
+    pool recommendation to scaling_telemetry_samples for historical trend analysis.
+    """
+    from db.models.scaling_telemetry import ScalingTelemetrySampleRow
+
+    data = metrics or get_scaling_metrics()
+    sample = ScalingTelemetrySampleRow(
+        queue_depth=data["current_queue_depth"],
+        worker_utilization_pct=data["worker_utilization_pct"],
+        active_worker_count=data["active_worker_count"],
+        busy_worker_count=data["busy_worker_count"],
+        recommended_pool_size=data["recommended_pool_size"],
+    )
+    session.add(sample)
+    await session.commit()
+    return sample
+
+
+async def prune_scaling_telemetry_samples(
+    session: Any,
+    retention_days: int = 30,
+) -> int:
+    """Delete scaling telemetry samples older than retention_days.
+
+    Maintains a bounded table footprint in PostgreSQL.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import delete
+
+    from db.models.scaling_telemetry import ScalingTelemetrySampleRow
+
+    cutoff = datetime.now(UTC) - timedelta(days=retention_days)
+    stmt = delete(ScalingTelemetrySampleRow).where(ScalingTelemetrySampleRow.ts < cutoff)
+    result = await session.execute(stmt)
+    await session.commit()
+    return int(result.rowcount or 0)
+
+
+async def get_historical_scaling_telemetry(
+    session: Any,
+    window: str = "7d",
+    queue_depth_threshold: int = 20,
+    queue_depth_sustained_seconds: float = 900.0,
+    utilization_threshold: float = 100.0,
+    utilization_sustained_seconds: float = 600.0,
+) -> dict[str, Any]:
+    """Query historical scaling telemetry summary and evaluate M5 sustained trigger criteria.
+
+    Windows: "1d", "7d", "30d", "90d".
+    Evaluates:
+    - Peak & average queue depth
+    - Peak & average worker utilization %
+    - Transient vs sustained trigger evaluation:
+      - Threshold crossed at least once: max_queue_depth > 20 OR max_worker_utilization_pct >= 100%
+      - Sustained queue depth breach: queue_depth > 20 sustained for >= 15 min (900s)
+      - Sustained utilization breach: worker_utilization_pct >= 100% sustained for >= 10 min (600s)
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import func, select
+
+    from db.models.scaling_telemetry import ScalingTelemetrySampleRow
+
+    days_map = {"1d": 1, "7d": 7, "30d": 30, "90d": 90}
+    days = days_map.get(window, 7)
+    cutoff = datetime.now(UTC) - timedelta(days=days)
+
+    stmt = select(
+        func.count(ScalingTelemetrySampleRow.id).label("sample_count"),
+        func.max(ScalingTelemetrySampleRow.queue_depth).label("max_queue_depth"),
+        func.avg(ScalingTelemetrySampleRow.queue_depth).label("avg_queue_depth"),
+        func.max(ScalingTelemetrySampleRow.worker_utilization_pct).label(
+            "max_worker_utilization_pct"
+        ),
+        func.avg(ScalingTelemetrySampleRow.worker_utilization_pct).label(
+            "avg_worker_utilization_pct"
+        ),
+    ).where(ScalingTelemetrySampleRow.ts >= cutoff)
+
+    res = (await session.execute(stmt)).first()
+
+    sample_count = res.sample_count if res and res.sample_count else 0
+    max_queue_depth = res.max_queue_depth if res and res.max_queue_depth is not None else 0
+    avg_queue_depth = (
+        float(res.avg_queue_depth) if res and res.avg_queue_depth is not None else 0.0
+    )
+    max_worker_utilization_pct = (
+        float(res.max_worker_utilization_pct)
+        if res and res.max_worker_utilization_pct is not None
+        else 0.0
+    )
+    avg_worker_utilization_pct = (
+        float(res.avg_worker_utilization_pct)
+        if res and res.avg_worker_utilization_pct is not None
+        else 0.0
+    )
+
+    threshold_crossed = (max_queue_depth > queue_depth_threshold) or (
+        max_worker_utilization_pct >= utilization_threshold
+    )
+
+    stmt_samples = (
+        select(ScalingTelemetrySampleRow)
+        .where(ScalingTelemetrySampleRow.ts >= cutoff)
+        .order_by(ScalingTelemetrySampleRow.ts.asc())
+    )
+    samples = (await session.execute(stmt_samples)).scalars().all()
+
+    settings = get_settings()
+    sampling_interval = float(getattr(settings, "scaling_summary_interval_s", 300.0))
+    max_gap_seconds = max(600.0, 2.0 * sampling_interval)
+
+    sustained_queue_depth_breach = False
+    qd_start: datetime | None = None
+    qd_last: datetime | None = None
+
+    for s in samples:
+        if s.queue_depth > queue_depth_threshold:
+            if qd_start is None:
+                qd_start = s.ts
+            elif qd_last is not None and (s.ts - qd_last).total_seconds() > max_gap_seconds:
+                qd_start = s.ts
+
+            if qd_start is not None and (
+                (s.ts - qd_start).total_seconds() >= queue_depth_sustained_seconds
+            ):
+                sustained_queue_depth_breach = True
+                break
+
+            qd_last = s.ts
+        else:
+            qd_start = None
+            qd_last = None
+
+    sustained_utilization_breach = False
+    util_start: datetime | None = None
+    util_last: datetime | None = None
+
+    for s in samples:
+        if s.worker_utilization_pct >= utilization_threshold:
+            if util_start is None:
+                util_start = s.ts
+            elif util_last is not None and (s.ts - util_last).total_seconds() > max_gap_seconds:
+                util_start = s.ts
+
+            if util_start is not None and (
+                (s.ts - util_start).total_seconds() >= utilization_sustained_seconds
+            ):
+                sustained_utilization_breach = True
+                break
+
+            util_last = s.ts
+        else:
+            util_start = None
+            util_last = None
+
+    sustained_trigger_satisfied = (
+        sustained_queue_depth_breach or sustained_utilization_breach
+    )
+
+    if sustained_trigger_satisfied:
+        scaling_verdict = (
+            "Outcome A — Multi-Node Scaling Triggered (Sustained Threshold Met)"
+        )
+    elif threshold_crossed:
+        scaling_verdict = (
+            "Outcome B — Multi-Node Scaling Deferred "
+            "(Transient Spike Only, Sustained Duration Not Met)"
+        )
+    else:
+        scaling_verdict = (
+            "Outcome B — Multi-Node Scaling Deferred (Threshold Never Crossed)"
+        )
+
+    return {
+        "window": window,
+        "sample_count": sample_count,
+        "max_queue_depth": max_queue_depth,
+        "avg_queue_depth": round(avg_queue_depth, 2),
+        "max_worker_utilization_pct": round(max_worker_utilization_pct, 2),
+        "avg_worker_utilization_pct": round(avg_worker_utilization_pct, 2),
+        "threshold_crossed_at_least_once": threshold_crossed,
+        "sustained_queue_depth_breach": sustained_queue_depth_breach,
+        "sustained_utilization_breach": sustained_utilization_breach,
+        "sustained_trigger_satisfied": sustained_trigger_satisfied,
+        "triggers_met": sustained_trigger_satisfied,
+        "scaling_verdict": scaling_verdict,
+    }
+
+
 __all__ = [
     "MIN_AVG_JOB_DURATION_S",
     "MIN_TARGET_WAIT_S",
@@ -135,4 +332,7 @@ __all__ = [
     "recommended_pool_size",
     "get_scaling_metrics",
     "emit_scaling_summary_log",
+    "record_scaling_telemetry_sample",
+    "prune_scaling_telemetry_samples",
+    "get_historical_scaling_telemetry",
 ]
