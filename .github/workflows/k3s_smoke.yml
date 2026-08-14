@@ -152,14 +152,12 @@ jobs:
           kubectl rollout status deployment/postgres --timeout=120s
           kubectl rollout status deployment/redis --timeout=60s
 
-      - name: Verify & Initialize PostGIS + Vector Extensions in Database Container
+      - name: Verify PostGIS & Vector Extensions in Database Container
         run: |
-          echo "Waiting for PostgreSQL service readiness..."
-          until kubectl exec deployment/postgres -- pg_isready -U gaiaos -d gaiaos; do
+          echo "Waiting for PostGIS extension initialization..."
+          until kubectl exec deployment/postgres -- psql -U gaiaos -d gaiaos -c "SELECT PostGIS_Version();" >/dev/null 2>&1; do
             sleep 2
           done
-          kubectl exec deployment/postgres -- psql -U gaiaos -d gaiaos -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-          kubectl exec deployment/postgres -- psql -U gaiaos -d gaiaos -c "CREATE EXTENSION IF NOT EXISTS vector;"
           kubectl exec deployment/postgres -- psql -U gaiaos -d gaiaos -c "SELECT PostGIS_Version();"
           kubectl exec deployment/postgres -- psql -U gaiaos -d gaiaos -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
 
