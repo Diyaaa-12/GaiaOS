@@ -34,6 +34,8 @@ class MetricEventRow(Base):
     group_key: Mapped[str | None] = mapped_column(String, nullable=True)
     # Execution duration in milliseconds.
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Queue wait latency in milliseconds (JobStarted events). Null if unmeasured.
+    queue_wait_ms: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     # LLM cost in USD; 0.0 until real cost tracking is wired.
     cost_estimate: Mapped[Decimal] = mapped_column(
         Numeric(precision=10, scale=6), nullable=False, default=Decimal("0")

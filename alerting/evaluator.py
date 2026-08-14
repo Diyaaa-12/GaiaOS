@@ -38,6 +38,25 @@ _SQL_WINDOW_SNAPSHOT = text("""
     WHERE ts > now() - CAST(:interval AS INTERVAL)
 """)
 
+_SQL_QUEUE_WAIT_P95 = text("""
+    SELECT
+        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY queue_wait_ms) AS p95_queue_wait_ms
+    FROM metrics
+    WHERE ts > now() - CAST(:interval AS INTERVAL)
+      AND event_type = 'JobStarted'
+      AND queue_wait_ms IS NOT NULL
+""")
+
+_SQL_TELEMETRY_SNAPSHOT = text("""
+    SELECT
+        queue_depth,
+        worker_utilization_pct
+    FROM scaling_telemetry_samples
+    WHERE ts > now() - CAST(:interval AS INTERVAL)
+    ORDER BY ts DESC
+    LIMIT 1
+""")
+
 _SQL_METRICS_LATENCY = text("""
     SELECT duration_ms FROM metrics
     WHERE ts > now() - CAST(:interval AS INTERVAL) AND duration_ms IS NOT NULL
@@ -67,6 +86,8 @@ def _is_threshold_violated(current_value: float, threshold: float, comparison: s
     """Check if threshold is violated based on comparison operator."""
     if comparison == "gt":
         return current_value > threshold
+    elif comparison == "gte":
+        return current_value >= threshold
     elif comparison == "lt":
         return current_value < threshold
     return False
@@ -83,6 +104,9 @@ async def _fetch_window_metrics_snapshot(session: AsyncSession, window: str) -> 
         "investigation.job_failure_rate": 0.0,
         "job_failure_rate": 0.0,
         "investigation.avg_cost_estimate": 0.0,
+        "scaling.queue_depth": 0.0,
+        "scaling.worker_utilization_pct": 0.0,
+        "scaling.p95_queue_wait_s": 0.0,
     }
 
     if row:
@@ -93,6 +117,25 @@ async def _fetch_window_metrics_snapshot(session: AsyncSession, window: str) -> 
             snapshot["job_failure_rate"] = float(row.job_failure_rate)
         if row.avg_cost_estimate is not None:
             snapshot["investigation.avg_cost_estimate"] = float(row.avg_cost_estimate)
+
+    try:
+        qw_res = await session.execute(_SQL_QUEUE_WAIT_P95, {"interval": interval})
+        qw_row = qw_res.fetchone()
+        if qw_row and qw_row.p95_queue_wait_ms is not None:
+            snapshot["scaling.p95_queue_wait_s"] = float(qw_row.p95_queue_wait_ms) / 1000.0
+    except Exception as exc:
+        _log.warning("alerting.evaluator.fetch_queue_wait_p95_failed", error=str(exc))
+
+    try:
+        telem_res = await session.execute(_SQL_TELEMETRY_SNAPSHOT, {"interval": interval})
+        telem_row = telem_res.fetchone()
+        if telem_row:
+            if telem_row.queue_depth is not None:
+                snapshot["scaling.queue_depth"] = float(telem_row.queue_depth)
+            if telem_row.worker_utilization_pct is not None:
+                snapshot["scaling.worker_utilization_pct"] = float(telem_row.worker_utilization_pct)
+    except Exception as exc:
+        _log.warning("alerting.evaluator.fetch_telemetry_snapshot_failed", error=str(exc))
 
     return snapshot
 
@@ -128,8 +171,11 @@ async def evaluate_rules(
     rules: list[AlertRule],
 ) -> list[AlertFiring]:
     """Evaluate active alert rules against metrics data grouped by sliding window."""
+    from config.settings import get_settings
+
     firings: list[AlertFiring] = []
     now = datetime.now(UTC)
+    settings = get_settings()
 
     rules_by_window: dict[str, list[AlertRule]] = defaultdict(list)
     for rule in rules:
@@ -149,13 +195,20 @@ async def evaluate_rules(
                     continue
 
                 current_val = snapshot.get(rule.metric, 0.0)
-                if _is_threshold_violated(current_val, rule.threshold, rule.comparison):
+                # Compute dynamic threshold for queue depth based on current WORKER_POOL_SIZE
+                effective_threshold = (
+                    float(10 * settings.worker_pool_size)
+                    if rule.metric == "scaling.queue_depth"
+                    else rule.threshold
+                )
+
+                if _is_threshold_violated(current_val, effective_threshold, rule.comparison):
                     firings.append(
                         AlertFiring(
                             rule_name=rule.name,
                             metric=rule.metric,
                             current_value=current_val,
-                            threshold=rule.threshold,
+                            threshold=effective_threshold,
                             comparison=rule.comparison,
                             severity=rule.severity,
                             fired_at=now,

@@ -182,7 +182,8 @@
             "default": "gt",
             "enum": [
               "gt",
-              "lt"
+              "lt",
+              "gte"
             ],
             "title": "Comparison",
             "type": "string"

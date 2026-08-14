@@ -173,6 +173,60 @@ async def prune_scaling_telemetry_samples(
     return int(result.rowcount or 0)
 
 
+def evaluate_sustained_queue_depth_breach(
+    samples: list[Any],
+    threshold: int = 20,
+    sustained_seconds: float = 900.0,
+    max_gap_seconds: float = 600.0,
+) -> bool:
+    """Evaluate whether queue_depth > threshold is sustained across samples."""
+    from datetime import datetime
+
+    qd_start: datetime | None = None
+    qd_last: datetime | None = None
+    for s in samples:
+        if s.queue_depth > threshold:
+            if qd_start is None:
+                qd_start = s.ts
+            elif qd_last is not None and (s.ts - qd_last).total_seconds() > max_gap_seconds:
+                qd_start = s.ts
+
+            if qd_start is not None and (s.ts - qd_start).total_seconds() >= sustained_seconds:
+                return True
+            qd_last = s.ts
+        else:
+            qd_start = None
+            qd_last = None
+    return False
+
+
+def evaluate_sustained_utilization_breach(
+    samples: list[Any],
+    threshold: float = 100.0,
+    sustained_seconds: float = 600.0,
+    max_gap_seconds: float = 600.0,
+) -> bool:
+    """Evaluate whether worker_utilization_pct >= threshold is sustained for sustained_seconds."""
+    from datetime import datetime
+
+    util_start: datetime | None = None
+    util_last: datetime | None = None
+    for s in samples:
+        if s.worker_utilization_pct >= threshold:
+            if util_start is None:
+                util_start = s.ts
+            elif util_last is not None and (s.ts - util_last).total_seconds() > max_gap_seconds:
+                util_start = s.ts
+
+            if util_start is not None and (s.ts - util_start).total_seconds() >= sustained_seconds:
+                return True
+            util_last = s.ts
+        else:
+            util_start = None
+            util_last = None
+    return False
+
+
 async def get_historical_scaling_telemetry(
     session: Any,
     window: str = "7d",
@@ -247,49 +301,19 @@ async def get_historical_scaling_telemetry(
     sampling_interval = float(getattr(settings, "scaling_summary_interval_s", 300.0))
     max_gap_seconds = max(600.0, 2.0 * sampling_interval)
 
-    sustained_queue_depth_breach = False
-    qd_start: datetime | None = None
-    qd_last: datetime | None = None
+    sustained_queue_depth_breach = evaluate_sustained_queue_depth_breach(
+        samples=samples,
+        threshold=queue_depth_threshold,
+        sustained_seconds=queue_depth_sustained_seconds,
+        max_gap_seconds=max_gap_seconds,
+    )
 
-    for s in samples:
-        if s.queue_depth > queue_depth_threshold:
-            if qd_start is None:
-                qd_start = s.ts
-            elif qd_last is not None and (s.ts - qd_last).total_seconds() > max_gap_seconds:
-                qd_start = s.ts
-
-            if qd_start is not None and (
-                (s.ts - qd_start).total_seconds() >= queue_depth_sustained_seconds
-            ):
-                sustained_queue_depth_breach = True
-                break
-
-            qd_last = s.ts
-        else:
-            qd_start = None
-            qd_last = None
-
-    sustained_utilization_breach = False
-    util_start: datetime | None = None
-    util_last: datetime | None = None
-
-    for s in samples:
-        if s.worker_utilization_pct >= utilization_threshold:
-            if util_start is None:
-                util_start = s.ts
-            elif util_last is not None and (s.ts - util_last).total_seconds() > max_gap_seconds:
-                util_start = s.ts
-
-            if util_start is not None and (
-                (s.ts - util_start).total_seconds() >= utilization_sustained_seconds
-            ):
-                sustained_utilization_breach = True
-                break
-
-            util_last = s.ts
-        else:
-            util_start = None
-            util_last = None
+    sustained_utilization_breach = evaluate_sustained_utilization_breach(
+        samples=samples,
+        threshold=utilization_threshold,
+        sustained_seconds=utilization_sustained_seconds,
+        max_gap_seconds=max_gap_seconds,
+    )
 
     sustained_trigger_satisfied = (
         sustained_queue_depth_breach or sustained_utilization_breach
@@ -335,4 +359,6 @@ __all__ = [
     "record_scaling_telemetry_sample",
     "prune_scaling_telemetry_samples",
     "get_historical_scaling_telemetry",
+    "evaluate_sustained_queue_depth_breach",
+    "evaluate_sustained_utilization_breach",
 ]

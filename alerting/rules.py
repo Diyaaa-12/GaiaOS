@@ -15,6 +15,9 @@ SUPPORTED_METRICS: set[str] = {
     "investigation.avg_cost_estimate",
     "calibration_ece",
     "citation_fallback_rate",
+    "scaling.queue_depth",
+    "scaling.worker_utilization_pct",
+    "scaling.p95_queue_wait_s",
 }
 
 
@@ -24,7 +27,7 @@ class AlertRuleSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     metric: str = Field(..., min_length=1, max_length=255)
     threshold: float
-    comparison: Literal["gt", "lt"] = "gt"
+    comparison: Literal["gt", "lt", "gte"] = "gt"
     window: Literal["15m", "1h", "1d", "30d"] = "15m"
     severity: Literal["warning", "critical"] = "warning"
     consecutive_cycles: int = Field(default=1, ge=1)
@@ -81,6 +84,36 @@ DEFAULT_ALERT_RULES: list[dict[str, float | str | int | bool]] = [
         "comparison": "gt",
         "window": "1h",
         "severity": "critical",
+        "consecutive_cycles": 1,
+        "is_enabled": True,
+    },
+    {
+        "name": "scaling_queue_depth_breach",
+        "metric": "scaling.queue_depth",
+        "threshold": 20.0,
+        "comparison": "gt",
+        "window": "15m",
+        "severity": "warning",
+        "consecutive_cycles": 4,
+        "is_enabled": True,
+    },
+    {
+        "name": "scaling_worker_utilization_breach",
+        "metric": "scaling.worker_utilization_pct",
+        "threshold": 100.0,
+        "comparison": "gte",
+        "window": "15m",
+        "severity": "warning",
+        "consecutive_cycles": 4,
+        "is_enabled": True,
+    },
+    {
+        "name": "scaling_p95_queue_wait_breach",
+        "metric": "scaling.p95_queue_wait_s",
+        "threshold": 60.0,
+        "comparison": "gt",
+        "window": "15m",
+        "severity": "warning",
         "consecutive_cycles": 1,
         "is_enabled": True,
     },

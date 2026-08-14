@@ -4,6 +4,9 @@
 **Evaluator:** GaiaOS Core Engineering  
 **Outcome:** **Outcome B — Evidence Does Not Justify Multi-Node Scaling (Deferral)**
 
+> [!NOTE]
+> **Automated Monitoring (Phase 8 M1)**: As of Phase 8 Milestone 1, manual historical scaling evaluations documented here are supplemented by continuous, automated alerting via the alerting engine (`AlertRule`, `AlertIncident`, `alert_evaluation_job.py`). See [`docs/phase8/scaling_alerting.md`](../phase8/scaling_alerting.md) for live trigger definitions and incident lifecycle details.
+
 ---
 
 ## 1. Overview & Evaluation Context

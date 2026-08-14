@@ -13,6 +13,7 @@ from metrics.events import (
     IngestionCompleted,
     JobCompleted,
     JobFailed,
+    JobStarted,
     LocationRegexFallbackExecuted,
     MetricEvent,
     PlannerRegionHintMissing,
@@ -51,7 +52,20 @@ async def persist_metric(session: AsyncSession, event: MetricEvent) -> None:
     # depends on db.base which is orthogonal to metrics.events.
     from db.models.metric_event import MetricEventRow
 
-    if isinstance(event, JobCompleted):
+    if isinstance(event, JobStarted):
+        queue_wait_ms: int | None = None
+        if event.enqueued_at is not None:
+            delta_s = (event.started_at - event.enqueued_at).total_seconds()
+            queue_wait_ms = max(0, int(delta_s * 1000))
+        row = MetricEventRow(
+            event_type="JobStarted",
+            group_key=None,
+            duration_ms=0,
+            queue_wait_ms=queue_wait_ms,
+            cost_estimate=Decimal("0"),
+            success=True,
+        )
+    elif isinstance(event, JobCompleted):
         row = MetricEventRow(
             event_type="JobCompleted",
             group_key=event.complexity_tier,  # None when tier not yet determined

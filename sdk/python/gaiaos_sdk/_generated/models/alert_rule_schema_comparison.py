@@ -5,6 +5,7 @@ from enum import Enum
 
 class AlertRuleSchemaComparison(str, Enum):
     GT = "gt"
+    GTE = "gte"
     LT = "lt"
 
     def __str__(self) -> str:

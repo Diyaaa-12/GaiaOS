@@ -47,12 +47,15 @@ async def _async_run_investigation(investigation_id: uuid.UUID, query: str | Non
         if enqueued_at and enqueued_at.tzinfo is None:
             enqueued_at = enqueued_at.replace(tzinfo=UTC)
 
-        emit(
-            JobStarted(
-                investigation_id=str(investigation_id),
-                enqueued_at=enqueued_at,
-            )
+        started_event = JobStarted(
+            investigation_id=str(investigation_id),
+            enqueued_at=enqueued_at,
         )
+        emit(started_event)
+        if db_session.AsyncSessionLocal is not None:
+            async with db_session.AsyncSessionLocal() as session:
+                await persist_metric(session, started_event)
+                await session.commit()
 
         checkpointer = RedisCheckpointSaver(redis_client)
         graph = build_graph(checkpointer)
