@@ -1,6 +1,9 @@
 name: k3s Helm & Multi-Node Deployment Smoke Verification
 
 on:
+  push:
+    branches:
+      - verification/phase8-m2-k3s-smoke
   schedule:
     - cron: "0 4 * * 0"   # Weekly on Sunday at 04:00 UTC
   workflow_dispatch:     # On-demand manual trigger
