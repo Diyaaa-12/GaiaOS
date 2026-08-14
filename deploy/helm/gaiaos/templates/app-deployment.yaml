@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gaiaos.fullname" . }}-app
+  labels:
+    app.kubernetes.io/name: {{ include "gaiaos.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: app
+spec:
+  replicas: {{ .Values.replicaCount.app }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "gaiaos.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "gaiaos.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: app
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.image.app.repository }}:{{ .Values.image.app.tag }}"
+          imagePullPolicy: {{ .Values.image.app.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "gaiaos.fullname" . }}-config
+            - secretRef:
+                name: {{ default (printf "%s-secrets" (include "gaiaos.fullname" .)) .Values.existingSecret }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: {{ .Values.resources.app.limits.cpu | quote }}
+              memory: {{ .Values.resources.app.limits.memory | quote }}
+            requests:
+              cpu: {{ .Values.resources.app.requests.cpu | quote }}
+              memory: {{ .Values.resources.app.requests.memory | quote }}

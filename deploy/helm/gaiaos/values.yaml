@@ -1,0 +1,90 @@
+# GaiaOS Helm Chart Configuration Values
+# Default baseline image tag matches repository baseline (v0.7.4).
+# Override at deploy time via `--set image.tag=<tag>` or custom values.
+
+global:
+  environment: dev
+  logLevel: DEBUG
+
+image:
+  app:
+    repository: gaiaos/app
+    tag: "v0.7.4"
+    pullPolicy: IfNotPresent
+  worker:
+    repository: gaiaos/worker
+    tag: "v0.7.4"
+    pullPolicy: IfNotPresent
+  scheduler:
+    repository: gaiaos/scheduler
+    tag: "v0.7.4"
+    pullPolicy: IfNotPresent
+  adminUi:
+    repository: gaiaos/admin-ui
+    tag: "v0.7.4"
+    pullPolicy: IfNotPresent
+
+replicaCount:
+  app: 2
+  worker: 2
+  scheduler: 1
+  adminUi: 1
+
+externalDatabase:
+  url: ""
+
+externalRedis:
+  url: ""
+
+auth:
+  jwtSecretKey: ""
+  enableAuth: false
+  enableRateLimiting: false
+
+existingSecret: ""
+
+workerConfig:
+  poolSize: 2
+  concurrencyPerProcess: 1
+
+service:
+  type: ClusterIP
+  appPort: 8000
+  adminUiPort: 80
+
+resources:
+  app:
+    limits:
+      cpu: "1.0"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  worker:
+    limits:
+      cpu: "1.0"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  scheduler:
+    limits:
+      cpu: "0.5"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  adminUi:
+    limits:
+      cpu: "0.25"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+  migrations:
+    limits:
+      cpu: "0.5"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"

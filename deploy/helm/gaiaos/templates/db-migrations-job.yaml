@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "gaiaos.fullname" . }}-db-migrations
+  labels:
+    app.kubernetes.io/name: {{ include "gaiaos.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: db-migrations
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "gaiaos.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: db-migrations
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: db-migrations
+          image: "{{ .Values.image.app.repository }}:{{ .Values.image.app.tag }}"
+          imagePullPolicy: {{ .Values.image.app.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for database readiness..."
+              python -c "
+              import time, os, urllib.parse, sys
+              import psycopg2
+              db_url = os.environ.get('DATABASE_URL', '')
+              if not db_url:
+                  print('Error: DATABASE_URL environment variable is empty.')
+                  sys.exit(1)
+              for i in range(30):
+                  try:
+                      conn = psycopg2.connect(db_url)
+                      conn.close()
+                      print('Database connection established successfully.')
+                      sys.exit(0)
+                  except Exception as e:
+                      print(f'Attempt {i+1}/30: Waiting for database: {e}')
+                      time.sleep(2)
+              sys.exit(1)
+              "
+              echo "Running Alembic migrations..."
+              alembic upgrade head
+          envFrom:
+            - configMapRef:
+                name: {{ include "gaiaos.fullname" . }}-config
+            - secretRef:
+                name: {{ default (printf "%s-secrets" (include "gaiaos.fullname" .)) .Values.existingSecret }}
+          resources:
+            limits:
+              cpu: {{ .Values.resources.migrations.limits.cpu | quote }}
+              memory: {{ .Values.resources.migrations.limits.memory | quote }}
+            requests:
+              cpu: {{ .Values.resources.migrations.requests.cpu | quote }}
+              memory: {{ .Values.resources.migrations.requests.memory | quote }}

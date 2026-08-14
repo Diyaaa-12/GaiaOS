@@ -1,0 +1,11 @@
+apiVersion: v2
+name: gaiaos
+description: Helm chart for GaiaOS multi-node dev-verified deployment
+type: application
+version: 0.1.0
+appVersion: "v0.7.4"
+keywords:
+  - gaiaos
+  - planetary-intelligence
+  - langgraph
+  - multi-agent

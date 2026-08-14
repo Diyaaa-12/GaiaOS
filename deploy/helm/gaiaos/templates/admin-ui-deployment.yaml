@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gaiaos.fullname" . }}-admin-ui
+  labels:
+    app.kubernetes.io/name: {{ include "gaiaos.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: admin-ui
+spec:
+  replicas: {{ .Values.replicaCount.adminUi }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "gaiaos.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: admin-ui
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "gaiaos.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: admin-ui
+    spec:
+      containers:
+        - name: admin-ui
+          image: "{{ .Values.image.adminUi.repository }}:{{ .Values.image.adminUi.tag }}"
+          imagePullPolicy: {{ .Values.image.adminUi.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            limits:
+              cpu: {{ .Values.resources.adminUi.limits.cpu | quote }}
+              memory: {{ .Values.resources.adminUi.limits.memory | quote }}
+            requests:
+              cpu: {{ .Values.resources.adminUi.requests.cpu | quote }}
+              memory: {{ .Values.resources.adminUi.requests.memory | quote }}
