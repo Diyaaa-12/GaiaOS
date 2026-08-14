@@ -1,0 +1,129 @@
+name: Synchronize Dependabot Lockfiles
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Dependabot Pull Request Number to synchronize lockfiles for"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  sync-lockfiles:
+    name: Synchronize Lockfiles for Dependabot PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate Dependabot PR via GitHub API
+        id: validate-pr
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          PR_JSON=$(curl -sf -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPOSITORY/pulls/$PR_NUMBER")
+
+          if [ -z "$PR_JSON" ] || [ "$PR_JSON" = "null" ]; then
+            echo "::error::PR #$PR_NUMBER does not exist."
+            exit 1
+          fi
+
+          STATE=$(echo "$PR_JSON" | jq -r '.state')
+          BASE_REPO=$(echo "$PR_JSON" | jq -r '.base.repo.full_name')
+          BASE_REF=$(echo "$PR_JSON" | jq -r '.base.ref')
+          AUTHOR=$(echo "$PR_JSON" | jq -r '.user.login')
+          HEAD_REPO=$(echo "$PR_JSON" | jq -r '.head.repo.full_name')
+          HEAD_REF=$(echo "$PR_JSON" | jq -r '.head.ref')
+
+          if [ "$STATE" != "open" ]; then
+            echo "::error::PR #$PR_NUMBER is not open (state: $STATE)."
+            exit 1
+          fi
+
+          if [ "$BASE_REPO" != "$REPOSITORY" ]; then
+            echo "::error::PR #$PR_NUMBER base repo ($BASE_REPO) does not match current repo ($REPOSITORY)."
+            exit 1
+          fi
+
+          if [ "$BASE_REF" != "main" ]; then
+            echo "::error::PR #$PR_NUMBER base ref ($BASE_REF) is not 'main'."
+            exit 1
+          fi
+
+          if [ "$AUTHOR" != "dependabot[bot]" ]; then
+            echo "::error::PR #$PR_NUMBER author ($AUTHOR) is not 'dependabot[bot]'."
+            exit 1
+          fi
+
+          if [ "$HEAD_REPO" != "$REPOSITORY" ]; then
+            echo "::error::PR #$PR_NUMBER is from a fork ($HEAD_REPO). Cannot push directly."
+            exit 1
+          fi
+
+          echo "head_ref=$HEAD_REF" >> $GITHUB_OUTPUT
+          echo "Validated PR #$PR_NUMBER (branch: $HEAD_REF, author: $AUTHOR, state: $STATE)."
+
+      - name: Checkout trusted main branch code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch static requirements.txt inputs from PR head branch
+        env:
+          HEAD_REF: ${{ steps.validate-pr.outputs.head_ref }}
+        run: |
+          git fetch origin "$HEAD_REF"
+          git checkout "origin/$HEAD_REF" -- requirements/*.txt
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Execute trusted main lockfile resolution
+        run: python scripts/regenerate_lockfiles.py
+
+      - name: Enforce lockfile-only commit boundary & push to PR head branch
+        env:
+          HEAD_REF: ${{ steps.validate-pr.outputs.head_ref }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          # Copy regenerated lockfiles to temporary location
+          cp requirements/base.lock /tmp/base.lock
+          cp requirements/dev.lock /tmp/dev.lock
+
+          # Switch workspace to PR head branch
+          git checkout "$HEAD_REF"
+          cp /tmp/base.lock requirements/base.lock
+          cp /tmp/dev.lock requirements/dev.lock
+          rm -f /tmp/base.lock /tmp/dev.lock
+
+          # Stage ONLY requirements/*.lock
+          git reset
+          git add requirements/base.lock requirements/dev.lock
+
+          # Fail closed if any non-lockfile path is staged
+          STAGED_FILES=$(git diff --cached --name-only)
+          for file in $STAGED_FILES; do
+            case "$file" in
+              requirements/base.lock|requirements/dev.lock) ;;
+              *)
+                echo "::error::Fail-closed: Non-lockfile detected in staged diff: '$file'"
+                exit 1
+                ;;
+            esac
+          done
+
+          if [ -n "$STAGED_FILES" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(deps): synchronize lockfiles for Dependabot PR #$PR_NUMBER"
+            git push origin "HEAD:$HEAD_REF"
+          else
+            echo "Lockfiles are already in sync."
+          fi
