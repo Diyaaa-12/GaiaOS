@@ -65,6 +65,10 @@ jobs:
         run: |
           docker save gaiaos/postgres-postgis:ci redis:7-alpine gaiaos/app:ci gaiaos/worker:ci gaiaos/scheduler:ci gaiaos/admin-ui:ci | sudo k3s ctr images import -
 
+      - name: Create PostGIS Init Extensions ConfigMap in k3s
+        run: |
+          kubectl create configmap postgres-init-sql --from-file=01-init-extensions.sql=infra/docker/postgres/init-extensions.sql
+
       - name: Deploy PostGIS & Redis test dependencies in k3s
         run: |
           kubectl apply -f - <<EOF
@@ -95,6 +99,14 @@ jobs:
                         value: gaiaos
                     ports:
                       - containerPort: 5432
+                    volumeMounts:
+                      - name: init-sql
+                        mountPath: /docker-entrypoint-initdb.d/01-init-extensions.sql
+                        subPath: 01-init-extensions.sql
+                volumes:
+                  - name: init-sql
+                    configMap:
+                      name: postgres-init-sql
           ---
           apiVersion: v1
           kind: Service
@@ -140,10 +152,10 @@ jobs:
           kubectl rollout status deployment/postgres --timeout=120s
           kubectl rollout status deployment/redis --timeout=60s
 
-      - name: Run Alembic Init Extensions in PostGIS container
+      - name: Verify PostGIS & Vector Extensions in Database Container
         run: |
-          kubectl exec deployment/postgres -- psql -U gaiaos -d gaiaos -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-          kubectl exec deployment/postgres -- psql -U gaiaos -d gaiaos -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          kubectl exec deployment/postgres -- psql -h 127.0.0.1 -U gaiaos -d gaiaos -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          kubectl exec deployment/postgres -- psql -h 127.0.0.1 -U gaiaos -d gaiaos -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
       - name: Deploy GaiaOS Helm Release
         run: |
