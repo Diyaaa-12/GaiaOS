@@ -117,7 +117,8 @@ investigation = client.investigations.create("Assess seismic hazard in Californi
 print(investigation.investigation_id)
 ```
 
-*(Note: Raw HTTP `curl` request examples are retained in the [API Documentation](docs/api/)).*
+*(Note: Raw HTTP `curl` request examples are retained in the [API Documentation](docs/api/). For API semver commitments, see the [v1.0 API Stability Contract](docs/api/STABILITY.md)).*
+
 
 For complete production deployment, database migration hooks, MinIO configuration, Grafana dashboard import, and PostgreSQL/Redis operational maintenance, see the [Deployment & Operations Runbook](ops/runbooks/deployment_and_operations.md).
 

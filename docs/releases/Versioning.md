@@ -84,4 +84,11 @@ GaiaOS follows Semantic Versioning (`v0.X.Y`):
 
 - **v0.8.0** — Phase 8 (Distributed Worker Orchestration & Scale Operations)
 
+---
+
+## Public API Versioning & Stability
+
+All public endpoints under `/api/v1/` are subject to the binding [v1.0 API Stability Contract](../api/STABILITY.md). Backward-compatible additions may occur in patch releases; breaking changes require an operation-level `/api/v2/` upgrade.
+
 *(Refer to the project roadmap for current scope.)*
+

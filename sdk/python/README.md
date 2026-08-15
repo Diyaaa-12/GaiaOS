@@ -102,6 +102,8 @@ except IncompatibleServerError as e:
 
 - **Stable Surface**: Only symbols exported from `gaiaos_sdk` (`import gaiaos_sdk`) and listed in `__all__` constitute the public, semver-stable API surface.
 - **Internal Modules**: Modules under `gaiaos_sdk._generated` are auto-generated from OpenAPI specs and considered internal implementation details. Do not import directly from `_generated`.
+- **API Stability Contract**: See the binding [v1.0 API Stability Contract](../../docs/api/STABILITY.md) for endpoint stability, deprecation timelines, and `/v2/` migration guarantees.
+
 
 ---
 

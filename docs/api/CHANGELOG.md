@@ -2,13 +2,14 @@
 
 ## Public API Versioning Policy
 
-GaiaOS enforces strict semantic versioning guarantees on all public HTTP API endpoints under the `/api/` prefix.
+GaiaOS enforces strict semantic versioning guarantees on all public HTTP API endpoints under the `/api/` prefix. The full, binding contract is documented in [`docs/api/STABILITY.md`](STABILITY.md).
 
 ### Stability Guarantees (`/api/v1/`)
 - All endpoints under `/api/v1/` form the current **stable public API contract**.
 - Backward-compatible additions (new endpoints, optional request parameters, new non-null response fields) may be introduced in minor/patch updates to `/api/v1/`.
 - **Breaking changes** (removing endpoints, renaming parameters, altering response schemas, or removing response fields) will **NEVER** be made in-place on `/api/v1/`.
 - Any breaking change requires a new major API version prefix (e.g. `/api/v2/`). Deprecated `/api/v1/` endpoints will remain supported throughout a documented migration window.
+
 
 ---
 
