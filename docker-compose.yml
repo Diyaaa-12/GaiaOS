@@ -54,6 +54,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       DATABASE_URL: postgresql://gaiaos:${POSTGRES_PASSWORD:-gaiaos_dev_password}@postgres:5432/gaiaos
       REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-key-that-is-at-least-32-chars-long!}
       WORKER_POOL_SIZE: ${WORKER_POOL_SIZE:-2}
       WORKER_CONCURRENCY_PER_PROCESS: ${WORKER_CONCURRENCY_PER_PROCESS:-1}
     depends_on:

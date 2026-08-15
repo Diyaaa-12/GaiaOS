@@ -15,8 +15,8 @@ import sys
 from auth.password_hashing import hash_password, validate_password_policy
 from auth.roles import Role
 from config.settings import get_settings
+from db import session as db_session
 from db.repository import UserRepository
-from db.session import AsyncSessionLocal, init_engine
 from logging_config import configure_logging, get_logger
 
 _log = get_logger(__name__)
@@ -29,12 +29,12 @@ async def create_admin(email: str, password: str, full_name: str | None) -> None
         print(f"Error: Password policy violation — {policy_res.error_message}", file=sys.stderr)
         sys.exit(1)
 
-    init_engine()
-    if AsyncSessionLocal is None:
+    db_session.init_engine()
+    if db_session.AsyncSessionLocal is None:
         print("Error: Could not initialise database session.", file=sys.stderr)
         sys.exit(1)
 
-    async with AsyncSessionLocal() as session:
+    async with db_session.AsyncSessionLocal() as session:
         user = await UserRepository.get_user_by_email(session, email)
 
         hashed_pw = hash_password(password)
