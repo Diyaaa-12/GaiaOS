@@ -1,0 +1,70 @@
+name: Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-release:
+    name: Publish Automated GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Verify Versioning Documentation Gate
+        run: python scripts/verify_release_readiness.py --tag ${{ github.ref_name }}
+
+      - name: Generate Release Notes from Conventional Commits
+        run: python scripts/generate_release_notes.py --tag ${{ github.ref_name }} --output release_notes.md
+
+      - name: Generate CycloneDX v1.6 SBOM
+        run: python scripts/generate_sbom.py --lockfile requirements/base.lock --output gaiaos-sbom.json
+
+      - name: Publish GitHub Release (State-Tracked Atomic Flow)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -e
+          DRAFT_CREATED=false
+          RELEASE_PUBLISHED=false
+
+          cleanup() {
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -ne 0 ] && [ "$DRAFT_CREATED" = "true" ] && [ "$RELEASE_PUBLISHED" = "false" ]; then
+              IS_DRAFT=$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || echo "false")
+              if [ "$IS_DRAFT" = "true" ]; then
+                echo "::error::Release publishing failed prior to publication. Cleaning up draft release $TAG..."
+                gh release delete "$TAG" --yes || true
+              else
+                echo "::warning::Release $TAG is already published or not found. Skipping draft deletion."
+              fi
+            fi
+          }
+          trap cleanup EXIT
+
+          echo "1. Creating draft release..."
+          gh release create "$TAG" --draft --title "GaiaOS Release $TAG" --notes-file release_notes.md
+          DRAFT_CREATED=true
+
+          echo "2. Attaching CycloneDX v1.6 SBOM artifact..."
+          gh release upload "$TAG" gaiaos-sbom.json --clobber
+
+          echo "3. Publishing release..."
+          gh release edit "$TAG" --draft=false
+          RELEASE_PUBLISHED=true
+
+          echo "Release $TAG published successfully."

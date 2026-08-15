@@ -35,7 +35,9 @@ The central navigation index for all GaiaOS system architecture, contributor gui
 
 ## Releases
 - **[Versioning Strategy](releases/Versioning.md)** — Milestone tagging rules, release cadence, and semantic versioning strategy.
+- **[Automated Release Publishing Guide](phase8/release_automation.md)** — CI-driven release workflow, conventional commits, SBOM generation, and release readiness gate.
 - **[Phase 1 Roadmap](Roadmap_Phase1.md)** — Foundation, FastAPI, PostgreSQL (PostGIS + pgvector), Gateway.
+
 - **[Phase 2 Roadmap](Roadmap_Phase2.md)** — Multi-Agent Reasoning Core, LangGraph, Literature RAG.
 - **[Phase 3 Roadmap](Roadmap_Phase3.md)** — Auth, Rate Limiting, RQ Workers, SSE Stream, Eval Suite.
 - **[Phase 4 Roadmap](Roadmap_Phase4.md)** — CI Integrity, Admin Dashboard, Alerting, Citation Mapping, Geocoding, Worker Scaling.

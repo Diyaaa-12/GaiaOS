@@ -90,5 +90,11 @@ GaiaOS follows Semantic Versioning (`v0.X.Y`):
 
 All public endpoints under `/api/v1/` are subject to the binding [v1.0 API Stability Contract](../api/STABILITY.md). Backward-compatible additions may occur in patch releases; breaking changes require an operation-level `/api/v2/` upgrade.
 
+---
+
+## Automated Release Publishing
+
+All release tags matching `v*` trigger automated GitHub Release publishing, conventional commit changelog generation, CycloneDX v1.6 SBOM artifact building, and versioning documentation validation. See the [Automated Release Publishing Guide](../phase8/release_automation.md) for full architecture and maintainer procedures.
+
 *(Refer to the project roadmap for current scope.)*
 
