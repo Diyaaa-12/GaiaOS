@@ -176,3 +176,43 @@ class TestJWTSecretKeyRequirement:
             ValidationError, match="JWT_SECRET_KEY must be at least 32 characters long"
         ):
             Settings(_env_file=None)  # type: ignore[call-arg]
+
+    def test_jwt_secret_key_rejects_default_dev_secret_in_staging(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Settings raises ValidationError when GAIAOS_ENV=staging with default secret."""
+        monkeypatch.setenv("GAIAOS_ENV", "staging")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost:5432/db")
+        monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+        monkeypatch.setenv(
+            "JWT_SECRET_KEY", "dev-secret-key-that-is-at-least-32-chars-long!"
+        )
+        with pytest.raises(
+            ValidationError, match="JWT_SECRET_KEY cannot use the default development secret"
+        ):
+            Settings(_env_file=None)  # type: ignore[call-arg]
+
+    def test_jwt_secret_key_rejects_default_dev_secret_when_auth_enabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Settings raises ValidationError when ENABLE_AUTH=True with default secret."""
+        monkeypatch.setenv("ENABLE_AUTH", "True")
+        monkeypatch.setenv(
+            "JWT_SECRET_KEY", "dev-secret-key-that-is-at-least-32-chars-long!"
+        )
+        with pytest.raises(
+            ValidationError, match="JWT_SECRET_KEY cannot use the default development secret"
+        ):
+            Settings(_env_file=None)  # type: ignore[call-arg]
+
+    def test_jwt_secret_key_allows_default_dev_secret_in_dev_without_auth(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Settings allows default dev secret in GAIAOS_ENV=dev when ENABLE_AUTH=False."""
+        monkeypatch.setenv("GAIAOS_ENV", "dev")
+        monkeypatch.setenv("ENABLE_AUTH", "False")
+        monkeypatch.setenv(
+            "JWT_SECRET_KEY", "dev-secret-key-that-is-at-least-32-chars-long!"
+        )
+        settings = Settings(_env_file=None)  # type: ignore[call-arg]
+        assert settings.jwt_secret_key == "dev-secret-key-that-is-at-least-32-chars-long!"

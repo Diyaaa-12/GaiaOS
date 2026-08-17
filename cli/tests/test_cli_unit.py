@@ -6,6 +6,7 @@ import re
 from unittest.mock import MagicMock, patch
 
 from gaiaos_cli.main import app
+from gaiaos_sdk.exceptions import GaiaSDKError
 from typer.testing import CliRunner
 
 
@@ -23,6 +24,55 @@ def test_cli_version() -> None:
     clean_out = strip_ansi(result.stdout)
     assert "gaiaos-cli version:" in clean_out
     assert "gaiaos-sdk version:" in clean_out
+
+
+@patch("gaiaos_cli.commands.auth.get_sdk_client")
+def test_auth_register_success(mock_get_sdk_client: MagicMock) -> None:
+    """Verify gaiaos auth register registers a normal user account successfully."""
+    mock_client = MagicMock()
+    mock_get_sdk_client.return_value = mock_client
+    mock_user_resp = MagicMock()
+    mock_user_resp.email = "newuser@gaiaos.io"
+    mock_user_resp.role = "user"
+    mock_client.auth.register.return_value = mock_user_resp
+
+    result = runner.invoke(
+        app,
+        [
+            "auth",
+            "register",
+            "-e",
+            "newuser@gaiaos.io",
+            "-p",
+            "SecureP@ss123!",
+            "-n",
+            "New User",
+        ],
+    )
+    assert result.exit_code == 0
+    clean_out = strip_ansi(result.stdout)
+    assert "Successfully registered account 'newuser@gaiaos.io' (user)" in clean_out
+    mock_client.auth.register.assert_called_once_with(
+        email="newuser@gaiaos.io",
+        password="SecureP@ss123!",
+        full_name="New User",
+    )
+
+
+@patch("gaiaos_cli.commands.auth.get_sdk_client")
+def test_auth_register_failure(mock_get_sdk_client: MagicMock) -> None:
+    """Verify gaiaos auth register handles API errors cleanly."""
+    mock_client = MagicMock()
+    mock_get_sdk_client.return_value = mock_client
+    mock_client.auth.register.side_effect = GaiaSDKError("Email already registered")
+
+    result = runner.invoke(
+        app,
+        ["auth", "register", "-e", "existing@gaiaos.io", "-p", "SecureP@ss123!"],
+    )
+    assert result.exit_code == 1
+    clean_out = strip_ansi(result.stderr or result.output)
+    assert "Registration failed: Email already registered" in clean_out
 
 
 @patch("gaiaos_cli.commands.auth.get_sdk_client")

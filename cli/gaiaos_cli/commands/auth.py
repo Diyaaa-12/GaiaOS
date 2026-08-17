@@ -2,13 +2,56 @@
 
 from __future__ import annotations
 
+import json
+
 import typer
 from gaiaos_sdk.exceptions import GaiaSDKError
 
 from gaiaos_cli.config import get_sdk_client, load_config, save_config
-from gaiaos_cli.ui import print_error, print_info, print_success
+from gaiaos_cli.ui import console, print_error, print_info, print_success
 
 app = typer.Typer(name="auth", help="Manage authentication and credentials.")
+
+
+@app.command("register")
+def register(
+    ctx: typer.Context,
+    email: str = typer.Option(None, "--email", "-e", prompt="Email address"),
+    password: str = typer.Option(
+        None, "--password", "-p", prompt="Password", hide_input=True
+    ),
+    full_name: str | None = typer.Option(
+        None, "--full-name", "-n", help="Optional full name"
+    ),
+) -> None:
+    """Register a new normal user account with GaiaOS server."""
+    config = load_config()
+    client = get_sdk_client(
+        config,
+        api_url_override=ctx.obj.get("api_url") if ctx.obj else None,
+        api_key_override=ctx.obj.get("api_key") if ctx.obj else None,
+        token_override=ctx.obj.get("token") if ctx.obj else None,
+    )
+
+    try:
+        user_resp = client.auth.register(
+            email=email, password=password, full_name=full_name
+        )
+        registered_email = str(getattr(user_resp, "email", email))
+        user_role = str(getattr(user_resp, "role", "user"))
+
+        if ctx.obj and ctx.obj.get("json_output"):
+            raw_data = getattr(user_resp, "to_dict", lambda: {})()
+            console.print(json.dumps(raw_data, indent=2, default=str))
+        else:
+            print_success(f"Successfully registered account '{registered_email}' ({user_role}).")
+            print_info("Run [bold]gaiaos auth login[/bold] to authenticate with your credentials.")
+    except GaiaSDKError as exc:
+        print_error(f"Registration failed: {exc}")
+        raise typer.Exit(code=1) from exc
+    except Exception as exc:
+        print_error(f"Unexpected error during registration: {exc}")
+        raise typer.Exit(code=1) from exc
 
 
 @app.command("login")

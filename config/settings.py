@@ -6,6 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from orchestrator.__version__ import GAIAOS_VERSION
 
+DEFAULT_DEV_JWT_SECRET = "dev-secret-key-that-is-at-least-32-chars-long!"
+
 
 class Settings(BaseSettings):
     """Typed application settings loaded from environment variables."""
@@ -611,6 +613,12 @@ class Settings(BaseSettings):
 
             if len(self.jwt_secret_key) < 32:
                 raise ValueError("JWT_SECRET_KEY must be at least 32 characters long")
+
+            if self.jwt_secret_key == DEFAULT_DEV_JWT_SECRET:
+                raise ValueError(
+                    "JWT_SECRET_KEY cannot use the default development secret "
+                    "when ENABLE_AUTH is True or GAIAOS_ENV is staging/prod"
+                )
 
         # Validate S3/MinIO configuration conditionally
         if self.backup_storage_backend == "minio":
