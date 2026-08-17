@@ -30,6 +30,10 @@ dependencies = [
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = ["."]
+
+
 [tool.pytest.ini_options]
 # Discover tests only under tests/ to avoid accidentally picking up conftest
 # files from third-party packages installed in the venv.

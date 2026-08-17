@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements/base.lock
 
 COPY pyproject.toml .
+COPY README.md .
 COPY alembic.ini .
 COPY config/ config/
 COPY logging_config/ logging_config/
@@ -33,6 +34,7 @@ COPY simulation_engine/ simulation_engine/
 COPY eval/ eval/
 COPY alerting/ alerting/
 
+RUN pip install --no-cache-dir --no-deps -e .
 
 # Create a non-root user and group
 RUN groupadd -g 10000 gaiaos \
