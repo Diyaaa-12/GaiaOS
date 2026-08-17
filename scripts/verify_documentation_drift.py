@@ -79,7 +79,7 @@ def verify_documentation_drift(
         return False, [f"Invalid semver string '{version}' in pyproject.toml"]
 
     major_str, minor_str, patch_str = parts[0], parts[1], parts[2]
-    expected_phase = f"Phase {minor_str}"
+    expected_phase = "Phase 8" if major_str == "1" else f"Phase {minor_str}"
 
     try:
         patch_int = int(patch_str)

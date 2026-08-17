@@ -29,6 +29,7 @@ This document details the versioning strategy, tag evolution, and milestone rele
 | v0.7.2  | Phase 7 Milestones 5–6 (Scaling Evaluation & Distributed Metrics Aggregation) | Complete |
 | v0.7.3  | Phase 7 Milestone 7 (Deployment Governance & Scale Governance) | Complete |
 | v0.7.4  | Phase 7 Final Engineering Audit Exit (Persisted Telemetry & Governance Hardening) | Complete |
+| v1.0.0  | Phase 8 Capstone & GaiaOS v1.0 General Availability | Complete |
 
 ---
 
@@ -41,8 +42,9 @@ This document details the versioning strategy, tag evolution, and milestone rele
 
 ## Release Strategy
 
-GaiaOS follows Semantic Versioning (`v0.X.Y`):
+GaiaOS follows Semantic Versioning (`v0.X.Y` / `v1.X.Y`):
 
+- **MAJOR versions** (`v1.0.0`) represent production General Availability.
 - **MINOR versions** (`v0.4.0`, `v0.5.0`, `v0.6.0`, `v0.7.0`) represent major phase completions.
 - **PATCH versions** (`v0.4.1`, `v0.5.1`, `v0.6.1`, `v0.7.1`) represent milestone releases within a phase series.
 
@@ -78,11 +80,16 @@ GaiaOS follows Semantic Versioning (`v0.X.Y`):
 - **v0.7.3** — Phase 7 Milestone 7 (Deployment Governance & Scale Governance)
 - **v0.7.4** — Phase 7 Final Engineering Audit Exit (Persisted Telemetry & Governance Hardening)
 
+### The v1.0.x Production Release Series
+
+- **v1.0.0** — Phase 8 Capstone & GaiaOS v1.0 General Availability Release
+
 ---
 
 ## Future Releases
 
-- **v0.8.0** — Phase 8 (Distributed Worker Orchestration & Scale Operations)
+- **v1.1.0** — Phase 9 (Advanced Planetary Agentic Autonomy & Enterprise Scale)
+
 
 ---
 

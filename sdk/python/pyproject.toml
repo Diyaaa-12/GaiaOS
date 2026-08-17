@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gaiaos-sdk"
-version = "0.7.4"
+version = "1.0.0"
 description = "Official Python SDK for GaiaOS — Agentic Planetary Risk Intelligence Platform"
 readme = "README.md"
 requires-python = ">=3.10"

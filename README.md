@@ -33,6 +33,8 @@ Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and the v0.7.x Ex
 | **v0.7.2** | Phase 7 Milestones 5–6 (Horizontal Scaling Evaluation & OpenMetrics Telemetry Enrichment) | Complete |
 | **v0.7.3** | Phase 7 Milestone 7 (Deployment Governance & Scale Governance) | Complete |
 | **v0.7.4** | Phase 7 Final Engineering Audit Exit (Persisted Telemetry & Governance Hardening) | Complete |
+| **v1.0.0** | Phase 8 Capstone & GaiaOS v1.0 General Availability | Complete |
+
 
 Detailed architectural specifications, documentation hub, and milestone scope documents are linked below:
 - **Documentation Hub**: [`docs/README.md`](docs/README.md)
