@@ -53,7 +53,7 @@ class TestResearchPatternsAPI:
         )
         await db_session.commit()
 
-        response = await client.get("/api/v1/research/patterns")
+        response = await client.get("/api/v1/research/patterns?region=Chile")
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1
@@ -81,9 +81,9 @@ class TestResearchPatternsAPI:
         await PatternFindingRepository.save_pattern_version(
             session=db_session,
             pattern_hash="hash_a",
-            source_event_type="wildfire",
+            source_event_type="unique_test_wildfire",
             target_event_type="air_quality_anomaly",
-            region_label="California",
+            region_label="UniqueTestRegion_CA",
             time_window_days=14,
             support_count=10,
             total_source_events=12,
@@ -104,20 +104,24 @@ class TestResearchPatternsAPI:
         )
         await db_session.commit()
 
-        # Filter by region=California
-        response = await client.get("/api/v1/research/patterns?region=California")
+        # Filter by region=UniqueTestRegion_CA
+        response = await client.get("/api/v1/research/patterns?region=UniqueTestRegion_CA")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
-        assert data[0]["region_label"] == "California"
+        assert data[0]["region_label"] == "UniqueTestRegion_CA"
 
-        # Filter by event_type=wildfire
-        response_type = await client.get("/api/v1/research/patterns?event_type=wildfire")
+        # Filter by event_type=unique_test_wildfire
+        response_type = await client.get(
+            "/api/v1/research/patterns?event_type=unique_test_wildfire"
+        )
         assert response_type.status_code == 200
         assert len(response_type.json()) == 1
 
         # Non-matching filter returns empty list
-        response_empty = await client.get("/api/v1/research/patterns?region=NonExistentRegion")
+        response_empty = await client.get(
+            "/api/v1/research/patterns?region=NonExistentRegion"
+        )
         assert response_empty.status_code == 200
         assert response_empty.json() == []
 

@@ -42,7 +42,7 @@ def test_validate_server_incompatible_major_version() -> None:
     """Incompatible major version raises IncompatibleServerError."""
     respx.get("http://localhost:8000/api/v1/health/live").mock(
         return_value=Response(
-            200, json={"status": "alive", "app_version": "1.0.0", "schema_version": "1"}
+            200, json={"status": "alive", "app_version": "2.0.0", "schema_version": "1"}
         )
     )
 
@@ -57,7 +57,7 @@ def test_validate_server_minor_warning() -> None:
     """Minor version mismatch issues UserWarning."""
     respx.get("http://localhost:8000/api/v1/health/live").mock(
         return_value=Response(
-            200, json={"status": "alive", "app_version": "0.8.0", "schema_version": "1"}
+            200, json={"status": "alive", "app_version": "1.1.0", "schema_version": "1"}
         )
     )
 

@@ -26,7 +26,7 @@ from orchestrator.schemas.uncertainty import UncertaintyEstimate
 def test_canonical_version_truth() -> None:
     """Verifies that GAIAOS_VERSION is a valid semantic version string."""
     parsed = Version(GAIAOS_VERSION)
-    assert parsed.major == 0
+    assert parsed.major == 1
     assert GAIAOS_VERSION == __version__
 
 
@@ -53,7 +53,7 @@ def test_validate_plugin_compatibility_success() -> None:
         version="1.0.0",
         domain="space_weather",
         entry_point="dummy:run",
-        gaiaos_version_range=">=0.5.0,<1.0.0",
+        gaiaos_version_range=">=0.5.0,<=1.0.0",
     )
     # Should not raise
     validate_plugin_compatibility(manifest)
@@ -66,11 +66,11 @@ def test_validate_plugin_compatibility_failure() -> None:
         version="1.0.0",
         domain="space_weather",
         entry_point="dummy:run",
-        gaiaos_version_range=">=1.0.0",
+        gaiaos_version_range=">=2.0.0",
     )
     with pytest.raises(IncompatibleVersionError) as exc_info:
         validate_plugin_compatibility(manifest)
-    assert "requires GaiaOS version '>=1.0.0'" in str(exc_info.value)
+    assert "requires GaiaOS version '>=2.0.0'" in str(exc_info.value)
 
 
 def test_validate_required_settings(monkeypatch: pytest.MonkeyPatch) -> None:
