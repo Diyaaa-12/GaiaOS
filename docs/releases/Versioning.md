@@ -88,7 +88,7 @@ GaiaOS follows Semantic Versioning (`v0.X.Y` / `v1.X.Y`):
 
 ## Future Releases
 
-- **v1.1.0** — Phase 9 (Advanced Planetary Agentic Autonomy & Enterprise Scale)
+- **v1.1.0** — Phase 9 (Advanced Planetary Agentic Autonomy & Enterprise Scale) *(Non-binding future placeholder; v1.0.0 is the engineering finish line per post-v1 and finish-line assessments)*
 
 
 ---
