@@ -94,6 +94,64 @@ These audit documents are living engineering records that maintain a historical 
 
 ---
 
+## Phase 6 Audit — Real-Data Grounding & Resilience (v0.6.0–v0.6.4)
+
+- **Status**: ✅ Completed (v0.6.4 Synchronized)
+- **Overall Decision**: Approved for Phase 7 Entry
+- **Major Findings**: 5 (all resolved or accepted as deliberate design decisions)
+- **Resolved in v0.6.0–v0.6.4**:
+  - ✔ Resilience Layer: Redis-backed caching, retry logic & circuit breaker pattern (Milestone 1)
+  - ✔ Copernicus, ERA5 & GDELT real-data ingestion pipelines (Milestones 2–3)
+  - ✔ OSM administrative boundary integration (Milestone 3)
+  - ✔ ArXiv open-access corpus pipeline (Milestone 4)
+  - ✔ Offline simulation calibration with versioned parameter promotion (Milestone 5)
+  - ✔ MinIO self-hosted object storage backend (Milestone 6)
+  - ✔ README & Versioning.md currency restored (recurring documentation-drift pattern — 5th instance; addressed)
+  - ✔ Operational readiness & polish (v0.6.4)
+- **Document**: [`docs/audits/GaiaOS_Phase6_Final_Audit.md`](docs/audits/GaiaOS_Phase6_Final_Audit.md)
+
+---
+
+## Phase 7 Audit — Explainability, Ecosystem & Governance (v0.7.0–v0.7.4)
+
+- **Status**: ✅ Completed (v0.7.4 Synchronized)
+- **Overall Decision**: Approved for Phase 8 Entry (post minor publish/sync fixes)
+- **Major Findings**: 6 (all resolved — including first-ever publish/push gap finding)
+- **Resolved in v0.7.0–v0.7.4**:
+  - ✔ Reasoning Trace Exploration & Explainability endpoints (Milestone 1)
+  - ✔ Environmental pattern mining migrations & scheduler job (Milestone 2)
+  - ✔ Python SDK (`gaiaos_sdk`) with full investigation lifecycle coverage (Milestone 3)
+  - ✔ CLI Wizard (`gaiaos` CLI) with auth, investigate, plugin scaffold commands (Milestone 4)
+  - ✔ Horizontal scaling evaluation (Phase 7 M5): single-node confirmed sufficient, advisory policy documented (Milestone 5)
+  - ✔ OpenMetrics/Prometheus telemetry enrichment with `event_type` dimension (Milestone 6)
+  - ✔ Deployment governance & Helm chart documentation (Milestone 7)
+  - ✔ Persisted telemetry & governance hardening (v0.7.4 audit exit)
+  - ✔ Live GitHub publish/push gap closed — local HEAD synchronized to `origin/main`
+  - ✔ Documentation-currency pattern (7th instance) resolved: README, Versioning.md, and all Phase 7 roadmap docs synchronized
+- **Document**: [`docs/audits/GaiaOS_Phase7_Final_Audit.md`](docs/audits/GaiaOS_Phase7_Final_Audit.md)
+
+---
+
+## Phase 8 Audit & v1.0.0 General Availability (v1.0.0)
+
+- **Status**: ✅ Completed — **Engineering Finish Line Reached**
+- **Overall Decision**: GaiaOS v1.0.0 is the stable architectural finish line. No Phase 9 is warranted.
+- **Major Findings**: All resolved prior to GA tag
+- **Completed in v1.0.0**:
+  - ✔ Automated release publishing: conventional commit changelog, CycloneDX v1.6 SBOM generation, GitHub Release CI workflow (Phase 8 M2)
+  - ✔ v1.0 API Stability Contract established (`docs/api/STABILITY.md`) — all `/api/v1/` endpoints under semver commitment (Phase 8 M2)
+  - ✔ Supply-chain & container security hardening: Dependabot corrective workflows, Trivy container scanning, SBOM attestation (Phase 8 M3)
+  - ✔ Automated scaling-trigger alerting integrated with existing threshold pipeline (Phase 8 M4)
+  - ✔ Optional multi-node Helm chart, k8s deployment guide & k3s smoke CI workflow (Phase 8 M5)
+  - ✔ Runtime version resolution made canonical (`scripts/verify.py`, `pyproject.toml`, `cli/`, `sdk/`)
+  - ✔ v1.0.0 release tag published with full GitHub Release, SBOM artifact & changelog
+  - ✔ Post-v1 architectural assessment: all 10 Phase 9 gap candidates rejected — v1.0.0 confirmed as engineering finish line
+- **Post-v1 Assessment Documents**:
+  - [`docs/audits/post_v1_assessment.md`](docs/audits/post_v1_assessment.md) — Repository-evidenced review of all Phase 9 gap candidates; verdict: no Phase 9 justified
+  - [`docs/audits/finish_line_assessment.md`](docs/audits/finish_line_assessment.md) — Defines "done" for GaiaOS, maintenance-mode watch conditions, and explicit non-goals going forward
+
+---
+
 ## Repository Status Matrix
 
 Detailed release history and tag evolution strategy are documented in [`docs/releases/Versioning.md`](docs/releases/Versioning.md).
@@ -109,10 +167,27 @@ Detailed release history and tag evolution strategy are documented in [`docs/rel
 | **v0.5.1** | Phase 5 Milestones 3–5 (Uncertainty, Collaboration Bus & Cross-Domain Synthesis) | v0.5.1 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
 | **v0.5.2** | Phase 5 Milestone 6 (Agent Plugin Architecture & Dynamic Extensions) | v0.5.2 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
 | **v0.5.3** | Phase 5 Milestones 7–8 (Read Replica Scaling & SLO Burn-Rate Alerting) | v0.5.3 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
-| **v0.5.4** | Phase 5 Capstone (Public Research API & Dataset Publishing) | **v0.5.4** | **✅ Complete** | **✅ Apache-2.0** | **✅ Ready** |
+| **v0.5.4** | Phase 5 Capstone (Public Research API & Dataset Publishing) | v0.5.4 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.6.0** | Phase 6 Milestone 1 (Resilience Layer: Caching, Retry & Circuit Breaker) | v0.6.0 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.6.1** | Phase 6 Milestones 2–3 (Copernicus, ERA5, GDELT Ingestion & OSM Boundaries) | v0.6.1 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.6.2** | Phase 6 Milestones 4–5 (ArXiv Open-Access Corpus & Offline Simulation Calibration) | v0.6.2 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.6.3** | Phase 6 Milestone 6 (MinIO Self-Hosted Object Storage Option) | v0.6.3 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.6.4** | Phase 6 Operational Readiness & Polish | v0.6.4 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.7.0** | Phase 7 Milestones 1–3 (Explainability, Pattern Mining & Python SDK) | v0.7.0 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.7.1** | Phase 7 Milestone 4 (CLI Wizard & Developer Tooling) | v0.7.1 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.7.2** | Phase 7 Milestones 5–6 (Scaling Evaluation & Distributed Metrics Aggregation) | v0.7.2 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.7.3** | Phase 7 Milestone 7 (Deployment Governance & Scale Governance) | v0.7.3 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v0.7.4** | Phase 7 Final Engineering Audit Exit (Persisted Telemetry & Governance Hardening) | v0.7.4 | ✅ Complete | ✅ Apache-2.0 | ✅ Ready |
+| **v1.0.0** | Phase 8 Capstone — GaiaOS v1.0 General Availability | **v1.0.0** | **✅ Complete** | **✅ Apache-2.0** | **✅ GA** |
 
 ---
 
-## Current Target
+## Current Status — v1.0.0 Engineering Finish Line
 
-➡ **Phase 6 — Production Hardening & Next-Gen Capabilities (v0.6.0)**
+**GaiaOS v1.0.0 is complete.** The project is in maintenance mode per the [Post-v1 Architectural Assessment](docs/audits/post_v1_assessment.md) and [Finish-Line Assessment](docs/audits/finish_line_assessment.md).
+
+Active watch conditions (no scheduled milestones):
+- Dependency/security drift checks — existing CI cadence
+- Documentation-currency watch — per-release
+- Plugin event-loop-starvation backlog note — dormant until a real, reported case emerges
+- Simulation calibration research track — unscheduled, evidence-triggered
